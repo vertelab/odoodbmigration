@@ -1,3 +1,11 @@
+#
+# This script 
+# 1. cleans a target db of it's products.template's and ...
+# 2. fills the target db with all products.template's in a src db.
+# 
+# Used in Maria Åkerberg's porting from Odoo 8 to Odoo 14
+# 
+
 import argparse
 import json
 import logging
@@ -50,7 +58,7 @@ print('unlinking existsing products ...')
 for target_id in target.env['product.template'].search([]):
   target.env['product.template'].browse(target_id).unlink()
 
-print('transferring products from source ...')
+print('copying products from source ...')
 for source_id in source.env['product.template'].search([]):
     source_product = source.env['product.template'].read(source_id, fields)
     target.env['product.template'].create({fields[key] : source_product[key] for key in fields.keys()})
