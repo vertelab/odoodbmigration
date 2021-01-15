@@ -43,11 +43,12 @@ print('unlinking existsing category ...')
 for target_id in target.env['product.public.category'].search([]):
     target.env['product.public.category'].browse(target_id).unlink()
 
-
+print('creating categories')
 for source_product_id in source.env['product.template'].search([]):
     source_product = source.env['product.template'].browse(source_product_id)
     target_product_id = target.env['product.template'].search([('old_id', '=', source_product_id)])[0]
     target_product = target.env['product.template'].browse(target_product_id)
+    print(target_product_id)
 
     for category in source_product.public_categ_ids:
 
@@ -59,4 +60,7 @@ for source_product_id in source.env['product.template'].search([]):
         target_category = target.env['product.public.category'].search([('name','=',category.name)])
 
         target_product.public_categ_ids += target_category
+
+
+        
 
