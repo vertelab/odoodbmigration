@@ -26,27 +26,24 @@ source_params = {
 target_params = {
             "host" : "81.170.214.150",
             "port" : 8069,
-            "db"   : "maria_portering",
+            "db"   : "maria1",
             "user" : "admin",
             "password"  : "admin"
         }
 
 # 'source_field_name' : 'target_field_name'
-fields = {'name', 'name',
-    'active' : 'active',
-    'list_price', 'list_price',
-    'description', 'description',
-    'description_sale', 'description_sale',
-    'default_code', 'default_code',
-    'image', 'image_1920',
-}
+fields = {
+'name' : 'name',
+'sale_ok' : 'sale_ok', 
+'description' : 'description', 
+'purchase_ok': 'purchase_ok',
+'list_price': 'list_price',
+'description_sale': 'description_sale',
+'default_code': 'default_code',
+'image_medium' : 'image_1920',
+'id': 'old_id',
 
-# fields = [
-#               'active','description','description_sale','image',
-#               'default_code','name','list_price',
-#               'standard_price',
-#               'website_description',
-#               'website_published','public_desc', 'reseller_desc']
+}
 
 source = odoorpc.ODOO(host=source_params["host"],port=source_params["port"])
 source.login(source_params["db"],login=source_params["user"],password=source_params["password"])
@@ -56,9 +53,10 @@ target.login(target_params["db"],login=target_params["user"],password=target_par
 
 print('unlinking existsing products ...')
 for target_id in target.env['product.template'].search([]):
-  target.env['product.template'].browse(target_id).unlink()
+	target.env['product.template'].browse(target_id).unlink()
 
 print('copying products from source ...')
 for source_id in source.env['product.template'].search([]):
     source_product = source.env['product.template'].read(source_id, fields)
     target.env['product.template'].create({fields[key] : source_product[key] for key in fields.keys()})
+

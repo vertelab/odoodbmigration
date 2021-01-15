@@ -41,16 +41,8 @@ fields = {
 'description_sale': 'description_sale',
 'default_code': 'default_code',
 'image_medium' : 'image_1920',
-
+'id' : 'old_id',
 }
-
-
-# fields = [
-#               'active','description','description_sale','image',
-#               'default_code','name','list_price',
-#               'standard_price',
-#               'website_description',
-#               'website_published','public_desc', 'reseller_desc']
 
 source = odoorpc.ODOO(host=source_params["host"],port=source_params["port"])
 source.login(source_params["db"],login=source_params["user"],password=source_params["password"])
@@ -62,8 +54,17 @@ print('unlinking existsing products ...')
 for target_id in target.env['product.product'].search([]):
     target.env['product.product'].browse(target_id).unlink()
 
-print('copying products from source ...')
+print('creating same variants as in source ...')
 for source_id in source.env['product.product'].search([]):
     source_product = source.env['product.product'].read(source_id, fields)
     target.env['product.product'].create({fields[key] : source_product[key] for key in fields.keys()})
     
+print('adding variants to products')
+for source_id in source.env['product.template'].search([]):
+    source_product = source.env['product.template'].read(source_id, fields)
+
+for target_id in target.env['product.product'].search([]):
+    source_id = target.env['product.product'].browse(target_id).old_id
+    source_product = source.env['product.product'].browse(source_id)
+
+#product_tmpl_id
