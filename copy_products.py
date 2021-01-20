@@ -80,13 +80,13 @@ category_fields = {
 templates_id = {}
 categories_id = {}
 
-target.config['auto_commit'] = False
+# target.config['auto_commit'] = True
 
 # delete all records in model
 def unlink(model):
     print('unlinking ' + model + ' ...')
     try:
-        target.env['product.public.category'].browse(target.env['product.public.category'].search([])).unlink()
+        target.env[model].browse(target.env[model].search([])).unlink()
     except:
         print(model + ' already unlinked')
 
@@ -101,6 +101,7 @@ for source_template_id in source.env['product.template'].search([]):
     source_template = source.env['product.template'].browse(source_template_id)
     target_template_id = target.env['product.template'].create({template_fields[key] : source_template[key] for key in template_fields.keys()})
     target_template = target.env['product.template'].browse(target_template_id)
+    templates_id[source_template_id] = target_template_id
     print("created product.template id", target_template_id)
     
     # copy its variants
@@ -108,15 +109,20 @@ for source_template_id in source.env['product.template'].search([]):
     for source_variant_id in source_template.product_variant_ids.ids:
         source_variant = source.env['product.product'].read(source_variant_id, variant_fields)
         target_variants.append(target.env['product.product'].create({variant_fields[key] : source_variant[key] for key in variant_fields.keys()}))
-        
-    try:
-        target_template.product_variant_ids = [(6, 0, target_variants)]
-        print("created product.product ids", target_variants)
-    except:
-        print("variant already exists ...")
+
+    #target_variants = list(filter(lambda x : x != target_template_id, set(target_variants)))
+    print("trying to write ids", target_variants)
+    target_template.product_variant_ids = [(6, 0, target_variants)]
+    
+    #target_template.product_variant_ids = target.env['product.product'].browse(target_variants)
+    #target_template.write({'product_variant_ids' : [(6, 0, target_variants)]})
+    
+    #try:
+    #    print("created product.product ids", target_variants)
+    #except:
+    #    print("variant already exists ...")
     
     templates_id[source_template_id] = target_template
-target.env.commit()
 
 # CATEGORIES
 print('copying categories from source to target ...')
@@ -125,7 +131,6 @@ for source_category_id in source.env['product.public.category'].search([]):
     target_category = target.env['product.public.category'].create({category_fields[key] : source_category[key] for key in category_fields.keys()})
     categories_id[source_category_id] = target_category
     print('created category', target_category)
-target.env.commit()
 
 print('adding categories to target templates ...')
 for source_template_id in source.env['product.template'].search([]):
@@ -134,7 +139,6 @@ for source_template_id in source.env['product.template'].search([]):
     # get the source template categories and write them to target
     target_template.public_categ_ids = [(6, 0, [categories_id[category] for category in source_template.public_categ_ids.ids])]
     print('added category to', target_template.name)
-target.env.commit()
 
 print('adding parent_id to categories ...')
 for source_category_id in source.env['product.public.category'].search([]):
@@ -143,4 +147,3 @@ for source_category_id in source.env['product.public.category'].search([]):
     # get source category parents and write them to target
     target_category.parent_id = [(6, 0, [categories_id[parent] for parent in source_category.parent_id.ids])]
     print('added parent to', target_category.display_name)
-target.env.commit()
