@@ -1,7 +1,9 @@
+#!/usr/bin/env python3
+
 #
-# This script 
-# 1. cleans a target db of it's products.template's and ...
-# 2. fills the target db with all products.template's in a src db.
+# This script ports product.template, product.product and product.public.category.
+# 1. cleans a target db of the existing models which are to be ported and ...
+# 2. copies the models from a src db to target db.
 # 
 # Used in Maria Åkerberg's porting from Odoo 8 to Odoo 14
 # 
@@ -10,6 +12,7 @@ import argparse
 import json
 import logging
 import sys
+
 try:
     import odoorpc
 except ImportError:
@@ -17,7 +20,7 @@ except ImportError:
 
 source_params = {
             "host" : "localhost",
-            "port" : 5080,
+            "port" : 6080,
             "db"   : "dermanord",
             "user" : "admin",
             "password"  : "InwX11Je3DtifHHb"        
@@ -26,27 +29,10 @@ source_params = {
 target_params = {
             "host" : "81.170.214.150",
             "port" : 8069,
-            "db"   : "maria_portering",
+            "db"   : "maria_nodemo",
             "user" : "admin",
             "password"  : "admin"
         }
-
-# 'source_field_name' : 'target_field_name'
-fields = {'name', 'name',
-    'active' : 'active',
-    'list_price', 'list_price',
-    'description', 'description',
-    'description_sale', 'description_sale',
-    'default_code', 'default_code',
-    'image', 'image_1920',
-}
-
-# fields = [
-#               'active','description','description_sale','image',
-#               'default_code','name','list_price',
-#               'standard_price',
-#               'website_description',
-#               'website_published','public_desc', 'reseller_desc']
 
 source = odoorpc.ODOO(host=source_params["host"],port=source_params["port"])
 source.login(source_params["db"],login=source_params["user"],password=source_params["password"])
@@ -54,11 +40,110 @@ source.login(source_params["db"],login=source_params["user"],password=source_par
 target = odoorpc.ODOO(host=target_params["host"],port=target_params["port"])
 target.login(target_params["db"],login=target_params["user"],password=target_params["password"])
 
-print('unlinking existsing products ...')
-for target_id in target.env['product.template'].search([]):
-  target.env['product.template'].browse(target_id).unlink()
+# variant fields to copy from source to target
+# { 'source_field_name' : 'target_field_name' }
+variant_fields = {
+    'name' : 'name',
+    'sale_ok' : 'sale_ok', 
+    'description' : 'description', 
+    'purchase_ok': 'purchase_ok',
+    'list_price': 'list_price',
+    'description_sale': 'description_sale',
+    'default_code': 'default_code',
+    'image_medium' : 'image_1920',
+    #'id': 'old_id',
+}
 
-print('copying products from source ...')
-for source_id in source.env['product.template'].search([]):
-    source_product = source.env['product.template'].read(source_id, fields)
-    target.env['product.template'].create({fields[key] : source_product[key] for key in fields.keys()})
+# template fields to copy from source to target
+# { 'source_field_name' : 'target_field_name' }
+template_fields = {
+    'name' : 'name',
+    'sale_ok' : 'sale_ok', 
+    'description' : 'description', 
+    'purchase_ok': 'purchase_ok',
+    'list_price': 'list_price',
+    'description_sale': 'description_sale',
+    'default_code': 'default_code',
+    'image_medium' : 'image_1920',
+    'website_published': 'website_published',
+    #'id': 'old_id',
+}
+
+# category fields to copy from source to target
+# { 'source_field_name' : 'target_field_name' }
+category_fields = {
+    'name' : 'name', 
+    'display_name' : 'display_name',
+}
+
+# Structures to lookup the new target id from the old source id. { old_id : new_id }
+templates_id = {}
+categories_id = {}
+
+# target.config['auto_commit'] = True
+
+# delete all records in model
+def unlink(model):
+    print('unlinking ' + model + ' ...')
+    try:
+        target.env[model].browse(target.env[model].search([])).unlink()
+    except:
+        print(model + ' already unlinked')
+
+# UNLINKS
+unlink('product.public.category')
+unlink('product.template')
+unlink('product.product')
+
+# TEMPLATES
+print('copying templates from source to target ...')
+for source_template_id in source.env['product.template'].search([]):
+    source_template = source.env['product.template'].browse(source_template_id)
+    target_template_id = target.env['product.template'].create({template_fields[key] : source_template[key] for key in template_fields.keys()})
+    target_template = target.env['product.template'].browse(target_template_id)
+    templates_id[source_template_id] = target_template_id
+    print("created product.template id", target_template_id)
+    
+    # copy its variants
+    target_variants = []
+    for source_variant_id in source_template.product_variant_ids.ids:
+        source_variant = source.env['product.product'].read(source_variant_id, variant_fields)
+        target_variants.append(target.env['product.product'].create({variant_fields[key] : source_variant[key] for key in variant_fields.keys()}))
+
+    #target_variants = list(filter(lambda x : x != target_template_id, set(target_variants)))
+    print("trying to write ids", target_variants)
+    target_template.product_variant_ids = [(6, 0, target_variants)]
+    
+    #target_template.product_variant_ids = target.env['product.product'].browse(target_variants)
+    #target_template.write({'product_variant_ids' : [(6, 0, target_variants)]})
+    
+    #try:
+    #    print("created product.product ids", target_variants)
+    #except:
+    #    print("variant already exists ...")
+    
+    templates_id[source_template_id] = target_template
+
+# CATEGORIES
+print('copying categories from source to target ...')
+for source_category_id in source.env['product.public.category'].search([]):
+    source_category = source.env['product.public.category'].browse(source_category_id)
+    target_category = target.env['product.public.category'].create({category_fields[key] : source_category[key] for key in category_fields.keys()})
+    categories_id[source_category_id] = target_category
+    print('created category', target_category)
+
+print('adding categories to target templates ...')
+for source_template_id in source.env['product.template'].search([]):
+    source_template = source.env['product.template'].browse(source_template_id)
+    target_template = target.env['product.template'].browse(templates_id[source_template_id])[0]
+    # get the source template categories and write them to target
+    target_template.public_categ_ids = [(6, 0, [categories_id[category] for category in source_template.public_categ_ids.ids])]
+    print('added category to', target_template.name)
+
+print('adding parent_id to categories ...')
+for source_category_id in source.env['product.public.category'].search([]):
+    source_category = source.env['product.public.category'].browse(source_category_id)
+    target_category = target.env['product.public.category'].browse(categories_id[source_category_id])[0]
+    # get source category parents and write them to target
+    target_category.parent_id = [(6, 0, [categories_id[parent] for parent in source_category.parent_id.ids])]
+    print('added parent to', target_category.display_name)
