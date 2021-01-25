@@ -43,6 +43,24 @@ def get_relations(columns,required_only=True, ignore_default=True):
                 continue
             ret.append(k)
     return ret
+def get_requried_fields(columns):
+    '''
+    Returns a list with keys of columns with required data.
+    
+    Parameters
+    ==========
+    columns : dict
+        Dictionary as retrieved by _columns
+    '''
+    ret = []
+    for k in columns.keys():
+        try:
+            if columns[k].required:
+                ret.append(k)
+        except AttributeError as e:
+            _logger.debug(f"Unexpected AttributeError: {e.msg}")
+            pass #
+    return ret
 def _model_dependencies(conn, model, visited, recursive_depth=None, follow_required=True,required_only=True, ignore_default=True):
     '''
     Recursively add a models dependency to the set visited.
