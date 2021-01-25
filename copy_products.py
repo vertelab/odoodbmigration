@@ -50,6 +50,28 @@ def unlink(model):
     except:
         print(model + ' already unlinked')
 
+# attribute fields to copy from source to target
+# { 'source_field_name' : 'target_field_name' }
+attribute_fields = {
+    'name': 'name',
+    'create_variant': 'create_variant',
+    'display_type': 'display_type',
+}
+
+# attribute fields to copy from source to target
+# { 'source_field_name' : 'target_field_name' }
+attribute_value_fields = {
+    'name': 'name',
+    'is_custom': 'is_custom',
+    'is_used_on_products': 'is_used_on_products',
+    'html_color': 'html_color',
+    'display_type': 'display_type',
+}
+
+attribute_value_line_fields = {
+    'active' : 'active',
+}
+
 # variant fields to copy from source to target
 # { 'source_field_name' : 'target_field_name' }
 variant_fields = {
@@ -78,7 +100,6 @@ template_fields = {
     'website_published': 'website_published',
     #'id': 'old_id',
 }
-
 # category fields to copy from source to target
 # { 'source_field_name' : 'target_field_name' }
 category_fields = {
@@ -87,6 +108,7 @@ category_fields = {
 }
 
 # Structures to lookup the new target id from the old source id. { old_id : new_id }
+attributes_id = {}
 templates_id = {}
 categories_id = {}
 variants_id = {}
@@ -96,22 +118,38 @@ unlink('product.public.category')
 unlink('product.template')
 unlink('product.product')
 
-##### EXAMPLE OF THE PROBLEM START
-# we fetch two products from the source database and try to add one of them as a variant of the other.
-source_variant_1 = source.env['product.product'].browse(source.env['product.product'].search([])[0])
-source_variant_2 = source.env['product.product'].browse(source.env['product.product'].search([])[1])
+# ATTRIBUTES
+print('copying attributes from source to target ...')
+for source_attribute_id in source.env['product.attribute'].search([]):
+    source_attribute = source.env['product.attribute'].browse(source_variant_id)
+    target_attribute_id = target.env['product.attribute'].create({attribute_fields[key] : source_attribute[key] for key in attribute_fields.keys()})
+    attributes_id[source_attribute_id] = target_attribute_id
     
-target_variant_id_1 = target.env['product.product'].create({variant_fields[key] : source_variant_1[key] for key in variant_fields.keys()})
-target_variant_id_2 = target.env['product.product'].create({variant_fields[key] : source_variant_2[key] for key in variant_fields.keys()})
-
-target_variant = target.env['product.product'].browse(target_variant_id_1)
-
-# this line violates unique constraint:
-target_variant.product_variant_ids = [(6, 0, target_variant_id_2)]
-
+# ATTRIBUTES VALUES
+print('copying attributes values from source to target ...')
+for source_attribute_value_id in source.env['product.attribute.value'].search([]):
+    source_attribute_value = source.env['product.attribute.value'].browse(source_attribute_value_id)
+    target_attribute_value_id = target.env['product.attribute.value'].create({attribute_value_fields[key] : source_attribute_value[key] for key in attribute_value_fields.keys()})
+    target_attribute_value = target.env['product.attribute.value'].browse(target_attribute_value_id)
+    target_attribute_value.attribute_id = [6, 0, attributes_id[val] for val in source_attribute.attributes_id]
+    
+# TEMPLATES
+print('copying templates from source to target ...')
+for source_template_id in source.env['product.template'].search([]):
+    source_template = source.env['product.template'].browse(source_template_id)
+    target_template = target.env['product.template'].create({template_fields[key] : source_template[key] for key in template_fields.keys()})
+    templates_id[source_id] = target_template
+    
+# ATTRIBUTES VALUES LINE (ADD TO TEMPLATE)
+print('copying attributes_value_lines from source to target ...')
+for source_attribute_value_line_id in source.env['product.attribute.value.line'].search([]):
+    source_attribute_value_line = source.env['product.attribute.value.line'].browse(source_variant_id)
+    all_fields = { 'product_tmpl_id': templates_id[source_attribute_value_line.product_tmpl_id], 'attribute_id' : attributes_id[source_attribute_value_line.attribute_id] })
+    all_fields.update({ attribute_value_line_fields[key] : source_attribute_value_line[key] for key in attribute_value_line_fields.keys() }
+    target_attribute_value_line_id = target.env['product.attribute.value.line'].create(all_fields)
+    
 exit()
-##### EXAMPLE END
-
+    
 # VARIANTS
 print('copying variants from source to target ...')
 for source_variant_id in source.env['product.product'].search([]):
@@ -121,7 +159,7 @@ for source_variant_id in source.env['product.product'].search([]):
     print('created product.product', target_variant_id)
 
 # TEMPLATES
-print('copying templates from source to target ...')
+print('building templates from variants ...')
 for source_template_id in source.env['product.template'].search([]):
     source_template = source.env['product.template'].browse(source_template_id)
     source_template_variants = source_template.product_variant_ids.ids
