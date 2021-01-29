@@ -6,6 +6,8 @@
 # * product.attribute.value
 # * product.attribute.line
 # * product.template
+# * product.template.attribute.value
+# * product.template.attribute.line
 # * product.product 
 # * product.public.category
 # 
@@ -72,7 +74,7 @@ attribute_value_fields = {
     'name': 'name',
 }
 
-attribute_value_line_fields = {
+attribute_line_fields = {
     'active' : 'active',
 }
 
@@ -117,6 +119,7 @@ attributes_id = {}
 templates_id = {}
 categories_id = {}
 variants_id = {}
+attribute_values_id = {}
 
 count_prod_attr = len(source.env['product.attribute'].search([]))
 count_prod_attr_val = len(source.env['product.attribute.value'].search([]))
@@ -132,13 +135,21 @@ unlink('product.attribute.value')
 unlink('product.attribute.value.line')
 unlink('product.public.category')
 unlink('product.template')
+unlink('product.template.attribute.line')
+unlink('product.template.attribute.value')
 unlink('product.product')
-
 print()
 
-## PLAYGROUND AREA
-
-##
+## TEMPORARY CODE
+print('1.5. instantiating a subset of template and variants ...')
+source_templates_id_XX = source.env['product.template'].search([])[:10]
+source_variants_id_XX = []
+for source_template_id in source_templates_id_XX:
+    source_template = source.env['product.template'].read(source_template_id, ['id', 'product_variant_ids'])
+    source_template_product_variant_ids = source_template['product_variant_ids']
+    source_variants_id_XX += source_template_product_variant_ids
+print()
+#
 
 print('2. copying product.attribute from source to target ...')
 curr_count = 1
@@ -161,6 +172,7 @@ for source_attribute_value_id in source.env['product.attribute.value'].search([]
     all_fields.update({'attribute_id': attributes_id[source_attribute['id']]})
     try:
         target_attribute_value_id = target.env['product.attribute.value'].create(all_fields)
+        attribute_values_id[source_attribute_value_id] = target_attribute_value_id
         print("created product.attribute.value id", target_attribute_value_id, "(" + str(curr_count) + "/" + str(count_prod_attr_val) + ")", end='\r')
     except:
         print("ERROR: could not write product.attribute.value. Entry probably already exist.")
@@ -169,47 +181,53 @@ print('\n')
 
 print('4. copying product.template from source to target ...')
 curr_count = 1
-for source_template_id in source.env['product.template'].search([]):
+for source_template_id in source_templates_id_XX: #source.env['product.template'].search([]):
     source_template = source.env['product.template'].read(source_template_id, list(template_fields.keys()))
     target_template_id = target.env['product.template'].create({template_fields[key] : source_template[key] for key in template_fields.keys()})
     templates_id[source_template_id] = target_template_id
+    #print("added", source_template_id, "->", target_template_id)
     print("created product.template id", target_template_id, "(" + str(curr_count) + "/" + str(count_prod_tmpl) + ")", end='\r')
     curr_count += 1
 print('\n')
 
-print('5. copying product.attribute.line from source to target ...')
+print('5. copying product.product from source to target ...')
 curr_count = 1
-for source_attribute_value_line_id in source.env['product.attribute.line'].search([]):
-    source_attribute_value_line = source.env['product.attribute.line'].read(source_attribute_value_line_id, list(attribute_value_line_fields.keys()) + ['attribute_id', 'product_tmpl_id'])
-
-    source_attribute_value_line_attribute_id = source.env['product.attribute'].read(source_attribute_value_line['attribute_id'][0], ['id'])['id']
-    source_product_tmpl_id = source.env['product.template'].read(source_attribute_value_line['product_tmpl_id'][0], ['id'])['id']
-    
-    all_fields = { 'product_tmpl_id': templates_id[source_product_tmpl_id], 'attribute_id' : attributes_id[source_attribute_value_line_attribute_id] }
-    all_fields.update({ attribute_value_line_fields[key] : source_attribute_value_line[key] for key in attribute_value_line_fields.keys() })
-    target_template_attribute_line_id = target.env['product.template.attribute.line'].create(all_fields)
-    print("created product.template.attribute.line id", target_template_attribute_line_id, "on product id", templates_id[source_product_tmpl['id']], "(" + str(curr_count) + "/" + str(count_prod_attr_line) + ")", end='\r')
-    curr_count += 1
-print('\n')
-
-print('6. copying variants from source to target ...')
-curr_count = 1
-for source_variant_id in source.env['product.product'].search([]):
-    source_variant = source.env['product.product'].read(source_variant_id, list(variant_fields.keys()))
+for source_variant_id in source_variants_id_XX: #source.env['product.product'].search([]):
+    source_variant = source.env['product.product'].read(source_variant_id, list(variant_fields.keys()) + ['product_tmpl_id'])
     target_variant_id = target.env['product.product'].create({variant_fields[key] : source_variant[key] for key in variant_fields.keys()})
     variants_id[source_variant_id] = target_variant_id
+    
+    target_variant_template_id = target.env['product.product'].read(target_variant_id, ['product_tmpl_id'])[0]['product_tmpl_id'][0]
+    templates_id[source_variant['product_tmpl_id'][0]] = target_variant_template_id
+    #print("added", source_variant['product_tmpl_id'][0], "->", target_variant_template_id)
     print('created product.product', target_variant_id, "(" + str(curr_count) + "/" + str(count_prod_var) + ")", end='\r')
     curr_count += 1
 print('\n')
 
+print('6. copying product.attribute.line from source to target ...')
+curr_count = 1
+for source_template_id in source_templates_id_XX:
+    source_template = source.env['product.template'].read(source_template_id, ['attribute_line_ids'])
+    
+    for source_attribute_line_id in source_template['attribute_line_ids']:
+        source_attribute_line = source.env['product.attribute.line'].read(source_attribute_line_id, ['attribute_id', 'value_ids'])
+        source_attribute_line_attribute_id = source.env['product.attribute'].read(source_attribute_line['attribute_id'][0], ['id'])['id']
+
+        all_fields = { 'product_tmpl_id': templates_id[source_template_id], 'attribute_id' : attributes_id[source_attribute_line_attribute_id], 'value_ids': [ attribute_values_id[attr] for attr in source_attribute_line['value_ids'] ]}
+        target_template_attribute_line_id = target.env['product.template.attribute.line'].create(all_fields)
+        
+        print("created product.template.attribute.line id", target_template_attribute_line_id, "on product id", source_template_id, "(" + str(curr_count) + "/" + str(count_prod_attr_line) + ")", end='\r')
+        curr_count += 1
+print('\n')
+
 print('7. linking product.product to product.template ...')
 curr_count = 1
-for source_template_id in source.env['product.template'].search([]):
+for source_template_id in source_templates_id_XX: #source.env['product.template'].search([]):
     source_template = source.env['product.template'].read(source_template_id, list(template_fields.keys()) + ['product_variant_ids'])
     target_template_variants = [ variants_id[var] for var in source_template['product_variant_ids'] ]
-    target_template = target.env['product.template'].browse(template_id[source_template['id']])
+    target_template = target.env['product.template'].browse(templates_id[source_template['id']])
     target_template.product_variant_ids = [(6, 0, target_template_variants)]
-    print('created variants of', template_id[source_template.id], "(" + str(curr_count) + "/" + str(count_prod_tmpl) + ")", end='\r')
+    print('created variants of', templates_id[source_template_id], "(" + str(curr_count) + "/" + str(count_prod_tmpl) + ")", end='\r')
     curr_count += 1
 print('\n')
 
@@ -225,7 +243,7 @@ print('\n')
 
 print('9. adding categories to target templates ...')
 curr_count = 1    
-for source_template_id in source.env['product.template'].search([]):
+for source_template_id in source_templates_id_XX: #source.env['product.template'].search([]):
     source_template = source.env['product.template'].read(source_template_id, list(template_fields.keys()) + ['public_categ_ids'])
     target_template = target.env['product.template'].browse(templates_id[source_template_id])[0]
     target_template.public_categ_ids = [(6, 0, [categories_id[category] for category in source_template['public_categ_ids']])]
@@ -243,4 +261,3 @@ for source_category_id in source.env['product.public.category'].search([]):
     print('added parent_id to category', target_category.name, "(" + str(curr_count) + "/" + str(count_prod_pub_categ) + ")", end='\r')
     curr_count += 1
 print('\n')
-
