@@ -75,11 +75,8 @@ attribute_value_fields = {
 }
 
 attribute_line_fields = {
-<<<<<<< HEAD
     'id' : 'id',
     'display_name' : 'display_name',
-=======
->>>>>>> 8dba95df8eacc424ae21ce0497c72dff828372c9
     'active' : 'active',
 }
 
