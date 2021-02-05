@@ -75,8 +75,11 @@ attribute_value_fields = {
 }
 
 attribute_line_fields = {
+<<<<<<< HEAD
     'id' : 'id',
     'display_name' : 'display_name',
+=======
+>>>>>>> 8dba95df8eacc424ae21ce0497c72dff828372c9
     'active' : 'active',
 }
 
@@ -122,13 +125,13 @@ categories_id = {}
 variants_id = {}
 attribute_values_id = {}
 
-
 # UNLINKS
 print('1. unlinking existing records ...')
 unlink('product.template')
 unlink('product.attribute')
 unlink('product.attribute.value')
 unlink('product.public.category')
+unlink('product.template')
 unlink('product.template.attribute.line')
 unlink('product.template.attribute.value')
 unlink('product.product')
@@ -189,7 +192,7 @@ print('\n')
 
 print('4. copying product.template from source to target ...')
 curr_count = 1
-for source_template_id in source_templates_id_XX:
+for source_template_id in source_templates_id_XX: #source.env['product.template'].search([]):
     source_template = source.env['product.template'].read(source_template_id, list(template_fields.keys()))
     target_template_id = target.env['product.template'].create({template_fields[key] : source_template[key] for key in template_fields.keys()})
     templates_id[source_template_id] = target_template_id
@@ -235,7 +238,6 @@ curr_count = 1
 for source_template_id in source_templates_id_XX:
     source_template = source.env['product.template'].read(source_template_id, ['id', 'product_variant_ids'])
 
-    # ~ try:
     print("source template:", source_template,flush=True)
     target_template = target.env['product.template'].browse(templates_id[source_template_id])
 
@@ -246,11 +248,9 @@ for source_template_id in source_templates_id_XX:
 
     try:
         target_template.product_variant_ids = [(6, 0, variants_to_write)]
-        print('created variants of', templates_id[source_template_id], "(" + str(curr_count) + "/" + str(count_prod_tmpl) + ")", end='\r')
+        print('created variants of', templates_id[source_template_id], "(" + str(curr_count) + "/" + str(count_prod_tmpl) + ")", end='\t\t\r')
     except KeyError as e:
         print("error 1")
-    # ~ except:
-        # ~ print("error 2")
     
     print("")
     curr_count += 1
@@ -262,7 +262,7 @@ for source_category_id in source.env['product.public.category'].search([]):
     source_category = source.env['product.public.category'].read(source_category_id, list(category_fields.keys()))
     target_category = target.env['product.public.category'].create({category_fields[key] : source_category[key] for key in category_fields.keys()})
     categories_id[source_category_id] = target_category
-    print('created product.public.category', target_category, "(" + str(curr_count) + "/" + str(count_prod_pub_categ) + ")", end='\r')
+    print('created product.public.category', target_category, "(" + str(curr_count) + "/" + str(count_prod_pub_categ) + ")", end='\t\t\r')
     curr_count += 1
 print('\n')
 
