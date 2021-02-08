@@ -29,7 +29,7 @@ source_params = {
 target_params = {
             "host" : "81.170.214.150",
             "port" : 8069,
-            "db"   : "maria_demo",
+            "db"   : "maria_nodemo",
             "user" : "admin",
             "password"  : "admin"
         }
@@ -50,23 +50,25 @@ pricelist_fields = {
 }
 
 item_fields = {
-    'name' : 'name',
-    'code': 'code',
-    'display_name': 'display_name',
+    'product_id': 'product_id',
+    'compute_price': 'compute_price',
+    'base': 'base',
+    'price_discount': 'price_discount'
+
     # 'country_group_ids': 'country_group_ids',
 }
 
 
 
-# # delete all records in model
-# def unlink(model):
-#     print('unlinking ' + model + ' ...')
-#     try:
-#         target.env[model].browse(target.env[model].search([])).unlink()
-#     except:
-#         print(model + ' already unlinked')
+# delete all records in model
+def unlink(model):
+    print('unlinking ' + model + ' ...')
+    try:
+        target.env[model].browse(target.env[model].search([])).unlink()
+    except:
+        print(model + ' already unlinked')
 
-# unlink('product.pricelist')
+unlink('product.pricelist')
 
 # CATEGORIES
 print('copying pricelist from source to target ..')
@@ -76,8 +78,11 @@ for source_pricelist_id in source.env['product.pricelist'].search([]):
 
 
 
+#===============================================================
+
 for source_pricelist_item in source.env['product.pricelist.item'].search([]):
-    target_pricelist.item_ids = source_pricelist_item.item_id 
+    target_pricelist.item_ids = source_pricelist_item.product_id 
+
 
 
     print('created pricelist', target_pricelist)

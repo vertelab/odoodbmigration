@@ -37,7 +37,7 @@ source_params = {
 target_params = {
             "host" : "81.170.214.150",
             "port" : 8069,
-            "db"   : "maria_nodemo",
+            "db"   : "maria_nodemo3",
             "user" : "admin",
             "password"  : "admin"
         }
@@ -57,7 +57,22 @@ def create_xml_id(object, src_id):
             'res_id': object.id,
         }
 
-    target.env['ir.model.data'].create(values)
+    # target.env['ir.model.data'].create(values)
+    # print('hej hej %s' % target.env.ref(xml_id))
+    # if target.env.ref(xml_id):
+        # print(target.env.ref(xml_id) % ' %s already exist')
+
+    # # target.env.ref('__ma_import__.product_attribute_123')
+    # exit()
+
+    try:
+        target.env['ir.model.data'].create(values)
+        print('created %s' % xml_id)
+
+    except:
+        print('could not create %s' % xml_id)
+
+
 
 # delete all records in model
 def unlink(model):
@@ -96,6 +111,24 @@ attribute_line_fields = {
     'active' : 'active',
 }
 
+pricelist_fields = {
+    'name' : 'name',
+    'code': 'code',
+    'display_name': 'display_name',
+    # 'country_group_ids': 'country_group_ids',
+}
+
+pricelist_item_fields = {
+    # 'product_id': 'product_id',
+    'price_discount': 'price_discount',
+    'price_round': 'price_round',
+    'price_discount': 'price_discount',
+    'price_min_margin': 'price_min_margin',
+    'price_max_margin': 'price_max_margin',
+    # 'country_group_ids': 'country_group_ids',
+}
+
+
 # variant fields to copy from source to target
 # { 'source_field_name' : 'target_field_name' }
 variant_fields = {
@@ -130,13 +163,6 @@ category_fields = {
     'display_name' : 'display_name',
 }
 
-count_prod_attr = len(source.env['product.attribute'].search([]))
-count_prod_attr_val = len(source.env['product.attribute.value'].search([]))
-count_prod_tmpl = len(source_templates_id_XX)
-count_prod_attr_line = len(source.env['product.attribute.line'].search([]))
-count_prod_var = len(source_variants_id_XX)
-count_prod_pub_categ = len(source.env['product.public.category'].search([]))
-
 print('1. unlinking existing records ...')
 unlink('product.template')
 unlink('product.attribute')
@@ -145,23 +171,61 @@ unlink('product.public.category')
 unlink('product.template.attribute.line')
 unlink('product.template.attribute.value')
 unlink('product.product')
+unlink('product.pricelist')
+unlink('product.pricelist.item')
 print()
 
 ## TODO: create each model just like in copy_products.py, but use func "create_xml_id" to create an ext. id.
 ##       this script is then supposed to be run only once ever to set these ext. ids.
 ##       then rewrite copy_products.py so that it ADDS fields to each model, never create them.
 
-"""
-for model in models:
-    for source_model_id in source.env[model].search([]):
-        target.env['ir.model.data'].create({
-            'module': '__ma_import__',
-            'name': model.replace('.', '_') + str(source_model_id),
-            'model': model,
-            'res_id': source_model_id,
-        }
-"""
 
-# target.env.ref('__ma_import__.product_attribute_123')
+#target.env.ref('__ma_import__.product_attribute_123')
+
+
+for source_template_id in source.env['product.template'].search([])[:10]:
+    source_template = source.env['product.template'].read(source_template_id, list(template_fields.keys()))
+    target_template_id = target.env['product.template'].create({template_fields[key] : source_template[key] for key in template_fields.keys()})
+    target_template = target.env['product.template'].browse(target_template_id)
+
+    create_xml_id(target_template, source_template_id)
+
+
+for source_variant_id in source.env['product.product'].search([])[:10]:
+    source_variant = source.env['product.product'].read(source_variant_id, list(variant_fields.keys()))
+    target_variant_id = target.env['product.product'].create({variant_fields[key] : source_variant[key] for key in variant_fields.keys()})
+    target_variant = target.env['product.product'].browse(target_variant_id)
+
+    create_xml_id(target_variant, source_variant_id)
+
+
+for source_category_id in source.env['product.public.category'].search([])[:10]:
+    source_category = source.env['product.public.category'].read(source_category_id, list(category_fields.keys()))
+    target_category_id = target.env['product.public.category'].create({category_fields[key] : source_category[key] for key in category_fields.keys()})
+    target_category = target.env['product.public.category'].browse(target_category_id)
+
+    create_xml_id(target_category, source_category_id)
+
+
+for source_pricelist_id in source.env['product.pricelist'].search([])[:10]:
+    source_pricelist = source.env['product.pricelist'].read(source_pricelist_id, list(pricelist_fields.keys()))
+    target_pricelist_id = target.env['product.pricelist'].create({pricelist_fields[key] : source_pricelist[key] for key in pricelist_fields.keys()})
+    target_pricelist = target.env['product.pricelist'].browse(target_pricelist_id)
+
+    create_xml_id(target_pricelist, source_pricelist_id)
+
+
+for source_pricelist_item_id in source.env['product.pricelist.item'].search([])[:10]:
+    source_pricelist_item = source.env['product.pricelist.item'].read(source_pricelist_item_id, list(pricelist_item_fields.keys()))
+    target_pricelist_item_id = target.env['product.pricelist.item'].create({pricelist_item_fields[key] : source_pricelist_item[key] for key in pricelist_item_fields.keys()})
+    target_pricelist_item = target.env['product.pricelist.item'].browse(target_pricelist_item_id)
+
+    create_xml_id(target_pricelist_item, source_pricelist_item_id)
+
+
+
+
+
+
 
 
