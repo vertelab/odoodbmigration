@@ -61,6 +61,11 @@ def unlink(model):
     except:
         print("EMPTY SET or ERROR")
 
+# Gets target record from external source id
+# EX: get_target_record_from_id('product.attribute', ID)
+def get_target_record_from_id(model, src_id):
+    return target.env.ref('__ma_import__.%s_%s' % (model.replace('.', '_'), str(src_id)))
+
 # attribute fields to copy from source to target
 # { 'source_field_name' : 'target_field_name' }
 attribute_fields = {
@@ -87,10 +92,13 @@ variant_fields = {
     'sale_ok' : 'sale_ok', 
     'description' : 'description', 
     'purchase_ok': 'purchase_ok',
+    'active' : 'active',
     'list_price': 'list_price',
     'description_sale': 'description_sale',
     'default_code': 'default_code',
     'image_medium' : 'image_1920',
+    'website_published' : 'website_published',
+    'is_product_variant' : 'is_product_variant',
 }
 
 # template fields to copy from source to target
@@ -98,6 +106,7 @@ variant_fields = {
 template_fields = {
     'name' : 'name',
     'sale_ok' : 'sale_ok', 
+    'active' : 'active',
     'description' : 'description', 
     'purchase_ok': 'purchase_ok',
     'list_price': 'list_price',
@@ -141,7 +150,7 @@ source_variants_id_XX = []
 
 if Test:
     print('1.5. TEST = True: using only 10 templates and their variants from source ...')
-    source_templates_id_XX = source.env['product.template'].search([])[110:130]
+    source_templates_id_XX = source.env['product.template'].search([])[110:115]
     for source_template_id in source_templates_id_XX:
         source_template = source.env['product.template'].read(source_template_id, ['id', 'product_variant_ids'])
         source_template_product_variant_ids = source_template['product_variant_ids']
@@ -197,20 +206,7 @@ for source_template_id in source_templates_id_XX: #source.env['product.template'
     curr_count += 1
 print('\n')
 
-print('5. copying product.product from source to target ...')
-curr_count = 1
-for source_variant_id in source_variants_id_XX:
-    source_variant = source.env['product.product'].read(source_variant_id, list(variant_fields.keys()) + ['product_tmpl_id'])
-    target_variant_id = target.env['product.product'].create({variant_fields[key] : source_variant[key] for key in variant_fields.keys()})
-    variants_id[source_variant_id] = target_variant_id
-    
-    target_variant_template_id = target.env['product.product'].read(target_variant_id, ['product_tmpl_id'])[0]['product_tmpl_id'][0]
-    templates_id[source_variant['product_tmpl_id'][0]] = target_variant_template_id
-    print('created product.product', target_variant_id, "(" + str(curr_count) + "/" + str(count_prod_var) + ")", end='\r')
-    curr_count += 1
-print('\n')
-
-print('6. copying product.attribute.line from source to target ...')
+print('5. copying product.attribute.line from source to target ...')
 curr_count = 1
 for source_template_id in source_templates_id_XX:
     source_template = source.env['product.template'].read(source_template_id, ['attribute_line_ids'])
@@ -230,26 +226,36 @@ for source_template_id in source_templates_id_XX:
             print("error")
 print('\n')
 
+print('6. copying product.product from source to target ...')
+curr_count = 1
+for source_variant_id in source_variants_id_XX:
+    source_variant = source.env['product.product'].read(source_variant_id, list(variant_fields.keys()) + ['product_tmpl_id'])
+    
+    all_fields = { variant_fields[key] : source_variant[key] for key in variant_fields.keys() }
+    #all_fields.update({ 'product_tmpl_id' : templates_id[source_variant['product_tmpl_id'][0]]})
+    target_variant_id = target.env['product.product'].create(all_fields)
+    
+    variants_id[source_variant_id] = target_variant_id
+    templates_id[source_variant['product_tmpl_id'][0]] = templates_id[source_variant['product_tmpl_id'][0]]
+    
+    print('created product.product', target_variant_id, "(" + str(curr_count) + "/" + str(count_prod_var) + ")", end='\r')
+    curr_count += 1
+print('\n')
+
 print('7. linking product.product to product.template ...')
 curr_count = 1
 for source_template_id in source_templates_id_XX:
     source_template = source.env['product.template'].read(source_template_id, ['id', 'product_variant_ids'])
-
-    print("source template:", source_template,flush=True)
+    
     target_template = target.env['product.template'].browse(templates_id[source_template_id])
-
-    print("variants id in source db:", source_template['product_variant_ids'], flush=True)
-
+    
     variants_to_write = [ variants_id[variant] for variant in source_template['product_variant_ids'] ]
+    print("target template:", target_template.id, flush=True)
     print("variants id in target db:", variants_to_write, flush=True)
 
-    try:
-        target_template.product_variant_ids = [(6, 0, variants_to_write)]
-        print('created variants of', templates_id[source_template_id], "(" + str(curr_count) + "/" + str(count_prod_tmpl) + ")", end='\t\t\r')
-    except KeyError as e:
-        print("error 1")
+    target_template.product_variant_ids = [(6, 0, variants_to_write)]
     
-    print("")
+    print('created variants of', templates_id[source_template_id], "(" + str(curr_count) + "/" + str(count_prod_tmpl) + ")", end='\t\t\r')
     curr_count += 1
 print('\n')
 
