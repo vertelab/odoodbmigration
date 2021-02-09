@@ -37,10 +37,11 @@ source_params = {
 target_params = {
             "host" : "81.170.214.150",
             "port" : 8069,
-            "db"   : "maria_nodemo3",
+            "db"   : "maria_nodemo",
             "user" : "admin",
             "password"  : "admin"
         }
+        
 
 source = odoorpc.ODOO(host=source_params["host"],port=source_params["port"])
 source.login(source_params["db"],login=source_params["user"],password=source_params["password"])
@@ -48,31 +49,28 @@ source.login(source_params["db"],login=source_params["user"],password=source_par
 target = odoorpc.ODOO(host=target_params["host"],port=target_params["port"])
 target.login(target_params["db"],login=target_params["user"],password=target_params["password"])
 
-def create_xml_id(object, src_id):
-    xml_id = '__ma_import__.%s_%s' % (object._name.replace('.', '_'), src_id)
+def create_xml_id(name, tgt_id, src_id):
+    xml_id = '__ma_import__.%s_%s' % (name.replace('.', '_'), src_id)
     values = {
             'module': xml_id.split('.')[0],
             'name': xml_id.split('.')[1],
-            'model': object._name,
-            'res_id': object.id,
+            'model': name,
+            'res_id': tgt_id,
         }
-
-    # target.env['ir.model.data'].create(values)
-    # print('hej hej %s' % target.env.ref(xml_id))
-    # if target.env.ref(xml_id):
-        # print(target.env.ref(xml_id) % ' %s already exist')
-
-    # # target.env.ref('__ma_import__.product_attribute_123')
-    # exit()
 
     try:
         target.env['ir.model.data'].create(values)
-        print('created %s' % xml_id)
-
+        print('created', xml_id)
     except:
-        print('could not create %s' % xml_id)
+        print('external id already exists:', xml_id)
 
-
+# get_target_record_from_external_source_id
+#get_target_record_from_id('product.attribute', 3422)
+def get_target_record_from_id(model, src_id):
+    try:
+        return target.env.ref('__ma_import__.%s_%s' % (model.replace('.', '_'), str(src_id)))
+    except:
+        return -1
 
 # delete all records in model
 def unlink(model):
@@ -83,32 +81,26 @@ def unlink(model):
     except:
         print("EMPTY SET or ERROR")
 
-"""
-if target.env['ir.model.data'].xmlid_to_res_id(xml_id):
-    target.env['ir.model.data'].browse(
-        target.env['ir.model.data'].search(
-            [('module', '=', values['module']), ('name', '=', values['name']))).write(values)
-else:
-    target.env['ir.model.data'].create(values)
-"""
-
 # attribute fields to copy from source to target
 # { 'source_field_name' : 'target_field_name' }
 attribute_fields = {
     'name': 'name',
-    'type': 'display_type',
+    # 'type': 'display_type',
 }
 
 # attribute fields to copy from source to target
 # { 'source_field_name' : 'target_field_name' }
 attribute_value_fields = {
     'name': 'name',
+    'attribute_id': 'attribute_id',
 }
 
 attribute_line_fields = {
     'id' : 'id',
     'display_name' : 'display_name',
     'active' : 'active',
+    'attribute_id' : 'attribute_id',
+    'product_tmpl_id': 'product_tmpl_id'
 }
 
 pricelist_fields = {
@@ -175,57 +167,61 @@ unlink('product.pricelist')
 unlink('product.pricelist.item')
 print()
 
-## TODO: create each model just like in copy_products.py, but use func "create_xml_id" to create an ext. id.
-##       this script is then supposed to be run only once ever to set these ext. ids.
-##       then rewrite copy_products.py so that it ADDS fields to each model, never create them.
-
-
-#target.env.ref('__ma_import__.product_attribute_123')
-
-
-for source_template_id in source.env['product.template'].search([])[:10]:
+for source_template_id in source.env['product.template'].search([]):
     source_template = source.env['product.template'].read(source_template_id, list(template_fields.keys()))
-    target_template_id = target.env['product.template'].create({template_fields[key] : source_template[key] for key in template_fields.keys()})
-    target_template = target.env['product.template'].browse(target_template_id)
-
-    create_xml_id(target_template, source_template_id)
-
-
-for source_variant_id in source.env['product.product'].search([])[:10]:
+    if get_target_record_from_id(source_template_id) == -1:
+        target_template_id = target.env['product.template'].create({template_fields[key] : source_template[key] for key in template_fields.keys()})
+        create_xml_id('product.template', target_template_id, source_template_id)
+print('\n')
+        
+for source_variant_id in source.env['product.product'].search([]):
     source_variant = source.env['product.product'].read(source_variant_id, list(variant_fields.keys()))
-    target_variant_id = target.env['product.product'].create({variant_fields[key] : source_variant[key] for key in variant_fields.keys()})
-    target_variant = target.env['product.product'].browse(target_variant_id)
+    if get_target_record_from_id(source_variant_id) == -1:
+        target_variant_id = target.env['product.product'].create({variant_fields[key] : source_variant[key] for key in variant_fields.keys()})
+        create_xml_id('product.product', target_variant_id, source_variant_id)
+print('\n')
 
-    create_xml_id(target_variant, source_variant_id)
-
-
-for source_category_id in source.env['product.public.category'].search([])[:10]:
+for source_category_id in source.env['product.public.category'].search([]):
     source_category = source.env['product.public.category'].read(source_category_id, list(category_fields.keys()))
-    target_category_id = target.env['product.public.category'].create({category_fields[key] : source_category[key] for key in category_fields.keys()})
-    target_category = target.env['product.public.category'].browse(target_category_id)
+    if get_target_record_from_id(source_category_id) == -1:
+        target_category_id = target.env['product.public.category'].create({category_fields[key] : source_category[key] for key in category_fields.keys()})
+        create_xml_id('product.public.category', target_category_id, source_category_id)
+print('\n')
 
-    create_xml_id(target_category, source_category_id)
-
-
-for source_pricelist_id in source.env['product.pricelist'].search([])[:10]:
+for source_pricelist_id in source.env['product.pricelist'].search([]):
     source_pricelist = source.env['product.pricelist'].read(source_pricelist_id, list(pricelist_fields.keys()))
-    target_pricelist_id = target.env['product.pricelist'].create({pricelist_fields[key] : source_pricelist[key] for key in pricelist_fields.keys()})
-    target_pricelist = target.env['product.pricelist'].browse(target_pricelist_id)
+    if get_target_record_from_id(source_pricelist_id) == -1:
+        target_pricelist_id = target.env['product.pricelist'].create({pricelist_fields[key] : source_pricelist[key] for key in pricelist_fields.keys()})
+        create_xml_id('product.pricelist', target_pricelist_id, source_pricelist_id)
+print('\n')
 
-    create_xml_id(target_pricelist, source_pricelist_id)
-
-
-for source_pricelist_item_id in source.env['product.pricelist.item'].search([])[:10]:
+for source_pricelist_item_id in source.env['product.pricelist.item'].search([]):
     source_pricelist_item = source.env['product.pricelist.item'].read(source_pricelist_item_id, list(pricelist_item_fields.keys()))
-    target_pricelist_item_id = target.env['product.pricelist.item'].create({pricelist_item_fields[key] : source_pricelist_item[key] for key in pricelist_item_fields.keys()})
-    target_pricelist_item = target.env['product.pricelist.item'].browse(target_pricelist_item_id)
+    if get_target_record_from_id(source_pricelist_item_id) == -1:
+        target_pricelist_item_id = target.env['product.pricelist.item'].create({pricelist_item_fields[key] : source_pricelist_item[key] for key in pricelist_item_fields.keys()})
+        create_xml_id('product.pricelist.item', target_pricelist_item_id, source_pricelist_item_id)
+print('\n')
 
-    create_xml_id(target_pricelist_item, source_pricelist_item_id)
+for source_attribute_id in source.env['product.attribute'].search([]):
+    source_attribute = source.env['product.attribute'].read(source_attribute_id, list(attribute_fields.keys()))    
+    all_fields = {target_f : source_attribute[source_f] for source_f, target_f in attribute_fields.items()}
+    all_fields.update({'create_variant': 'no_variant'})
+    if get_target_record_from_id(source_attribute_id) == -1:
+        target_attribute_id = target.env['product.attribute'].create(all_fields)
+        create_xml_id('product.attribute', target_attribute_id, source_attribute_id)
+print('\n')
 
-
-
-
-
-
-
-
+for source_attribute_value_id in source.env['product.attribute.value'].search([]):
+    source_attribute_value = source.env['product.attribute.value'].read(attribute_value_fields)
+    source_attribute = source.env['product.attribute.value'].read(source_attribute_value['attribute_id'][0], ['id'])
+    
+    all_fields = {attribute_fields[key] : source_attribute_value[key] for key in attribute_fields.keys()}
+    all_fields.update({'attribute_id': target.env.ref(target_attribute)})
+    
+    try:
+        if get_target_record_from_id(source_attribute_value_id) == -1:
+            target_attribute_value_id = target.env['product.attribute.value'].create(all_fields)
+            create_xml_id('product.attribute.value', target_attribute_value_id, source_attribute_id)
+    except:
+        print("ERROR: could not write product.attribute.value. Entry probably already exist.")
+print('\n')
