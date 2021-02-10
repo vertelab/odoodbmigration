@@ -9,7 +9,7 @@ try:
 except ImportError:
     raise Warning('odoorpc library missing. Please install the library. Eg: pip3 install odoorpc')
 
-import configuration
+from configuration import *
 
 # attribute fields to copy from source to target
 # { 'source_field_name' : 'target_field_name' }

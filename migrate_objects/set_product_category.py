@@ -9,7 +9,7 @@ try:
 except ImportError:
     raise Warning('odoorpc library missing. Please install the library. Eg: pip3 install odoorpc')
 
-import configuration
+from configuration import *
 
 for source_template_id in source.env['product.template'].search([]):
     source_template = source.env['product.template'].read(source_template_id, ['id', 'public_categ_ids'])
