@@ -19,5 +19,4 @@ In `configuration.py` you need to change the IP, database name, and credentials 
 1. `set_external_id.py`
 2. `set_product_category.py`
 3. `set_product_pricelist_item.py`
-4. `set_product_attribute_line.py`
-5. `set_category_parent.py`
+4. `set_category_parent.py`
