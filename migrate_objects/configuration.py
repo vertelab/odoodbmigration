@@ -60,7 +60,7 @@ def get_target_record_from_id(model, src_id):
     try:
         return target.env.ref('__ma_import__.%s_%s' % (model.replace('.', '_'), str(src_id)))
     except:
-        return -1
+        return 0
 
 # create a record with dict fields as values, and creates an ext. id to src_id
 def create_record_and_xml_id(model, fields, src_id):
