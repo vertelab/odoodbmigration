@@ -21,7 +21,7 @@ source_params = {
 target_params = {
             "host" : "81.170.214.150",
             "port" : 8069,
-            "db"   : "maria_nodemo_DALLE2",
+            "db"   : "maria_nodemo",
             "user" : "admin",
             "password"  : "admin"
         }
