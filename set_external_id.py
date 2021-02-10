@@ -84,9 +84,9 @@ def create_record_and_xml_id(model, fields, src_id):
     if get_target_record_from_id(model, src_id) == -1:
         target_record_id = target.env[model].create(fields)
         create_xml_id(model, target_record_id, src_id)
-        print("Created new record and ext. id from source id", src_id)
+        print("Created new", model, "and ext. id from source id", src_id)
     else:
-        print("Did not create new record from source id " + str(src_id) + ". An external id already exists.")
+        print("Did not create new", model, "from source id " + str(src_id) + ". An external id already exists.")
     
 # attribute fields to copy from source to target
 # { 'source_field_name' : 'target_field_name' }
