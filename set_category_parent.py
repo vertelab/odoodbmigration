@@ -41,7 +41,15 @@ def get_target_record_from_id(model, src_id):
     except:
         return -1
 
-for source_attribute_value_id in source.env['product.public.category'].search([]):
-    source_product_pricelist_item_product_id = source.env['product.public.category'].read(source_attribute_value_id, ['id'])
-    target_pricelist_item = get_target_record_from_id('product.public.category', source_attribute_value_id)
-    target_pricelist_item.write({'partner_id' : get_target_record_from_id('product.public.category', product_pricelist_item_product_id['id']).id})
+for source_category_id in source.env['product.public.category'].search([]):
+    source_category = source.env['product.public.category'].read(source_category_id, ['id', 'parent_id'])
+    source_category_parent_id = None if not source_category['parent_id'] else source_category['parent_id'][0]
+    
+    target_category = get_target_record_from_id('product.public.category', source_category['id'])
+    
+    if source_category_parent_id:
+        target_parent_category_id = get_target_record_from_id('product.public.category', source_category_parent_id).id
+        target_category.write({ 'parent_id' : target_parent_category_id })
+        print("wrote", target_parent_category_id, "to parent_id of", target_category)
+    else:
+        print(target_category, "has no parent")
