@@ -20,3 +20,4 @@ In `configuration.py` you need to change the IP, database name, and credentials 
 2. `set_product_category.py`
 3. `set_product_pricelist_item.py`
 4. `set_category_parent.py`
+5. `set_variant_on_template.py` (does not work yet)
