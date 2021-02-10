@@ -58,20 +58,17 @@ def unlink(model):
     except:
         print("EMPTY SET or ERROR")
 
-def create_xml_id(name, tgt_id, src_id):
-    xml_id = '__ma_import__.%s_%s' % (name.replace('.', '_'), src_id)
+def create_xml_id(model, tgt_id, src_id):
+    xml_id = '__ma_import__.%s_%s' % (model.replace('.', '_'), src_id)
     values = {
             'module': xml_id.split('.')[0],
             'name': xml_id.split('.')[1],
-            'model': name,
+            'model': model,
             'res_id': tgt_id,
         }
 
-    try:
-        target.env['ir.model.data'].create(values)
-    except:
-        print('ERROR: external id already exists:', xml_id)
-
+    target.env['ir.model.data'].create(values)
+    
 # Gets target record from source id using external ids
 # EX: get_target_record_from_id('product.attribute', 3422)
 def get_target_record_from_id(model, src_id):
@@ -82,11 +79,19 @@ def get_target_record_from_id(model, src_id):
 
 def create_record_and_xml_id(model, fields, src_id):
     if get_target_record_from_id(model, src_id) == -1:
-        target_record_id = target.env[model].create(fields)
-        create_xml_id(model, target_record_id, src_id)
-        print("Created new", model, "and ext. id from source id", src_id)
+        try:
+            target_record_id = target.env[model].create(fields)
+        except:
+            return
+            print("ERROR 1: some field value was not recognized")
+            
+        try:
+            create_xml_id(model, target_record_id, src_id)
+            print("Created new", model, "and ext. id from source id", src_id)
+        except:
+            print('Skipping creation: An external id already exists')
     else:
-        print("Did not create new", model, "from source id " + str(src_id) + ". An external id already exists.")
+        print("Skipping creation: An external id already exists.")
     
 # attribute fields to copy from source to target
 # { 'source_field_name' : 'target_field_name' }
@@ -162,12 +167,27 @@ category_fields = {
     'display_name' : 'display_name',
 }
 
-for source_category_id in source.env['product.public.category'].search([]):
-    source_category = source.env['product.public.category'].read(source_category_id, list(category_fields.keys()))
-    fields = { category_fields[key] : source_category[key] for key in category_fields.keys() } 
-    create_record_and_xml_id('product.public.category', fields, source_category_id)
-print()
-
+# product.template.attribute.line
+for source_attribute_line_id in source.env['product.attribute.line'].search([]):
+    source_attribute_line = source.env['product.attribute.line'].read(source_attribute_line_id, ['id', 'attribute_id', 'value_ids', 'product_tmpl_id'])
+    
+    target_attribute_line_tmpl = get_target_record_from_id('product.template', source_attribute_line['product_tmpl_id'][0])
+    
+    if target_attribute_line_tmpl == -1:
+        print("Found attribute line without a product.template. Skipping creation.")
+        continue
+        
+    target_attribute_line_attribute_id = get_target_record_from_id('product.attribute', source_attribute_line['attribute_id'][0]).id
+    
+    try:
+        target_attribute_line_value_ids = [ get_target_record_from_id('product.attribute.value', val).id for val in source_attribute_line['value_ids'] ]
+    except:
+        continue
+    
+    fields = { 'product_tmpl_id': target_attribute_line_tmpl.id, 'attribute_id' : target_attribute_line_attribute_id, 'value_ids': target_attribute_line_value_ids}
+    create_record_and_xml_id('product.template.attribute.line', fields, source_attribute_line['id'])
+    #target_template.attribute_line_ids = [(4, target_template_attribute_line_id, 0)]
+    
 for source_template_id in source.env['product.template'].search([]):
     source_template = source.env['product.template'].read(source_template_id, list(template_fields.keys()))
     fields = { template_fields[key] : source_template[key] for key in template_fields.keys() }
@@ -178,6 +198,12 @@ for source_variant_id in source.env['product.product'].search([]):
     source_variant = source.env['product.product'].read(source_variant_id, list(variant_fields.keys()))
     fields = { variant_fields[key] : source_variant[key] for key in variant_fields.keys() }
     create_record_and_xml_id('product.product', fields, source_variant_id)
+print()
+
+for source_category_id in source.env['product.public.category'].search([]):
+    source_category = source.env['product.public.category'].read(source_category_id, list(category_fields.keys()))
+    fields = { category_fields[key] : source_category[key] for key in category_fields.keys() } 
+    create_record_and_xml_id('product.public.category', fields, source_category_id)
 print()
 
 for source_pricelist_id in source.env['product.pricelist'].search([]):
@@ -199,6 +225,7 @@ for source_attribute_id in source.env['product.attribute'].search([]):
     create_record_and_xml_id('product.attribute', fields, source_attribute_id)
 print()
 
+# product.attribute.value
 for source_attribute_value_id in source.env['product.attribute.value'].search([]):
     source_attribute_value = source.env['product.attribute.value'].read(source_attribute_value_id, list(attribute_value_fields.keys()) + ['attribute_id'])
     source_attribute = source.env['product.attribute.value'].read(source_attribute_value['attribute_id'][0], ['id'])
@@ -209,3 +236,8 @@ for source_attribute_value_id in source.env['product.attribute.value'].search([]
     except:
         print("ERROR: could not write product.attribute.value. Entry probably already exist.")
 print()
+
+ 
+    
+    
+

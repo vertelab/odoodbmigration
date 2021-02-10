@@ -40,12 +40,17 @@ def get_target_record_from_id(model, src_id):
         return target.env.ref('__ma_import__.%s_%s' % (model.replace('.', '_'), str(src_id)))
     except:
         return -1
-
-for source_template_id in source.env['product.template'].search([]):
-    source_template = source.env['product.template'].read(source_template_id, ['id', 'public_categ_ids'])
-    target_template = get_target_record_from_id('product.template', source_template['id'])
     
-    target_categ_ids = [ get_target_record_from_id('product.public.category', categ_id).id for categ_id in source_template['public_categ_ids'] ] 
-    target_template.public_categ_ids = [(6, 0, target_categ_ids)]
+    
+    
 
-    print("wrote public_categ_ids to", target_template.id)
+# ~ for source_attribute_line in source.env['product.attribute.line'].search([]):
+    # ~ source_attribute_line = source.env['product.attribute.line'].read(source_attribute_line, ['id', 'product_tmpl_id', 'attribute_id'])
+    
+    # ~ target_attribute_line = get_target_record_from_id('product.attribute.line', source_attribute_line['id'])
+    
+    # ~ target_attribute_line.attribute_id = get_target_record_from_id('product.attribute.id', source_attribute_line['attribute_id']).id
+    # ~ target_attribute_line.product_tmpl_id = get_target_record_from_id('product.template',  source_attribute_line['product_tmpl_id']).id
+    
+    # ~ print("wrote attribute_id and product_tmpl_id to", target_attribute_line.id)
+
