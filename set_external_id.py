@@ -167,27 +167,6 @@ category_fields = {
     'display_name' : 'display_name',
 }
 
-# product.template.attribute.line
-for source_attribute_line_id in source.env['product.attribute.line'].search([]):
-    source_attribute_line = source.env['product.attribute.line'].read(source_attribute_line_id, ['id', 'attribute_id', 'value_ids', 'product_tmpl_id'])
-    
-    target_attribute_line_tmpl = get_target_record_from_id('product.template', source_attribute_line['product_tmpl_id'][0])
-    
-    if target_attribute_line_tmpl == -1:
-        print("Found attribute line without a product.template. Skipping creation.")
-        continue
-        
-    target_attribute_line_attribute_id = get_target_record_from_id('product.attribute', source_attribute_line['attribute_id'][0]).id
-    
-    try:
-        target_attribute_line_value_ids = [ get_target_record_from_id('product.attribute.value', val).id for val in source_attribute_line['value_ids'] ]
-    except:
-        continue
-    
-    fields = { 'product_tmpl_id': target_attribute_line_tmpl.id, 'attribute_id' : target_attribute_line_attribute_id, 'value_ids': target_attribute_line_value_ids}
-    create_record_and_xml_id('product.template.attribute.line', fields, source_attribute_line['id'])
-    #target_template.attribute_line_ids = [(4, target_template_attribute_line_id, 0)]
-    
 for source_template_id in source.env['product.template'].search([]):
     source_template = source.env['product.template'].read(source_template_id, list(template_fields.keys()))
     fields = { template_fields[key] : source_template[key] for key in template_fields.keys() }
@@ -237,7 +216,27 @@ for source_attribute_value_id in source.env['product.attribute.value'].search([]
         print("ERROR: could not write product.attribute.value. Entry probably already exist.")
 print()
 
- 
+# product.template.attribute.line
+for source_attribute_line_id in source.env['product.attribute.line'].search([]):
+    source_attribute_line = source.env['product.attribute.line'].read(source_attribute_line_id, ['id', 'attribute_id', 'value_ids', 'product_tmpl_id'])
+    
+    target_attribute_line_tmpl = get_target_record_from_id('product.template', source_attribute_line['product_tmpl_id'][0])
+    
+    if target_attribute_line_tmpl == -1:
+        print("Found attribute line without a product.template. Skipping creation.")
+        continue
+        
+    target_attribute_line_attribute_id = get_target_record_from_id('product.attribute', source_attribute_line['attribute_id'][0]).id
+    
+    try:
+        target_attribute_line_value_ids = [ get_target_record_from_id('product.attribute.value', val).id for val in source_attribute_line['value_ids'] ]
+    except:
+        continue
+    
+    fields = { 'product_tmpl_id': target_attribute_line_tmpl.id, 'attribute_id' : target_attribute_line_attribute_id, 'value_ids': target_attribute_line_value_ids}
+    create_record_and_xml_id('product.template.attribute.line', fields, source_attribute_line['id'])
+    #target_template.attribute_line_ids = [(4, target_template_attribute_line_id, 0)]
+    
     
     
 
