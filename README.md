@@ -10,12 +10,12 @@
   * product.pricelist
   * product.pricelist.item
 
-### Configure target
+### Step 1: Configuration
 In each script file you need to change the IP, database name, and credentials of the source and target. \
 
 TODO: create centralized configuration file
 
-### Run the scripts in the following order
+### Step 2: Run the scripts in the following order
 1. `set_external_id.py`
 2. `set_product_category.py`
 3. `set_product_pricelist_item.py`
