@@ -1,14 +1,5 @@
 #!/usr/bin/env python3
 
-import argparse
-import json
-import logging
-import sys
-try:
-    import odoorpc
-except ImportError:
-    raise Warning('odoorpc library missing. Please install the library. Eg: pip3 install odoorpc')
-
 from configuration import *
 
 for source_template_id in source.env['product.template'].search([]):

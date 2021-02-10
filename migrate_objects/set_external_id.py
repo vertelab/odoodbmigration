@@ -153,8 +153,4 @@ for source_attribute_line_id in source.env['product.attribute.line'].search([]):
     
     fields = { 'product_tmpl_id': target_attribute_line_tmpl.id, 'attribute_id' : target_attribute_line_attribute_id, 'value_ids': target_attribute_line_value_ids}
     create_record_and_xml_id('product.template.attribute.line', fields, source_attribute_line['id'])
-    #target_template.attribute_line_ids = [(4, target_template_attribute_line_id, 0)]
-    
-    
-    
 
