@@ -1,4 +1,4 @@
-## Guide: How to migrate all obejcts of the following models from source to a target
+## Guide: How to migrate all objects of the following models from source to a target
   * product.attribute
   * product.attribute.value
   * product.attribute.line
@@ -11,6 +11,8 @@
   * product.pricelist.item
 
 ### Step 1: Configuration
+The code to migrate the objects are in the migrate_objects/ directory. \
+
 In each script file you need to change the IP, database name, and credentials of the source and target. \
 
 TODO: create centralized configuration file
