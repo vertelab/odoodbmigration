@@ -10,10 +10,12 @@ credentials = {
     'frigg' : {
         'user' : 'admin',
         'password' : '',
+        'local_ip' : '192.168.2.40',
     },
     
     'tor' : {
         'user' : 'admin',
         'password' : '',
+        'local_ip' : '192.168.2.58',
     },
 }
