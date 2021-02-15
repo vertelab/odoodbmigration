@@ -9,13 +9,15 @@ try:
 except ImportError:
     raise Warning('odoorpc library missing. Please install the library. Eg: pip3 install odoorpc')
 
+from credentials import credentials
+    
 # SETTINGS
 source_params = {
             "host" : "localhost",
             "port" : 6080,
             "db"   : "dermanord",
             "user" : "admin",
-            "password"  : "InwX11Je3DtifHHb"        
+            "password"  : credentials['frigg']['password']
         }
 
 target_params = {
