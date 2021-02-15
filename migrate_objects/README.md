@@ -15,6 +15,9 @@ The code to migrate the objects are in the migrate_objects/ directory.
 
 In `configuration.py` you need to change the IP, database name, and credentials of the source and target.
 
+### Step 2: Setup ssh tunnel
+Run the scripts from your local machine. You need an ssh tunnel like so: ssh $USER@oden.vertel.se -L 6080:[target IP]:80
+
 ### Step 2: Run the scripts in the following order
 (actually only 1. needs to be done first, the order of the other scripts are irrelevant)
 1. `set_external_id.py`
