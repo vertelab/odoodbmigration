@@ -16,14 +16,14 @@ source_params = {
             "host" : "localhost",
             "port" : 6080,
             "db"   : "dermanord",
-            "user" : "admin",
+            "user" : credentials['frigg']['user'],
             "password"  : credentials['frigg']['password']
         }
 
 target_params = {
             "host" : "81.170.214.150",
             "port" : 8069,
-            "db"   : "maria_nodemo_DALLE",
+            "db"   : "maria_utv",
             "user" : "admin",
             "password"  : "admin"
         }
