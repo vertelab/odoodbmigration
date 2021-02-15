@@ -13,6 +13,7 @@
 ### Step 1: Configuration
 The code to migrate the objects are in the migrate_objects/ directory.
 
+In `credentials.py` you need to set the right credentials for the machines you need to access.
 In `configuration.py` you need to change the IP, database name, and credentials of the source and target.
 
 ### Step 2: Setup ssh tunnel
