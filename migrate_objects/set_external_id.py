@@ -78,12 +78,24 @@ template_fields = {
     'website_published': 'website_published',
 }
 
+# Groups fields to copy from source to target
+# { 'source_field_name' : 'target_field_name' }
+groups_fields = {
+    'name' : 'name',
+}
+
 # category fields to copy from source to target
 # { 'source_field_name' : 'target_field_name' }
 category_fields = {
     'name' : 'name', 
     'display_name' : 'display_name',
 }
+
+for source_groups_id in source.env['res.groups'].search([]):
+    source_groups = source.env['res.groups'].read(source_groups_id, list(groups_fields.keys()))
+    fields = { groups_fields[key] : source_groups[key] for key in groups_fields.keys() }
+    create_record_and_xml_id('res.groups', fields, source_groups_id)
+print()
 
 for source_template_id in source.env['product.template'].search([]):
     source_template = source.env['product.template'].read(source_template_id, list(template_fields.keys()))
