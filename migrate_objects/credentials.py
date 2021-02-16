@@ -9,7 +9,7 @@
 credentials = {
     'frigg' : {
         'user' : 'admin',
-        'password' : '',
+        'password' : 'InwX11Je3DtifHHb',
         'local_ip' : '192.168.2.40',
     },
     

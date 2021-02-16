@@ -61,6 +61,14 @@ variant_fields = {
     'description_sale': 'description_sale',
     'default_code': 'default_code',
     'image_medium' : 'image_1920',
+    'active' : 'active',
+    'website_published': 'website_published',
+    # added later:
+    'default_code' : 'default_code',
+    'lst_price' : 'lst_price',
+    'volume' : 'volume',
+    'available_in_pos' : 'available_in_pos',
+    'weight' : 'weight',
 }
 
 # template fields to copy from source to target
@@ -76,6 +84,7 @@ template_fields = {
     'default_code': 'default_code',
     'image_medium' : 'image_1920',
     'website_published': 'website_published',
+    'active' : 'active',
 }
 
 # Groups fields to copy from source to target
@@ -91,10 +100,11 @@ category_fields = {
     'display_name' : 'display_name',
 }
 
-for source_groups_id in source.env['res.groups'].search([]):
-    source_groups = source.env['res.groups'].read(source_groups_id, list(groups_fields.keys()))
-    fields = { groups_fields[key] : source_groups[key] for key in groups_fields.keys() }
-    create_record_and_xml_id('res.groups', fields, source_groups_id)
+        
+for source_variant_id in source.env['product.product'].search([]):
+    source_variant = source.env['product.product'].read(source_variant_id, list(variant_fields.keys()))
+    fields = { variant_fields[key] : source_variant[key] for key in variant_fields.keys() }
+    create_record_and_xml_id('product.product', fields, source_variant_id)
 print()
 
 for source_template_id in source.env['product.template'].search([]):
@@ -102,11 +112,11 @@ for source_template_id in source.env['product.template'].search([]):
     fields = { template_fields[key] : source_template[key] for key in template_fields.keys() }
     create_record_and_xml_id('product.template', fields, source_template_id)
 print()
-        
-for source_variant_id in source.env['product.product'].search([]):
-    source_variant = source.env['product.product'].read(source_variant_id, list(variant_fields.keys()))
-    fields = { variant_fields[key] : source_variant[key] for key in variant_fields.keys() }
-    create_record_and_xml_id('product.product', fields, source_variant_id)
+
+for source_groups_id in source.env['res.groups'].search([]):
+    source_groups = source.env['res.groups'].read(source_groups_id, list(groups_fields.keys()))
+    fields = { groups_fields[key] : source_groups[key] for key in groups_fields.keys() }
+    create_record_and_xml_id('res.groups', fields, source_groups_id)
 print()
 
 for source_category_id in source.env['product.public.category'].search([]):

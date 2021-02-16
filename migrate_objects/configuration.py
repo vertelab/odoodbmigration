@@ -10,7 +10,7 @@ except ImportError:
     raise Warning('odoorpc library missing. Please install the library. Eg: pip3 install odoorpc')
 
 from credentials import credentials
-    
+
 # SETTINGS
 source_params = {
             "host" : "localhost",
@@ -66,17 +66,19 @@ def get_target_record_from_id(model, src_id):
 
 # create a record with dict fields as values, and creates an ext. id to src_id
 def create_record_and_xml_id(model, fields, src_id):
-    if get_target_record_from_id(model, src_id) == -1:
+    if get_target_record_from_id(model, src_id) == 0:
+        target_record_id = target.env[model].create(fields)
         try:
-            target_record_id = target.env[model].create(fields)
+            pass
         except:
+            print('ERROR: target.env[' + model + '].create failed')
             return
-            print("ERROR 1: some field value was not recognized")
             
         try:
             create_xml_id(model, target_record_id, src_id)
-            print("Created new", model, "and ext. id from source id", src_id)
+            print('Created new ' + model + ' and ext. id from source id ' + str(src_id))
         except:
-            print('Skipping creation: An external id already exists')
+            print('ERROR: create_xml_id(' + model + ', ' + str(target_record_id) + ', ' + str(src_id) + ') failed. Does the id already exist?')
     else:
-        print("Skipping creation: An external id already exists.")
+        tgt_id = get_target_record_from_id(model, src_id).id
+        print('INFO: skipping creation, an external id already exist for ' + model + '(' + str(tgt_id) + ')')
