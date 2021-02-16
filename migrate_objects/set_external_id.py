@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 
-import argparse
-import json
-import logging
-import sys
-try:
-    import odoorpc
-except ImportError:
-    raise Warning('odoorpc library missing. Please install the library. Eg: pip3 install odoorpc')
-
 from configuration import *
+
+
+# pricelist item fields to copy from source to target
+# { 'source_field_name' : 'target_field_name' }
+uom_fields = {
+    'factor': 'factor',
+    'factor_inv': 'factor_inv',
+    'name': 'name',
+    'rounding': 'rounding',
+}
 
 # attribute fields to copy from source to target
 # { 'source_field_name' : 'target_field_name' }
@@ -63,12 +64,20 @@ variant_fields = {
     'image_medium' : 'image_1920',
     'active' : 'active',
     'website_published': 'website_published',
+
     # added later:
     'default_code' : 'default_code',
     'lst_price' : 'lst_price',
     'volume' : 'volume',
     'available_in_pos' : 'available_in_pos',
     'weight' : 'weight',
+    'ingredients': 'ingredients',
+    'ingredients_last_changed': 'ingredients_last_changed',
+    'ingredients_changed_by_uid':'ingredients_changed_by_uid',
+    'use_desc': 'use_desc',
+    'use_desc_last_changed': 'use_desc_last_changed',
+    'use_desc_last_changed_by_uid': 'use_desc_last_changed_by_uid',
+
 }
 
 # template fields to copy from source to target
@@ -100,7 +109,14 @@ category_fields = {
     'display_name' : 'display_name',
 }
 
-        
+for source_uom_id in source.env['uom.uom'].search([]):
+    source_uom = source.env['uom.uom'].read(source_uom_id, list(uom_fields.keys()) + ['category_id'])
+    fields = {uom_fields[key] : source_uom[key] for key in uom_fields.keys()}
+    fields.update({'uom_type': 'bigger'})
+    fields.update({'category_id': get_target_record_from_id('product.public.category', source_uom['category_id']).id})
+    create_record_and_xml_id('uom.uom', fields, source_uom_id)
+print()
+    
 for source_variant_id in source.env['product.product'].search([]):
     source_variant = source.env['product.product'].read(source_variant_id, list(variant_fields.keys()))
     fields = { variant_fields[key] : source_variant[key] for key in variant_fields.keys() }
