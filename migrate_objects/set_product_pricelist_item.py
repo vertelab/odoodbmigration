@@ -3,7 +3,7 @@
 from configuration import *
 
 for source_pricelist_item_id in source.env['product.pricelist.item'].search([]):
-    source_pricelist_item = source.env['product.pricelist.item'].read(source_pricelist_item_id, ['id', 'product_id', 'base_pricelist_id', 'price_max_margin', 'price_min_margin', 'price_round', 'price_discount', 'price_surcharge', 'min_quantity', ])
+    source_pricelist_item = source.env['product.pricelist.item'].read(source_pricelist_item_id, ['id', 'product_id', 'base_pricelist_id', 'price_max_margin', 'price_min_margin', 'price_round', 'price_discount', 'price_surcharge', 'min_quantity'])
     
     try:
         target_pricelist_item = get_target_record_from_id('product.pricelist.item', source_pricelist_item_id)

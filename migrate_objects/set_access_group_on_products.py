@@ -13,7 +13,6 @@ for source_template_id in source.env['product.template'].search([]):
     
     print('added', target_template.access_group_ids,'as access group of', target_template.id)
 
-
 for source_product_id in source.env['product.product'].search([]):
     source_product = source.env['product.product'].read(source_product_id, ['id', 'access_group_ids'])
     target_product = get_target_record_from_id('product.product', source_product_id)
