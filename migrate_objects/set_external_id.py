@@ -2,8 +2,7 @@
 
 from configuration import *
 
-
-# pricelist item fields to copy from source to target
+# uom fields to copy from source to target
 # { 'source_field_name' : 'target_field_name' }
 uom_fields = {
     'factor': 'factor',
@@ -77,7 +76,6 @@ variant_fields = {
     'use_desc': 'use_desc',
     'use_desc_last_changed': 'use_desc_last_changed',
     'use_desc_last_changed_by_uid': 'use_desc_last_changed_by_uid',
-
 }
 
 # template fields to copy from source to target
