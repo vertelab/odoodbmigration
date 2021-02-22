@@ -19,10 +19,5 @@ The code to migrate the objects are in the migrate_objects/ directory.
 ### Step 2: Setup ssh tunnel
 Run the scripts from your local machine. You need an ssh tunnel like so: ssh $USER@oden.vertel.se -L 6080:[target IP]:80
 
-### Step 2: Run the scripts in the following order
-(actually only 1. needs to be done first, the order of the other scripts are irrelevant)
-1. `set_external_id.py`
-2. `set_product_category.py`
-3. `set_product_pricelist_item.py`
-4. `set_category_parent.py`
-5. `set_variant_on_template.py` (does not work yet)
+### Step 3: Run the scripts in the right order
+`set_external_id.py` needs to be run first, but the order of the other scripts are irrelevant.
