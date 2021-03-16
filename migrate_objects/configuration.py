@@ -9,31 +9,10 @@ try:
 except ImportError:
     raise Warning('odoorpc library missing. Please install the library. Eg: pip3 install odoorpc')
 
-from credentials import credentials
-
-# SETTINGS
-source_params = {
-            "host" : "localhost",
-            "port" : 6080,
-            "db"   : "dermanord",
-            "user" : credentials['frigg']['user'],
-            "password"  : credentials['frigg']['password']
-        }
-
-target_params = {
-            "host" : "81.170.214.150",
-            "port" : 8069,
-            "db"   : "maria_utv",
-            "user" : "admin",
-            "password"  : "admin"
-        }
-
-# CONNECTION
-source = odoorpc.ODOO(host=source_params["host"],port=source_params["port"])
-source.login(source_params["db"],login=source_params["user"],password=source_params["password"])
-
-target = odoorpc.ODOO(host=target_params["host"],port=target_params["port"])
-target.login(target_params["db"],login=target_params["user"],password=target_params["password"])
+source = odoorpc.ODOO.load('source')
+target = odoorpc.ODOO.load('target')
+del source.env.context['lang']
+target.env.context['lang'] = 'en_US'
 
 # HELPER FUNCTIONS
 # delete all records in model, e.x. unlink('product.template')
