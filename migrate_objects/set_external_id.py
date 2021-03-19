@@ -232,11 +232,11 @@ location_fields = {
 
 
 
-for source_pricelist_id in source.env['product.pricelist'].search([]):
-    source_pricelist = source.env['product.pricelist'].read(source_pricelist_id, list(pricelist_fields.keys()))
-    fields = {pricelist_fields[key] : source_pricelist[key] for key in pricelist_fields.keys() }
-    create_record_and_xml_id('product.pricelist', fields, source_pricelist_id)
-print()
+# for source_pricelist_id in source.env['product.pricelist'].search([]):
+#     source_pricelist = source.env['product.pricelist'].read(source_pricelist_id, list(pricelist_fields.keys()))
+#     fields = {pricelist_fields[key] : source_pricelist[key] for key in pricelist_fields.keys() }
+#     create_record_and_xml_id('product.pricelist', fields, source_pricelist_id)
+# print()
 
 
 # for source_pricelist_item_id in source.env['product.pricelist.item'].search([]):
@@ -258,10 +258,6 @@ print()
 #     create_record_and_xml_id('res.currency', fields, source_currency_id)
 # print()
 
-
-
-# exit()
-
 # for source_company_id in source.env['res.company'].search([]):
 #     source_company = source.env['res.company'].read(source_company_id, list(company_fields.keys()) + ['currency_id', 'partner_id'])
 #     fields = {company_fields[key] : source_company[key] for key in company_fields.keys() }
@@ -270,34 +266,29 @@ print()
 #     create_record_and_xml_id('res.company', fields, source_company_id)
 # print()
 
-for source_location_id in source.env['stock.location'].search([]):
-    source_location = source.env['stock.location'].read(source_location_id, list(location_fields.keys()) + ['usage'])
-    fields = {location_fields[key] : source_location[key] for key in location_fields.keys() }
-    fields.update({'usage': source_location['usage']})
-    try:
-        create_record_and_xml_id('stock.location', fields, source_location_id)
-    except:
-        print("ERROR: could not write account.account. Entry probably already exist.")
-print()
+# for source_location_id in source.env['stock.location'].search([]):
+#     source_location = source.env['stock.location'].read(source_location_id, list(location_fields.keys()) + ['usage'])
+#     fields = {location_fields[key] : source_location[key] for key in location_fields.keys() }
+#     fields.update({'usage': source_location['usage']})
+#     try:
+#         create_record_and_xml_id('stock.location', fields, source_location_id)
+#     except:
+#         print("ERROR: could not write account.account. Entry probably already exist.")
+# print()
 
 
-for source_stock_id in source.env['stock.warehouse'].search([]):
-    source_stock = source.env['stock.warehouse'].read(source_stock_id, list(stock_warehouse_fields.keys()) + ['partner_id', 'view_location_id', 'lot_stock_id', 'delivery_steps', 'reception_steps'])
-    fields = {stock_warehouse_fields[key] : source_stock[key] for key in stock_warehouse_fields.keys()}
+# for source_stock_id in source.env['stock.warehouse'].search([]):
+#     source_stock = source.env['stock.warehouse'].read(source_stock_id, list(stock_warehouse_fields.keys()) + ['partner_id', 'view_location_id', 'lot_stock_id', 'delivery_steps', 'reception_steps'])
+#     fields = {stock_warehouse_fields[key] : source_stock[key] for key in stock_warehouse_fields.keys()}
 
-    fields.update({'partner_id': get_target_record_from_id('res.partner', source_stock['partner_id'])})
-    fields.update({'lot_stock_id': get_target_record_from_id('stock.location', source_stock['lot_stock_id'])})
-    fields.update({'view_location_id': get_target_record_from_id('stock.location', source_stock['view_location_id'])})
-    fields.update({'delivery_steps': source_stock['delivery_steps']})
-    fields.update({'reception_steps': source_stock['reception_steps']})
+#     fields.update({'partner_id': get_target_record_from_id('res.partner', source_stock['partner_id'])})
+#     fields.update({'lot_stock_id': get_target_record_from_id('stock.location', source_stock['lot_stock_id'])})
+#     fields.update({'view_location_id': get_target_record_from_id('stock.location', source_stock['view_location_id'])})
+#     fields.update({'delivery_steps': source_stock['delivery_steps']})
+#     fields.update({'reception_steps': source_stock['reception_steps']})
 
-    create_record_and_xml_id('stock.warehouse', fields, source_stock_id)
-print()
-
-exit()
-
-
-
+#     create_record_and_xml_id('stock.warehouse', fields, source_stock_id)
+# print()
 
 
 # for source_order_id in source.env['sale.order'].search([]):
@@ -349,8 +340,6 @@ exit()
 # print()
 
 
-
-
 for source_groups_id in source.env['res.groups'].search([]):
     source_groups = source.env['res.groups'].read(source_groups_id, list(groups_fields.keys()))
     fields = {groups_fields[key] : source_groups[key] for key in groups_fields.keys() }
@@ -386,7 +375,7 @@ print()
 
 template_ids = []
 default_variant_ids = []
-for source_template_id in source.env['product.template'].search([]):
+for source_template_id in source.env['product.template'].search([('default_code', 'not in', ['9043-00005', '9998-00250', '9025-00001', '1706-00010', '9043-00005'])]):
     template_ids.append(source_template_id)
     if get_target_record_from_id('product.template', source_template_id):
         continue
@@ -402,7 +391,12 @@ for source_template_id in source.env['product.template'].search([]):
             'value_ids': [(6, 0, value_ids)]
         }
         values['attribute_line_ids'].append((0, 0, attr_values))
-    create_record_and_xml_id('product.template', values, source_template_id)
+    try:
+        create_record_and_xml_id('product.template', values, source_template_id)
+    except:
+        values['image_1920'] = 'REMOVED'
+        print(values)
+        raise
     template = get_target_record_from_id('product.template', source_template_id)
     if template: 
         default_variant_ids.append(template.product_variant_ids.id)
@@ -431,5 +425,11 @@ for source_product_id in source.env['product.product'].search([('product_tmpl_id
 print()
 if default_variant_ids:
     target.env['product.product'].browse(default_variant_ids).unlink()
+
+
+
+
+
+
 
 
