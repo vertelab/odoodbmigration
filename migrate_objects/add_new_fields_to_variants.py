@@ -35,7 +35,8 @@ variant_fields = {
 for source_product_id in source.env['product.product'].search([]):
     source_product = source.env['product.product'].read(source_product_id, list(variant_fields.keys()) + ['type'])
     fields = { variant_fields[key] : source_product[key] for key in variant_fields.keys() }
-    fields.update({'type': source_product['type']})
+
+    fields.update({'type': 'product'})
     
     target_product = get_target_record_from_id('product.product', source_product_id)
     
