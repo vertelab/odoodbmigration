@@ -22,6 +22,9 @@ variant_fields = {
     'ingredients': 'ingredients',
     'ingredients_last_changed': 'ingredients_last_changed',
     'ingredients_changed_by_uid':'ingredients_changed_by_uid',
+    # 'shelf_label_desc':'shelf_label_desc', #Not working? 
+    'shelf_label_desc_last_changed':'shelf_label_desc_last_changed',
+    'shelf_label_desc_changed_by_uid':'shelf_label_desc_changed_by_uid',
     'use_desc': 'use_desc',
     'use_desc_last_changed': 'use_desc_last_changed',
     'use_desc_changed_by_uid': 'use_desc_changed_by_uid',
