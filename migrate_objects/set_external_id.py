@@ -360,9 +360,9 @@ for source_attribute_id in source.env['product.attribute'].search([]):
     create_record_and_xml_id('product.attribute', fields, source_attribute_id)
 print()
 
-
 for source_attribute_value_id in source.env['product.attribute.value'].search([]):
     source_attribute_value = source.env['product.attribute.value'].read(source_attribute_value_id, list(attribute_value_fields.keys()) + ['attribute_id'])
+    #Field attribute_id, many2one connection
     source_attribute = source.env['product.attribute.value'].read(source_attribute_value['attribute_id'][0], ['id'])
     fields = {attribute_value_fields[key] : source_attribute_value[key] for key in attribute_value_fields.keys() }
     fields.update({'attribute_id': get_target_record_from_id('product.attribute', source_attribute['id']).id})
@@ -375,7 +375,7 @@ print()
 
 template_ids = []
 default_variant_ids = []
-for source_template_id in source.env['product.template'].search([('default_code', 'not in', ['9043-00005', '9998-00250', '9025-00001', '1706-00010', '9043-00005'])]):
+for source_template_id in source.env['product.template'].search([('default_code', 'not in', ['9043-00004', '9043-00005', '9043-00009', '9998-00250', '9025-00001', '1706-00010', '1005-00250', '1006-00250', '2058-00750', '2057-01000', '9030-00001', '2055-05000', '2061-00250', '9092-00010', '2071-00550', '2087-00050', '2070-00050', '9035-00300', '9035-00200', '9035-00100', '3045-02500'])]):
     template_ids.append(source_template_id)
     if get_target_record_from_id('product.template', source_template_id):
         continue
@@ -407,8 +407,6 @@ for source_product_id in source.env['product.product'].search([('product_tmpl_id
     source_product = source.env['product.product'].read(source_product_id, list(variant_fields.keys()))
     values = {variant_fields[key] : source_product[key] for key in variant_fields.keys() }
     template = get_target_record_from_id('product.template', values['product_tmpl_id'][0])
-    if not template: 
-        continue
     values['product_tmpl_id'] = template.id
     values['attribute_value_ids'] = [get_target_record_from_id('product.attribute.value', id).id for id in values['attribute_value_ids']]
     attribute_value_ids = []
