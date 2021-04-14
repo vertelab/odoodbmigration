@@ -1,3 +1,6 @@
+# credential file
+migrate_objects/credentials.py
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

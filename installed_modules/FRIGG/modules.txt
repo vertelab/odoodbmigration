@@ -1,0 +1,16 @@
+website
+website_imagemagick
+website_sale
+stock
+point_of_sale
+mass_mailing
+product_private
+calendar
+contacts
+mail
+purchase
+account
+mrp
+crm
+maintenance
+
