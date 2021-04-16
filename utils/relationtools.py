@@ -22,7 +22,7 @@ def get_relations(columns,required_only=True, ignore_default=True):
     '''
     Returns a list with keys of columns corresponding to DB relations.
     IE: Many2many, Many2one, One2many
-    
+
     Parameters
     ==========
     columns : dict
@@ -43,10 +43,10 @@ def get_relations(columns,required_only=True, ignore_default=True):
                 continue
             ret.append(k)
     return ret
-def get_requried_fields(columns):
+def get_required_fields(columns):
     '''
     Returns a list with keys of columns with required data.
-    
+
     Parameters
     ==========
     columns : dict
@@ -59,7 +59,7 @@ def get_requried_fields(columns):
                 ret.append(k)
         except AttributeError as e:
             _logger.debug(f"Unexpected AttributeError: {e.msg}")
-            pass #
+            #pass
     return ret
 def _model_dependencies(conn, model, visited, recursive_depth=None, follow_required=True,required_only=True, ignore_default=True):
     '''
@@ -73,11 +73,11 @@ def _model_dependencies(conn, model, visited, recursive_depth=None, follow_requi
             _model_dependencies(conn,model,visited,
                                 required_only=True,
                                 ignore_default=ignore_default)
-        return 
+        return
     # else:
     columns = conn.env[model]._columns
     relation_cols = get_relations(columns,required_only,ignore_default)
-    
+
     for r in relation_cols:
         comodel = columns[r].relation
         if comodel not in visited:
@@ -95,11 +95,11 @@ def _model_dependencies(conn, model, visited, recursive_depth=None, follow_requi
 def model_dependencies(conn,model,recursive_depth=None, follow_required=True, required_only=True,ignore_default=True):
     '''
     Returns a list of models the input model depend on in the given db.
-    
+
     Parameters
     ==========
     conn : odoorpc.ODOO
-        Open connection to Odoo installation 
+        Open connection to Odoo installation
     model : str
         model name to follow
     recursive_depth : int
@@ -121,12 +121,12 @@ def model_dependencies(conn,model,recursive_depth=None, follow_required=True, re
     return ret
 def model_primary_dependencies(conn,model,required_only=True,ignore_default=True):
     '''
-    Calcultate model parent dependencies to a depth of 1.
-    
+    Calculate model parent dependencies to a depth of 1.
+
     Parameters
     ==========
     conn : odoorpc.ODOO
-        Open connection to Odoo installation 
+        Open connection to Odoo installation
     model : str
         model name to follow
     required_only : Boolean
