@@ -40,9 +40,9 @@ def get_graph(conn, models=None, required_only=False, search=[], ignore_default=
     m = models
     g = nx.DiGraph()
     if models is None:
-        model_ids = conn.env["ir.model"].search(search,order="id asc") # Might need some small tweak
+        model_ids = conn.env["ir.model"].search(search) # Might need some small tweak
         m = conn.env["ir.model"].read(model_ids,["model"])
-        g.add_nodes_from({ model["model"] for model in m })
+        g.add_nodes_from({ model["model"] for model in m }) # Set force single entry per model but remove any order.
     else:
         g.add_nodes_from(m)
     
@@ -64,6 +64,57 @@ def get_graph(conn, models=None, required_only=False, search=[], ignore_default=
     g.remove_nodes_from(remove_list)
     return g
 
+def get_ordered_graph(conn, models=None, required_only=False, search=[],order="model asc", ignore_default=True):
+    '''
+    Generate an orderered directional graph of the model relations in the
+    target DB described by conn.
+    
+    Dev:
+        Default search-criteria is there to match actual models. The model
+        field contain pseudo-models and other non model.model or
+        transient.model that can't be reached with conn.env["some.model"]
+        The model field still always yield the model name which the name field
+        not always do (it sometime ¨retrieve the human readable name of a model)
+    
+    Parameters
+    ==========
+    conn : ODOO
+        Open odoorpc connection
+    models : Iterable
+        (Optional) Iterable with models as strings. None mean all models in ir.model
+    required_only : Boolean
+        (Optional) Add required relational fields only
+    search : Odoo-search domain
+        (Optional) Odoo search domain. Only used if models is None.
+    order : str
+        (Optional) Odoo order string. Only used if models is None.
+    '''
+    m = models
+    g = nx.OrderedDiGraph()
+    if models is None:
+        model_ids = conn.env["ir.model"].search(search,order=order) # Might need some small tweak
+        m = conn.env["ir.model"].read(model_ids,["model"])
+        g.add_nodes_from((model["model"] for model in m ))
+    else:
+        g.add_nodes_from(m)
+    
+    remove_list = [] # Contain models to remove
+    for n in g.nodes():
+        try: # Some models in ir.model throw errors when put in env[]
+            relations = rt.model_primary_dependencies(conn, n,
+                                                  required_only=required_only,
+                                                  ignore_default=ignore_default)
+            # g.add_edges_from( ( (n,r) for r in relations ) ) # Removed: Adds node r if it is not already in g.nodes
+            for r in relations:
+                 if r in g:
+                     g.add_edge(n,r)
+                 # else: # Don't add
+        except:
+            # Most likely conn.env[r] failed to get the model as a usable model
+            remove_list.append(n) # We can't remove nodes in the loop
+        
+    g.remove_nodes_from(remove_list)
+    return g
 
 '''
 model_list = ['stock.picking',
