@@ -10,11 +10,24 @@ Created on Fri Apr 16 08:32:32 2021
 import networkx as nx
 # import odoorpc
 
-import relationtools as rt
+from . import relationtools as rt
 #%% ---------------------------------------------------------------------------
 
+def _get_default_model_filter(conn):
+    '''
+    Retrieve default model filter depending on Odoo version.
+    '''
+    # This filter excludes transient models
+    if conn.version[:3] == "8.0":
+        return [["osv_memory","=",False]]
+    elif conn.version[:4] == "14.0":
+        return  [["transient","=",False]]
+    else: # Todo add more Odoo-versions as needed
+        return  [["transient","=",False]]
 
-def get_graph(conn, models=None, required_only=False, search=[], ignore_default=True):
+def get_graph(conn, models=None, required_only=False,
+              search=None,
+              ignore_default=True):
     '''
     Generate directional graph of the model relations in the target DB
     described by conn.
@@ -40,6 +53,8 @@ def get_graph(conn, models=None, required_only=False, search=[], ignore_default=
     m = models
     g = nx.DiGraph()
     if models is None:
+        if not search:
+            search = _get_default_model_filter(conn)
         model_ids = conn.env["ir.model"].search(search) # Might need some small tweak
         m = conn.env["ir.model"].read(model_ids,["model"])
         g.add_nodes_from({ model["model"] for model in m }) # Set force single entry per model but remove any order.
@@ -64,7 +79,9 @@ def get_graph(conn, models=None, required_only=False, search=[], ignore_default=
     g.remove_nodes_from(remove_list)
     return g
 
-def get_ordered_graph(conn, models=None, required_only=False, search=[],order="model asc", ignore_default=True):
+def get_ordered_graph(conn, models=None, required_only=False,
+                      search=None,
+                      order="model asc", ignore_default=True):
     '''
     Generate an orderered directional graph of the model relations in the
     target DB described by conn.
@@ -87,11 +104,13 @@ def get_ordered_graph(conn, models=None, required_only=False, search=[],order="m
     search : Odoo-search domain
         (Optional) Odoo search domain. Only used if models is None.
     order : str
-        (Optional) Odoo order string. Only used if models is None.
+        (Optional) String to pass on to the odoo search. Only used if models is None.
     '''
     m = models
     g = nx.OrderedDiGraph()
     if models is None:
+        if not search:
+            search = _get_default_model_filter(conn)
         model_ids = conn.env["ir.model"].search(search,order=order) # Might need some small tweak
         m = conn.env["ir.model"].read(model_ids,["model"])
         g.add_nodes_from((model["model"] for model in m ))
