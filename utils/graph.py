@@ -3,16 +3,24 @@
 """
 Created on Fri Apr 16 08:32:32 2021
 
-@author: simon
+Assorted tools to extract and convert Odoo relations to a networkx graph.
+
+networkx supply tools and options to explore and help visualizing the graphs.
+
+@author: Simon Rundstedt
 """
 
 #%% ---------------------------------------------------------------------------
 import networkx as nx
 # import odoorpc
 
-from . import relationtools as rt
+if __name__ == "__main__":
+    import relationtools as rt
+else:
+    from . import relationtools as rt
 #%% ---------------------------------------------------------------------------
 
+# By Model
 def _get_default_model_filter(conn):
     '''
     Retrieve default model filter depending on Odoo version.
@@ -136,14 +144,82 @@ def get_ordered_graph(conn, models=None, required_only=False,
     return g
 
 '''
-model_list = ['stock.picking',
- 'stock.move',
- 'res.users',
- 'sale.order',
- 'sale.order.line',
- 'account.account']
-
-g = get_graph(conn,model_list)
-nx.draw(g)
-print(list(nx.shortest_simple_paths(g,"account.account","stock.move")))
+    # Sample usage
+    model_list = ['stock.picking',
+     'stock.move',
+     'res.users',
+     'sale.order',
+     'sale.order.line',
+     'account.account']
+    
+    g = get_graph(conn,model_list)
+    nx.draw(g)
+    print(list(nx.shortest_simple_paths(g,"account.account","stock.move")))
 '''
+# By module
+def get_ordered_module_graph(conn, modules=None,installed_only=True,search=[],order="name asc"):
+    '''
+    Build an ordered nx-graph of the Odoo modules.
+    
+    Parameters
+    ==========
+    conn : ODOO
+        Open odoorpc connection
+    modules : Iterable
+        (Optional) Iterable with modules as strings. None mean all modules in
+        ir.module.module
+    installed_only : boolean
+        (Optional) Whether or not to include installed modules only in result.
+        Appends to the search domain.
+    search : Odoo-search domain
+        (Optional) Odoo search domain. Only used if modules is None.
+    order : str
+        (Optional) Odoo order string. Only used if models is None.
+    '''
+    m = modules
+    g = nx.OrderedDiGraph()
+    if modules is None:
+        search += [["state",("=" if installed_only else "!="),"installed"]] if installed_only else [];
+        modules_ids = conn.env["ir.module.module"].search(search,order=order) # Might need some small tweak
+        m = conn.env["ir.module.module"].read(modules_ids,["name"])
+        g.add_nodes_from((module["name"] for module in m ))
+    else:
+        g.add_nodes_from(m)
+
+    remove_list = [] # Contain modules that couldn't be fetched.
+    for n in g.nodes():
+        try: # <- If some module is not reachable (happens with model)
+            self_id = conn.env["ir.module.module"].search([["name","=",n]])
+            self_rs = conn.env["ir.module.module"].browse(self_id)
+            # g.add_edges_from( ( (n,r) for r in relations ) ) # Removed: Adds node r if it is not already in g.nodes
+            for d in self_rs.dependencies_id:
+                 print(d.depend_id.name)
+                 if d.name in g:
+                     g.add_edge(n,d.name)
+                 # else: # Don't add
+        except:
+            # Most likely conn.env[r] failed to get the module as a usable module
+            remove_list.append(n) # We can't remove nodes in the loop delay until after loop
+
+    g.remove_nodes_from(remove_list)
+    return g
+"""
+    # Sample usage
+    CONNECTION = "barney"
+    OUTFILE = "/home/simon/odoo.dot"
+    
+    #MODULES = ["project","base","project_dermanord","project_scrum","ecommerce","stock"]
+    MODULES=None
+    
+    # conn = odoorpc.ODOO.load(CONNECTION) # Take minutes to complete, haven't optimized.
+    conn = odoorpc.ODOO.load(CONNECTION)
+    g = get_ordered_module_graph(conn, MODULES) # Can take a long time.
+    nx.drawing.nx_agraph.write_dot(g,OUTFILE) # nx can plot by itself too, without export 
+    
+    conn.logout()
+    '''
+    From terminal:
+        sudo apt install graphviz # IF not installed
+        dot -Tsvg odoo.dot -o module.svg
+    '''
+"""
