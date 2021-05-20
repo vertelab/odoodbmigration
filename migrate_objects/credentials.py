@@ -13,9 +13,9 @@ credentials = {
         'local_ip' : '192.168.2.40',
     },
     
-    'tor' : {
+    'heimdal' : {
         'user' : 'admin',
         'password' : '',
-        'local_ip' : '192.168.2.58',
+        'local_ip' : 'localhost',
     },
 }
