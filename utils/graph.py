@@ -10,7 +10,7 @@ Created on Fri Apr 16 08:32:32 2021
 import networkx as nx
 # import odoorpc
 
-from . import relationtools as rt
+import relationtools as rt
 #%% ---------------------------------------------------------------------------
 
 def _get_default_model_filter(conn):

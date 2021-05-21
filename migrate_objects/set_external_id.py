@@ -256,15 +256,19 @@ sale_order_line_fields = ['name', 'price_unit']
 
 # account.tax.group fields to copy from source to target BROKEN
 account_tax_group_fields = ['name']
-#migrate_model('account.tax.group', migrate_fields = account_tax_group_fields, include=True, )
+# ~ migrate_model('account.tax.group', migrate_fields = account_tax_group_fields, include=True, )
 
 # account.tax fields to copy from source to target BROKEN
 account_tax_fields = ['name', 'amount', 'sequence', 'description']
-#migrate_model('account.tax', migrate_fields = account_tax_fields, include=True, )
+# ~ migrate_model('account.tax', migrate_fields = account_tax_fields, include=True, )
 
-# uom.uom fields to copy from source to target BROKEN and maybe not needed?
-uom_uom_fields = ['name', 'factor', 'factor_inv', 'rounding']
-migrate_model({'product.uom':'uom.uom'}, migrate_fields = uom_uom_fields, include=True, ) #needs handling for different model names on different databases
+# uom.category fields to copy from source to target 
+uom_category_fields = []
+# ~ migrate_model({'product.uom.categ':'uom.category'}, migrate_fields = uom_category_fields, include=False) #needs handling for different model names on different databases
+
+# uom.uom fields to copy from source to target NEEDS to migrate the records with uom_type == "reference" first
+uom_uom_fields = ['id']
+# ~ migrate_model({'product.uom':'uom.uom'}, migrate_fields = uom_uom_fields, include=False, ) #needs handling for different model names on different databases
 
 # res.groups fields to copy from source to target WORKING
 res_groups_fields = ['name']
@@ -289,7 +293,7 @@ product_category_fields = ['name']
 product_category_custom = {
 }
 product_category_hard_code = {
-    'property_cost_method': 'standard', 
+    'property_cost_method': 'standard',
     'property_valuation': 'manual_periodic'
 }
 # ~ migrate_model('product.category', migrate_fields = product_category_fields, include=True, hard_code = product_category_hard_code)
@@ -303,8 +307,8 @@ product_template_hard_code = {'product_variant_ids': []}
 # ~ migrate_model('product.template', migrate_fields = product_template_fields, include=True, custom = product_template_custom) #the old one had some weird checks for default code? incase it doesnt work
 
 # product.product fields to copy from source to target
-product_product_fields = ['name', 'sale_ok', 'description', 'purchase_ok', 'list_price', 'description_sale', 'default_code', 'active', 
-'website_published', 'product_tmpl_id', 'lst_price', 'volume', 'attribute_value_ids', 'standard_price', 'available_in_pos', 'weight', 
+product_product_fields = ['name', 'sale_ok', 'description', 'purchase_ok', 'list_price', 'description_sale', 'default_code', 'active',
+'website_published', 'product_tmpl_id', 'lst_price', 'volume', 'attribute_value_ids', 'standard_price', 'available_in_pos', 'weight',
 'ingredients', 'ingredients_last_changed', 'ingredients_changed_by_uid', 'use_desc', 'use_desc_last_changed', 'use_desc_changed_by_uid', 'event_ok']
 product_product_custom = {
     'image' : 'image_1920'

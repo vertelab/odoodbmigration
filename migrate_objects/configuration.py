@@ -20,6 +20,8 @@ target.env.context['lang'] = 'en_US'
 print(2)
 # HELPER FUNCTIONS
 IMPORT_MODULE_STRING = '__import__'
+
+UNITS_OF_MEASURE{27: 201, 14: 198, 23: 202, 29: 199, 28: 200, 13: 197, 21: 182, 35: 203, 1: 182, 8: 184, 17: 185, 22: 184, 25: 186, 26: 187, 2: 183, 34: 183, 3: 183, 36: 185, 37: 185, 31: 189, 32: 191, 24: 188, 30: 190, 33: 183, 4: 192, 5: 193, 6: 194, 11: 195, 10: 196}
 ''' Glossary
        domain = list of search criterias
            id = number
@@ -145,84 +147,117 @@ def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={},
             'product.template', exclude=['message_follower_ids'])
         simple_migrate_model('product.template', product_template)
     '''
-    s = source.env[model]
+    source_model = model
+    target_model = model
+    if type(model) == dict:
+        source_model = list(model.keys())[0]
+        target_model = model[list(model.keys())[0]]
+        
+    s = source.env[source_model]
+    t = target.env[target_model]
     if not include:
-        fields = get_all_fields(model, migrate_fields, diff)
+        fields = get_all_fields(source_model, target_model, migrate_fields, diff)
     else:
         fields = {e:e for e in migrate_fields}
     for key in custom.keys():
         fields[key] = custom[key]
-    #print(f"fields: {fields}")
+    print(f"fields: {fields}")
     #print(s.read(1))
     errors = {'ERRORS:'}
     print(s.search([]))
     for r in s.search([]):
         
-        target_record = get_target_record_from_id(model, r)
+        target_record = get_target_record_from_id(target_model, r)
         if create and target_record:
             print(
-                f"INFO: skipping creation, an external id already exist for [{model}] [{r}]")
+                f"INFO: skipping creation, an external id already exist for [{target_model}] [{r}]")
             continue
         record = s.read(r, fields)
         record_fields = s.read(r, fields)
-        if type(record_fields) is list:
-            record_fields = record_fields[0]
-        vals = {}
-        # Customize certain fields before creating records
-        for key in fields:
-            # Remove /page if it exists in url (odoo v8 -> odoo 14)
-            if key == 'url' and type(record[key]) is str:
-                url = record[key]
-                if url.startswith('/page'):
-                    url = url.replace('/page', '')
-                vals.update({fields[key]: url})
+        if True: #record['uom_type'] == 'reference': #needed for the first run of migrating uom.uom
+            if type(record_fields) is list:
+                record_fields = record_fields[0]
+            vals = {}
+            # Customize certain fields before creating records
+            for key in fields:
+                # Remove /page if it exists in url (odoo v8 -> odoo 14)
+                if key == 'url' and type(record[key]) is str:
+                    url = record[key]
+                    if url.startswith('/page'):
+                        url = url.replace('/page', '')
+                    vals.update({fields[key]: url})
 
-            # Stringify datetime objects
-            # TypeError('Object of type datetime is not JSON serializable')
-            elif type(record[key]) is datetime.datetime:
-                vals.update({fields[key]: str(record[key])})
+                # Stringify datetime objects
+                # TypeError('Object of type datetime is not JSON serializable')
+                elif type(record[key]) is datetime.datetime:
+                    vals.update({fields[key]: str(record[key])})
 
-            # If the value of the key is a list, look for the corresponding record on target instead of copying the value directly
-            # example: country_id 198, on source is 'Sweden' while
-            #          country_id 198, on target is 'Saint Helena, Ascension and Tristan da Cunha'
-            elif type(record_fields[key]) is list:
-                field_definition = s.fields_get(key)[key]
-                #print(f"type: {field_definition['type']}")
-                if field_definition['type'] == 'many2one':
-                    try:
-                        #print(f"vals: {get_id_from_xml_id(record[key],field_definition['relation'])}")
-                        vals.update({fields[key]: get_id_from_xml_id(record[key],field_definition['relation'])})
-                        continue
-                    except:
-                        x = get_target_record_from_id(
-                            field_definition['relation'], record[key][0])
-                        if x:
-                            vals.update({fields[key]: x.id})
+                # If the value of the key is a list, look for the corresponding record on target instead of copying the value directly
+                # example: country_id 198, on source is 'Sweden' while
+                #          country_id 198, on target is 'Saint Helena, Ascension and Tristan da Cunha'
+                elif type(record_fields[key]) is list:
+                    field_definition = t.fields_get(key)[key]
+                    if field_definition['type'] == 'many2one':
+                        print(f"field_definition: {field_definition}")
+                        try:
+                            #print(f"vals: {get_id_from_xml_id(record[key],field_definition['relation'])}")
+                            vals.update({fields[key]: get_id_from_xml_id(record[key],field_definition['relation'])})
                             continue
-                        error = f"Target '{key}': {record[key]} does not exist"
-                        if error not in errors:
-                            errors.add(error)
-                            if debug:
-                                print(error)
-                                
+                        except:
+                            x = get_target_record_from_id(
+                                field_definition['relation'], record[key][0])
+                            if x:
+                                vals.update({fields[key]: x.id})
+                                continue
+                            error = f"Target '{key}': {[record[key],field_definition['relation']]} does not exist"
+                            if error not in errors:
+                                errors.add(error)
+                                if debug:
+                                    print(error)
+                                    
 
-            # Just copy the value it it is not False
-            elif record[key]:
-                vals.update({fields[key]: record[key]})
-        #vals.update(custom[])
-        # Break operation and return last dict used for creating record if something is wrong and debug is True
-        vals.update(hard_code)
-        if create and create_record_and_xml_id(model, vals, r) != 1 and debug:
-            return vals
-        elif not create:
-            try:
-                target_record.write(vals)
-                print(f"Writing to existing {record}")
-            except:
+                # Just copy the value if it is not False
+                elif record[key]:
+                    vals.update({fields[key]: record[key]})
+            #vals.update(custom[])
+            # Break operation and return last dict used for creating record if something is wrong and debug is True
+            vals.update(hard_code)
+            if create and create_record_and_xml_id(target_model, vals, r) != 1 and debug:
                 return vals
+            elif not create:
+                try:
+                    target_record.write(vals)
+                    print(f"Writing to existing {record}")
+                except:
+                    return vals
 
     return errors
 
+def get_relations_from_model(database, model):
+    # ~ SELECT Distinct(model), name FROM ir_model_fields WHERE relation='product.uom' ;
+    s = database.env['ir.model.fields']
+    search_terms = [('relation', '=', model)]
+    results = s.browse(s.search(search_terms))
+    used_uom = {}
+    for result in results:
+        try:
+            print(f"model: {result.model}, name: {result.name}")
+            ref_model = database.env[result.model]
+            res = ref_model.search([])
+            uom_id = 0 
+            for r in res:
+                uom_id = ref_model.read(r, [result.name])[result.name][0]
+                if not uom_id in used_uom.keys():
+                    used_uom[uom_id] = 1
+                else:
+                    used_uom[uom_id] += 1
+        except:
+            print(f"model: {result.model} doesnt exist")
+        print(used_uom)
+        
+    
+get_relations_from_model(source, 'product.uom')
+    
 
 def get_id_from_xml_id(record, relation):
     '''
@@ -239,20 +274,20 @@ def get_id_from_xml_id(record, relation):
     return r
 
 
-def get_all_fields(model, exclude=[], diff={}):
+def get_all_fields(source_model, target_model, exclude=[], diff={}):
     '''
     Returns dict with key as source model keys and value as target model keys
     Use exclude = ['this_field', 'that_field'] to exclude keys on source model
     Use diff = {'image':'image_1920'} to update key-value pairs manually
     '''
     fields = {}
-    target_field_keys = target.env[model]._columns
+    target_field_keys = target.env[target_model]._columns
 
     # for key, value in target.env[model].fields_get().items():
     #     if not value['readonly']:
     #         target_field_keys.append(key)
 
-    for key in source.env[model]._columns:
+    for key in source.env[source_model]._columns:
         if key in exclude:
             continue
         elif key in target_field_keys:
