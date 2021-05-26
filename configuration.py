@@ -103,63 +103,66 @@ def migrate_model(model, exclude=[], diff={}, custom={}, debug=False, create=Tru
     s = source.env[model]
     fields = get_all_fields(model, exclude, diff)
     errors = {'ERRORS:'}
-    for record in s.browse(s.search([])):
-        target_record = get_target_record_from_id(model, record.id)
+
+    for source_record_id in s.search([]):
+        target_record = get_target_record_from_id(model, source_record_id)
         if create and target_record:
             print(
-                f"INFO: skipping creation, an external id already exist for [{model}] [{record.id}]")
+                f"INFO: skipping creation, an external id already exist for [{model}] [{source_record_id}]")
             continue
-        record_fields = s.read(record.id, fields)
-        if type(record_fields) is list:
-            record_fields = record_fields[0]
         vals = {}
+        source_record = s.browse(source_record_id)
+        source_record_values = s.read(source_record_id, fields)
+        if type(source_record_values) is list:
+            source_record_values = source_record_values[0]
 
         # Customize certain fields before creating records
         for key in fields:
 
             # Remove /page if it exists in url (odoo v8 -> odoo 14)
-            if key == 'url' and type(record[key]) is str:
-                url = record[key]
+            if key == 'url' and type(source_record_values[key]) is str:
+                url = source_record[key]
                 if url.startswith('/page'):
                     url = url.replace('/page', '')
                 vals.update({fields[key]: url})
 
             # Stringify datetime objects
             # TypeError('Object of type datetime is not JSON serializable')
-            elif type(record[key]) is datetime.datetime:
-                vals.update({fields[key]: str(record[key])})
+            elif type(source_record[key]) is datetime.datetime:
+                vals.update({fields[key]: str(source_record[key])})
 
             # If the value of the key is a list, look for the corresponding record on target instead of copying the value directly
             # example: country_id 198, on source is 'Sweden' while
             #          country_id 198, on target is 'Saint Helena, Ascension and Tristan da Cunha'
-            elif type(record_fields[key]) is list:
+            elif type(source_record_values[key]) is list:
                 try:
-                    vals.update({fields[key]: get_id_from_xml_id(record[key])})
+                    vals.update(
+                        {fields[key]: get_id_from_xml_id(source_record[key])})
                     continue
                 except:
                     x = get_target_record_from_id(
-                        record[key]._name, record[key].id)
+                        source_record[key]._name, source_record[key].id)
                     if x:
                         vals.update({fields[key]: x.id})
                         continue
-                    error = f"Target '{key}': {record[key]} does not exist"
+                    error = f"Target '{key}': {source_record[key]} does not exist"
                     if error not in errors:
                         errors.add(error)
                         if debug:
                             print(error)
 
             # Just copy the value it it is not False
-            elif record[key]:
-                vals.update({fields[key]: record[key]})
+            elif source_record[key]:
+                vals.update({fields[key]: source_record[key]})
 
         vals.update(custom)
         # Break operation and return last dict used for creating record if something is wrong and debug is True
-        if create and create_record_and_xml_id(model, vals, record.id) and debug:
+        if create and create_record_and_xml_id(model, vals, source_record.id) and debug:
             return vals
         elif not create:
             try:
                 target_record.write(vals)
-                print(f"Writing to existing {record}")
+                print(f"Writing to existing {source_record}")
             except:
                 return vals
 
@@ -213,6 +216,7 @@ def get_fields_difference(model):
 
     return {'source': source_set - target_set, 'target': target_set - source_set}
 
+
 def get_required_fields(model):
     '''
     Returns list with required fields
@@ -220,8 +224,8 @@ def get_required_fields(model):
     '''
     source_dict = source.env[model].fields_get()
     target_dict = target.env[model].fields_get()
-    source_keys=[]
-    target_keys=[]
+    source_keys = []
+    target_keys = []
     for key in source_dict:
         if source_dict[key]['required']:
             source_keys.append(key)
@@ -229,4 +233,3 @@ def get_required_fields(model):
         if target_dict[key]['required']:
             target_keys.append(key)
     return {'source': source_keys, 'target': target_keys}
-
