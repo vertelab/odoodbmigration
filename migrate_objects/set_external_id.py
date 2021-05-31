@@ -251,8 +251,19 @@ sale_order_fields = ['name', 'date_order', 'company_id', 'partner_id', 'partner_
 # ~ migrate_model('sale.order', migrate_fields = sale_order_fields, include=True, )
 
 # sale.order.line fields to copy from source to target NEEDS sale.order fully migrated
-sale_order_line_fields = ['name', 'price_unit']
-# ~ migrate_model('sale.order.line', migrate_fields = sale_order_line_fields, include=True, )
+sale_order_line_fields = ['name', 'price_unit', 'product_uom_qty', 'order_id', 'company_id']
+account_custom = {
+    'delay': 'customer_lead'
+}
+# ~ SELECT con.*
+       # ~ FROM pg_catalog.pg_constraint con
+            # ~ INNER JOIN pg_catalog.pg_class rel
+                       # ~ ON rel.oid = con.conrelid
+            # ~ INNER JOIN pg_catalog.pg_namespace nsp
+                       # ~ ON nsp.oid = connamespace
+       # ~ WHERE nsp.nspname = '<schema name>'
+             # ~ AND rel.relname = '<table name>';
+migrate_model('sale.order.line', migrate_fields = sale_order_line_fields, include=True, custom = account_custom, hard_code = {'product_id': 45})
 
 # account.tax.group fields to copy from source to target BROKEN
 account_tax_group_fields = ['name']

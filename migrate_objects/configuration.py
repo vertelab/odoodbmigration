@@ -3,6 +3,11 @@ import datetime
 import argparse
 import json
 import logging
+import logging.handlers
+
+
+
+
 import sys
 try:
     import odoorpc
@@ -21,7 +26,39 @@ print(2)
 # HELPER FUNCTIONS
 IMPORT_MODULE_STRING = '__import__'
 
-UNITS_OF_MEASURE{27: 201, 14: 198, 23: 202, 29: 199, 28: 200, 13: 197, 21: 182, 35: 203, 1: 182, 8: 184, 17: 185, 22: 184, 25: 186, 26: 187, 2: 183, 34: 183, 3: 183, 36: 185, 37: 185, 31: 189, 32: 191, 24: 188, 30: 190, 33: 183, 4: 192, 5: 193, 6: 194, 11: 195, 10: 196}
+UNITS_OF_MEAUSRE = {
+    21: 228,
+    1: 227,
+    8: 233,
+    17: 230,
+    22: 233,
+    25: 239,
+    26: 240,
+    2: 229,
+    34: 229,
+    3: 229,
+    36: 230,
+    37: 230,
+    4: 249,
+    5: 250,
+    6: 251,
+    33: 229,
+    10: 232,
+    11: 231,
+    14: 235,
+    27: 241,
+    28: 242,
+    29: 243,
+    13: 234,
+    23: 236,
+    31: 245,
+    30: 244,
+    24: 237,
+    32: 246,
+    35: 227,
+
+}
+
 ''' Glossary
        domain = list of search criterias
            id = number
@@ -60,7 +97,7 @@ def find_fields_in_database(model, database):
     for r in rs:
         fields.append(r.name)
     return fields
-    
+
 def non_matching_keys(a, b):
     return([key for key in a if key not in b])
 
@@ -112,8 +149,10 @@ def get_target_record_from_id(model, source_record_id):
     '''
     try:
         r = target.env.ref(f"{IMPORT_MODULE_STRING}.{model.replace('.', '_')}_{source_record_id}")
+        print(f"r: {r}")
         return r
     except:
+        print(f"couldnt find external id: {IMPORT_MODULE_STRING}.{model.replace('.', '_')}_{source_record_id}")
         return 0
 
 
@@ -122,7 +161,7 @@ def create_record_and_xml_id(model, fields, source_record_id):
     and creates an external id so that the record will not be duplicated
     example: create_record_and_xml_id('res.partner', {'name':'MyPartner'}, 2)
     '''
-    #print(f"Fields: {fields}")
+    # print(f"Fields: {fields}")
     if get_target_record_from_id(model, source_record_id):
         print(
             f"INFO: skipping creation, an external id already exist for [{model}] [{source_record_id}]")
@@ -131,8 +170,8 @@ def create_record_and_xml_id(model, fields, source_record_id):
             target_record_id = target.env[model].create(fields)
             print(f"Recordset('{model}', [{target_record_id}]) created")
         except Exception as e:
-            print(
-                f"ERROR: target.env['{model}'].create ({source_record_id}) failed")
+            print(f"fields: {fields}")
+            print(f"ERROR: target.env['{model}'].create ({source_record_id}) failed")
             print(f"e: {e}")
             return e
         print(create_xml_id(model, target_record_id, source_record_id))
@@ -152,7 +191,7 @@ def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={},
     if type(model) == dict:
         source_model = list(model.keys())[0]
         target_model = model[list(model.keys())[0]]
-        
+
     s = source.env[source_model]
     t = target.env[target_model]
     if not include:
@@ -161,12 +200,12 @@ def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={},
         fields = {e:e for e in migrate_fields}
     for key in custom.keys():
         fields[key] = custom[key]
-    print(f"fields: {fields}")
-    #print(s.read(1))
+    # ~ print(f"fields: {fields}")
+    # ~ print(s.read(1))
     errors = {'ERRORS:'}
-    print(s.search([]))
+    # ~ print(s.search([]))
     for r in s.search([]):
-        
+
         target_record = get_target_record_from_id(target_model, r)
         if create and target_record:
             print(
@@ -198,10 +237,11 @@ def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={},
                 elif type(record_fields[key]) is list:
                     field_definition = t.fields_get(key)[key]
                     if field_definition['type'] == 'many2one':
-                        print(f"field_definition: {field_definition}")
+                        # ~ print(f"field_definition: {field_definition}")
                         try:
                             #print(f"vals: {get_id_from_xml_id(record[key],field_definition['relation'])}")
-                            vals.update({fields[key]: get_id_from_xml_id(record[key],field_definition['relation'])})
+                            vals.update({fields[key]: get_target_record_from_id(field_definition['relation'], record[key][0]).id})
+                            # ~ print(f"many2one: {fields[key]}")
                             continue
                         except:
                             x = get_target_record_from_id(
@@ -214,7 +254,7 @@ def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={},
                                 errors.add(error)
                                 if debug:
                                     print(error)
-                                    
+
 
                 # Just copy the value if it is not False
                 elif record[key]:
@@ -244,7 +284,7 @@ def get_relations_from_model(database, model):
             print(f"model: {result.model}, name: {result.name}")
             ref_model = database.env[result.model]
             res = ref_model.search([])
-            uom_id = 0 
+            uom_id = 0
             for r in res:
                 uom_id = ref_model.read(r, [result.name])[result.name][0]
                 if not uom_id in used_uom.keys():
@@ -254,10 +294,9 @@ def get_relations_from_model(database, model):
         except:
             print(f"model: {result.model} doesnt exist")
         print(used_uom)
-        
-    
-get_relations_from_model(source, 'product.uom')
-    
+
+
+
 
 def get_id_from_xml_id(record, relation):
     '''
@@ -266,11 +305,12 @@ def get_id_from_xml_id(record, relation):
     source_record = source.env['res.company'].browse(1)
     get_target_id_from_source(source_record, 'country_id')
     '''
-    #print(f"record: {record}, relation: {relation}")
+    print(f"record: {record}, relation: {relation}")
     s = source.env['ir.model.data']
     d = [('model', '=', relation),
          ('res_id', '=', record[0])]
     r = target.env.ref(s.browse(s.search(d)).complete_name).id
+    print(f"r: {r}")
     return r
 
 
