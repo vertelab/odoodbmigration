@@ -22,6 +22,8 @@ source = odoorpc.ODOO.load('source')
 target = odoorpc.ODOO.load('target')
 del source.env.context['lang']
 target.env.context['lang'] = 'en_US'
+target.env.context['active_test'] = False
+source.env.context['active_test'] = False
 print(2)
 # HELPER FUNCTIONS
 IMPORT_MODULE_STRING = '__import__'
@@ -142,6 +144,15 @@ def create_xml_id(model, target_record_id, source_record_id):
         return f"xml_id = {xml_id} created"
     except:
         return f"ERROR: create_xml_id('{model}', {target_record_id}, {source_record_id}) failed. Does the id already exist?"
+        
+def map_record_to_xml_id(target_model, field, value, source_id):
+    print(field, value)
+    r_id = target.env[target_model].search([(field, '=', value)])
+    print(r_id)
+    if r_id != []:
+        print(create_xml_id(target_model, r_id[0], source_id))
+    
+# ~ map_record_to_xml_id('account.account', 'code', '2710123', 10)
 
 
 def get_target_record_from_id(model, source_record_id):
@@ -158,25 +169,28 @@ def get_target_record_from_id(model, source_record_id):
         return 0
 
 
-def create_record_and_xml_id(model, fields, source_record_id):
+def create_record_and_xml_id(target_model, source_model, fields, source_record_id, unique=None):
     ''' Creates record on target if it doesn't exist, using fields as values,
     and creates an external id so that the record will not be duplicated
     example: create_record_and_xml_id('res.partner', {'name':'MyPartner'}, 2)
     '''
     # print(f"Fields: {fields}")
-    if get_target_record_from_id(model, source_record_id):
+    if get_target_record_from_id(target_model, source_record_id):
         print(
             f"INFO: skipping creation, an external id already exist for [{model}] [{source_record_id}]")
     else:
         try:
-            target_record_id = target.env[model].create(fields)
-            print(f"Recordset('{model}', [{target_record_id}]) created")
+            target_record_id = target.env[target_model].create(fields)
+            print(f"Recordset('{target_model}', [{target_record_id}]) created")
         except Exception as e:
             print(f"fields: {fields}")
-            print(f"ERROR: target.env['{model}'].create ({source_record_id}) failed")
-            print(f"e: {e}")
+            print(f"ERROR: target.env['{target_model}'].create ({source_record_id}) failed")
+            if str(e).find('unique') != -1 and unique != None:
+                map_record_to_xml_id(target_model, unique, fields[unique], source_record_id)
+            else:
+                print(f"e: {e}")
             return e
-        print(create_xml_id(model, target_record_id, source_record_id))
+        print(create_xml_id(target_model, target_record_id, source_record_id))
         return 1
 
 import re
@@ -185,20 +199,18 @@ def get_trailing_number(s):
     return int(m.group()) if m else None
 
 
-def find_all_ids_in_target(model, ids=[]):
-    print(model)
-    target_ids = target.env["ir.model.data"].find_all_ids_in_target(model)
-    print(ids)
-    print(target_ids)
-    to_migrate = list(set(ids) - set(target_ids))
+def find_all_ids_in_target_model(target_model, ids=[]):
+    print(target_model)
+    target_ids = target.env["ir.model.data"].find_all_ids_in_target(target_model)
+    # ~ print(f"source_ids: {ids}")
+    # ~ print("="*99)
+    # ~ print(f"target_ids: {target_ids}")
+    to_migrate = (set(ids) - set(target_ids))
     print(f"not in target: {to_migrate}")
+    return to_migrate
 
 
-s = source.env["res.partner"]
-ids = s.search([])
-find_all_ids_in_target("res.partner", ids)
-
-def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={}, hard_code={}, debug=False, create=True, domain=None):
+def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={}, hard_code={}, debug=False, create=True, domain=None, unique=None):
     '''
     use this method for migrating a model with return dict from get_all_fields()
     example:
@@ -206,6 +218,10 @@ def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={},
             'product.template', exclude=['message_follower_ids'])
         simple_migrate_model('product.template', product_template)
     '''
+    print()
+    print("="*99)
+    print(f"Migrating model: {model}")
+    print()
     domain = domain or []
     source_model = model
     target_model = model
@@ -226,7 +242,9 @@ def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={},
     # ~ print(s.read(1))
     errors = {'ERRORS:'}
     # ~ print(s.search([]))
-    for r in s.search(domain):
+    
+    to_migrate = find_all_ids_in_target_model(target_model, s.search(domain))
+    for r in to_migrate:
         target_record = get_target_record_from_id(target_model, r)
         if create and target_record:
             print(
@@ -234,73 +252,64 @@ def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={},
             continue
         # WTF? Sending a dict to read. Seems to work, but it sure feels icky.
         record = s.read(r, fields)
-        if True: #record['uom_type'] == 'reference': #needed for the first run of migrating uom.uom
-            # Always True?
-            if type(record) is list:
-                record = record[0]
-            vals = {}
-            # Customize certain fields before creating records
-            for key in fields:
-                # Remove /page if it exists in url (odoo v8 -> odoo 14)
-                if key == 'url' and type(record[key]) is str:
-                    url = record[key]
-                    if url.startswith('/page'):
-                        url = url.replace('/page', '')
-                    vals.update({fields[key]: url})
+        if type(record) is list:
+            record = record[0]
+        vals = {}
+        # Customize certain fields before creating records
+        for key in fields:
+            # Remove /page if it exists in url (odoo v8 -> odoo 14)
+            if key == 'url' and type(record[key]) is str:
+                url = record[key]
+                if url.startswith('/page'):
+                    url = url.replace('/page', '')
+                vals.update({fields[key]: url})
 
-                # Stringify datetime objects
-                # TypeError('Object of type datetime is not JSON serializable')
-                elif type(record[key]) is datetime.datetime:
-                    vals.update({fields[key]: str(record[key])})
+            # Stringify datetime objects
+            # TypeError('Object of type datetime is not JSON serializable')
+            elif type(record[key]) is datetime.datetime:
+                vals.update({fields[key]: str(record[key])})
 
-                # If the value of the key is a list, look for the corresponding record on target instead of copying the value directly
-                # example: country_id 198, on source is 'Sweden' while
-                #          country_id 198, on target is 'Saint Helena, Ascension and Tristan da Cunha'
-<<<<<<< HEAD
-                elif type(record_fields[key]) is list:
-                    field_definition = s.fields_get(key)[key]
-                    if field_definition['type'] == 'many2one':
-                        # ~ print(f"field_definition: {field_definition}")
-                        try:
-                            if field_definition["relation"] == "product.uom":
-                                vals.update({fields[key]:  UNITS_OF_MEASURE[record[key][0]]})
-                            else:
-                                vals.update({fields[key]: get_target_record_from_id(field_definition['relation'], record[key][0]).id})
-                            continue
-                        except:
-                            # This is the same code that just failed. Why would it work now?
-                            x = get_target_record_from_id(
-                                field_definition['relation'], record[key][0])
-                            if x:
-                                vals[fields[key]] = x.id
-                                continue
-                            error = f"Target '{key}': {[record[key], field_definition['relation']]} does not exist"
-                            if error not in errors:
-                                errors.add(error)
-                                if debug:
-                                    print(error)
-                    elif field_definition['type'] in ('one2many', 'many2many'):
-                        # Convert every id in the list
-                        ids = []
-                        for id in record[key]:
-                            ids.append(
-                                get_target_record_from_id(
-                                    field_definition['relation'], id).id)
-                        vals[fields[key]] = ids
-                else:
-                    vals[fields[key]] = record[key]
-            #vals.update(custom[])
-            # Break operation and return last dict used for creating record if something is wrong and debug is True
-            vals.update(hard_code)
-            if create and create_record_and_xml_id(target_model, vals, r) != 1 and debug:
+            # If the value of the key is a list, look for the corresponding record on target instead of copying the value directly
+            # example: country_id 198, on source is 'Sweden' while
+            #          country_id 198, on target is 'Saint Helena, Ascension and Tristan da Cunha'
+            elif type(record[key]) is list:
+                field_definition = s.fields_get(key)[key]
+                if field_definition['type'] == 'many2one':
+                    # ~ print(f"field_definition: {field_definition}")
+                    try:
+                        if field_definition["relation"] == "product.uom":
+                            vals.update({fields[key]:  UNITS_OF_MEASURE[record[key][0]]})
+                        else:
+                            vals.update({fields[key]: get_target_record_from_id(field_definition['relation'], record[key][0]).id})
+                        continue
+                    except:
+                        error = f"Target '{key}': {[record[key], field_definition['relation']]} does not exist"
+                        if error not in errors:
+                            errors.add(error)
+                            if debug:
+                                print(error)
+                elif field_definition['type'] in ('one2many', 'many2many'):
+                    # Convert every id in the list
+                    ids = []
+                    for id in record[key]:
+                        ids.append(
+                            get_target_record_from_id(
+                                field_definition['relation'], id).id)
+                    vals[fields[key]] = ids
+            else:
+                vals[fields[key]] = record[key]
+        #vals.update(custom[])
+        # Break operation and return last dict used for creating record if something is wrong and debug is True
+        vals.update(hard_code)
+        if create and create_record_and_xml_id(target_model, source_model, vals, r, unique) != 1 and debug:
+            return vals
+        elif not create:
+            try:
+                # We will never get here if target_record exists...
+                target_record.write(vals)
+                print(f"Writing to existing {record}")
+            except:
                 return vals
-            elif not create:
-                try:
-                    # We will never get here if target_record exists...
-                    target_record.write(vals)
-                    print(f"Writing to existing {record}")
-                except:
-                    return vals
 
     return errors
 
