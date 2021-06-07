@@ -292,7 +292,7 @@ product_public_category_fields = ['name', 'display_name']
 # product.attribute fields to copy from source to target WORKING
 product_attribute_fields = ['name']
 product_attribute_custom = {'type': 'display_type'} # create variant should be hardcoded to no_variant
-product_attribute_hard_code = {'create_variant': 'no_variant'}
+product_attribute_hard_code = {'create_variant': 'always'}
 # ~ migrate_model('product.attribute', migrate_fields = product_attribute_fields, include=True, custom = product_attribute_custom, hard_code = product_attribute_hard_code)
 
 # product.attribute.value fields to copy from source to target WORKING
@@ -310,7 +310,7 @@ product_category_hard_code = {
 # ~ migrate_model('product.category', migrate_fields = product_category_fields, include=True, hard_code = product_category_hard_code)
 
 # product.template fields to copy from source to target NEEDS uom.uom to be migrated, which is product.uom on odoo8
-product_template_fields = ['name', 'sale_ok', 'purchase_ok', 'list_price', 'standard_price', 'description_sale', 'default_code', 'website_published', 'active', 'type', 'categ_id', 'sale_line_warn', 'tracking', ]
+product_template_fields = ['name', 'sale_ok', 'purchase_ok', 'list_price', 'standard_price', 'description_sale', 'default_code', 'website_published', 'active', 'type', 'categ_id', 'sale_line_warn', 'tracking']
 product_template_custom = {
     'image_medium' : 'image_1920',
 }

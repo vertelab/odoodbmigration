@@ -13,11 +13,9 @@
 ### Step 1: Configuration
 The code to migrate the objects are in the migrate_objects/ directory.
 
-* In `credentials.py` you need to set the right credentials for the machines you need to access.
-* In `configuration.py` you need to change the IP, database name, and credentials of the source and target.
+* Generate/copy .odoorpcrc in your home directory with source and target configuration.
 
-### Step 2: Setup ssh tunnel
-Run the scripts from your local machine. You need an ssh tunnel like so: ssh $USER@oden.vertel.se -L 6080:[target IP]:80
 
 ### Step 3: Run the scripts in the right order
 `set_external_id.py` needs to be run first, but the order of the other scripts are irrelevant.
+Is this step still relevant?
