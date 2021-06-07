@@ -26,7 +26,7 @@ print(2)
 # HELPER FUNCTIONS
 IMPORT_MODULE_STRING = '__import__'
 
-UNITS_OF_MEAUSRE = {
+UNITS_OF_MEASURE = {
     21: 228,
     1: 227,
     8: 233,
@@ -178,6 +178,25 @@ def create_record_and_xml_id(model, fields, source_record_id):
         return 1
 
 
+import re
+def get_trailing_number(s):
+    m = re.search(r'\d+$', s)
+    return int(m.group()) if m else None
+
+
+def find_all_ids_in_target(model, ids=[]):
+    print(model)
+    target_ids = target.env["ir.model.data"].find_all_ids_in_target(model)
+    print(ids)
+    print(target_ids)
+    to_migrate = list(set(ids) - set(target_ids))
+    print(f"not in target: {to_migrate}")
+
+
+s = source.env["res.partner"]
+ids = s.search([])
+find_all_ids_in_target("res.partner", ids)
+
 def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={}, hard_code={}, debug=False, create=True):
     '''
     use this method for migrating a model with return dict from get_all_fields()
@@ -235,13 +254,14 @@ def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={},
                 # example: country_id 198, on source is 'Sweden' while
                 #          country_id 198, on target is 'Saint Helena, Ascension and Tristan da Cunha'
                 elif type(record_fields[key]) is list:
-                    field_definition = t.fields_get(key)[key]
+                    field_definition = s.fields_get(key)[key]
                     if field_definition['type'] == 'many2one':
                         # ~ print(f"field_definition: {field_definition}")
                         try:
-                            #print(f"vals: {get_id_from_xml_id(record[key],field_definition['relation'])}")
-                            vals.update({fields[key]: get_target_record_from_id(field_definition['relation'], record[key][0]).id})
-                            # ~ print(f"many2one: {fields[key]}")
+                            if field_definition["relation"] == "product.uom":
+                                vals.update({fields[key]:  UNITS_OF_MEASURE[record[key][0]]})
+                            else:
+                                vals.update({fields[key]: get_target_record_from_id(field_definition['relation'], record[key][0]).id})
                             continue
                         except:
                             x = get_target_record_from_id(

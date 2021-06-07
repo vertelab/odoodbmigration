@@ -255,27 +255,19 @@ sale_order_line_fields = ['name', 'price_unit', 'product_uom_qty', 'order_id', '
 account_custom = {
     'delay': 'customer_lead'
 }
-# ~ SELECT con.*
-       # ~ FROM pg_catalog.pg_constraint con
-            # ~ INNER JOIN pg_catalog.pg_class rel
-                       # ~ ON rel.oid = con.conrelid
-            # ~ INNER JOIN pg_catalog.pg_namespace nsp
-                       # ~ ON nsp.oid = connamespace
-       # ~ WHERE nsp.nspname = '<schema name>'
-             # ~ AND rel.relname = '<table name>';
 migrate_model('sale.order.line', migrate_fields = sale_order_line_fields, include=True, custom = account_custom, hard_code = {'product_id': 45})
 
 # account.tax.group fields to copy from source to target BROKEN
 account_tax_group_fields = ['name']
-# ~ migrate_model('account.tax.group', migrate_fields = account_tax_group_fields, include=True, )
+migrate_model('account.tax.group', migrate_fields = account_tax_group_fields, include=True, )
 
 # account.tax fields to copy from source to target BROKEN
 account_tax_fields = ['name', 'amount', 'sequence', 'description']
-# ~ migrate_model('account.tax', migrate_fields = account_tax_fields, include=True, )
+migrate_model('account.tax', migrate_fields = account_tax_fields, include=True, )
 
-# uom.category fields to copy from source to target 
+# uom.category fields to copy from source to target
 uom_category_fields = []
-# ~ migrate_model({'product.uom.categ':'uom.category'}, migrate_fields = uom_category_fields, include=False) #needs handling for different model names on different databases
+#migrate_model({'product.uom.categ':'uom.category'}, migrate_fields = uom_category_fields, include=False) #needs handling for different model names on different databases
 
 # uom.uom fields to copy from source to target NEEDS to migrate the records with uom_type == "reference" first
 uom_uom_fields = ['id']
@@ -283,17 +275,17 @@ uom_uom_fields = ['id']
 
 # res.groups fields to copy from source to target WORKING
 res_groups_fields = ['name']
-# ~ migrate_model('res.groups', migrate_fields = res_groups_fields, include=True, )
+migrate_model('res.groups', migrate_fields = res_groups_fields, include=True, )
 
 # product.public.category fields to copy from source to target WORKING
 product_public_category_fields = ['name', 'display_name']
-# ~ migrate_model('product.public.category', migrate_fields = product_public_category_fields, include=True, )
+#migrate_model('product.public.category', migrate_fields = product_public_category_fields, include=True, )
 
 # product.attribute fields to copy from source to target WORKING
 product_attribute_fields = ['name']
 product_attribute_custom = {'type': 'display_type'} # create variant should be hardcoded to no_variant
 product_attribute_hard_code = {'create_variant': 'no_variant'}
-# ~ migrate_model('product.attribute', migrate_fields = product_attribute_fields, include=True, custom = product_attribute_custom, hard_code = product_attribute_hard_code)
+# migrate_model('product.attribute', migrate_fields = product_attribute_fields, include=True, custom = product_attribute_custom, hard_code = product_attribute_hard_code)
 
 # product.attribute.value fields to copy from source to target WORKING
 product_attribute_value_fields = ['name', 'attribute_id']
