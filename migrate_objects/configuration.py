@@ -26,6 +26,8 @@ print(2)
 # HELPER FUNCTIONS
 IMPORT_MODULE_STRING = '__import__'
 
+# TODO: Skriv en robust funktion för detta. ID beror på databasen. Denna
+#  metod fungerar bara för exakt den databas som listan togs fram för.
 UNITS_OF_MEASURE = {
     21: 228,
     1: 227,
@@ -177,7 +179,6 @@ def create_record_and_xml_id(model, fields, source_record_id):
         print(create_xml_id(model, target_record_id, source_record_id))
         return 1
 
-
 import re
 def get_trailing_number(s):
     m = re.search(r'\d+$', s)
@@ -197,7 +198,7 @@ s = source.env["res.partner"]
 ids = s.search([])
 find_all_ids_in_target("res.partner", ids)
 
-def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={}, hard_code={}, debug=False, create=True):
+def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={}, hard_code={}, debug=False, create=True, domain=None):
     '''
     use this method for migrating a model with return dict from get_all_fields()
     example:
@@ -205,8 +206,10 @@ def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={},
             'product.template', exclude=['message_follower_ids'])
         simple_migrate_model('product.template', product_template)
     '''
+    domain = domain or []
     source_model = model
     target_model = model
+    # Why? What is the point?
     if type(model) == dict:
         source_model = list(model.keys())[0]
         target_model = model[list(model.keys())[0]]
@@ -223,18 +226,18 @@ def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={},
     # ~ print(s.read(1))
     errors = {'ERRORS:'}
     # ~ print(s.search([]))
-    for r in s.search([]):
-
+    for r in s.search(domain):
         target_record = get_target_record_from_id(target_model, r)
         if create and target_record:
             print(
                 f"INFO: skipping creation, an external id already exist for [{target_model}] [{r}]")
             continue
+        # WTF? Sending a dict to read. Seems to work, but it sure feels icky.
         record = s.read(r, fields)
-        record_fields = s.read(r, fields)
         if True: #record['uom_type'] == 'reference': #needed for the first run of migrating uom.uom
-            if type(record_fields) is list:
-                record_fields = record_fields[0]
+            # Always True?
+            if type(record) is list:
+                record = record[0]
             vals = {}
             # Customize certain fields before creating records
             for key in fields:
@@ -253,6 +256,7 @@ def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={},
                 # If the value of the key is a list, look for the corresponding record on target instead of copying the value directly
                 # example: country_id 198, on source is 'Sweden' while
                 #          country_id 198, on target is 'Saint Helena, Ascension and Tristan da Cunha'
+<<<<<<< HEAD
                 elif type(record_fields[key]) is list:
                     field_definition = s.fields_get(key)[key]
                     if field_definition['type'] == 'many2one':
@@ -264,21 +268,27 @@ def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={},
                                 vals.update({fields[key]: get_target_record_from_id(field_definition['relation'], record[key][0]).id})
                             continue
                         except:
+                            # This is the same code that just failed. Why would it work now?
                             x = get_target_record_from_id(
                                 field_definition['relation'], record[key][0])
                             if x:
-                                vals.update({fields[key]: x.id})
+                                vals[fields[key]] = x.id
                                 continue
-                            error = f"Target '{key}': {[record[key],field_definition['relation']]} does not exist"
+                            error = f"Target '{key}': {[record[key], field_definition['relation']]} does not exist"
                             if error not in errors:
                                 errors.add(error)
                                 if debug:
                                     print(error)
-
-
-                # Just copy the value if it is not False
-                elif record[key]:
-                    vals.update({fields[key]: record[key]})
+                    elif field_definition['type'] in ('one2many', 'many2many'):
+                        # Convert every id in the list
+                        ids = []
+                        for id in record[key]:
+                            ids.append(
+                                get_target_record_from_id(
+                                    field_definition['relation'], id).id)
+                        vals[fields[key]] = ids
+                else:
+                    vals[fields[key]] = record[key]
             #vals.update(custom[])
             # Break operation and return last dict used for creating record if something is wrong and debug is True
             vals.update(hard_code)
@@ -286,6 +296,7 @@ def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={},
                 return vals
             elif not create:
                 try:
+                    # We will never get here if target_record exists...
                     target_record.write(vals)
                     print(f"Writing to existing {record}")
                 except:
