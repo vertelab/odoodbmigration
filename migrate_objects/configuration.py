@@ -5,7 +5,8 @@ import json
 import logging
 import logging.handlers
 
-
+from odoo import models, fields, api, http, registry
+import odoo
 
 
 import sys
@@ -161,9 +162,14 @@ def get_target_record_from_id(model, source_record_id):
     returns: 0 if record cannot be found
     '''
     try:
-        r = target.env.ref(f"{IMPORT_MODULE_STRING}.{model.replace('.', '_')}_{source_record_id}")
-        print(f"r: {r}")
-        return r
+        # ~ r = target.env.ref(f"{IMPORT_MODULE_STRING}.{model.replace('.', '_')}_{source_record_id}", raise_if_not_found=False)
+        r = target.env['ir.model.data'].xmlid_to_res_model_res_id(f"{IMPORT_MODULE_STRING}.{model.replace('.', '_')}_{source_record_id}", raise_if_not_found=False)
+        if r != [False, False]:
+            r = target.env[r[0]].browse(r[1])
+            return r
+        else:
+            print(f"couldnt find external id: {IMPORT_MODULE_STRING}.{model.replace('.', '_')}_{source_record_id}")
+            return 0
     except:
         print(f"couldnt find external id: {IMPORT_MODULE_STRING}.{model.replace('.', '_')}_{source_record_id}")
         return 0
@@ -174,7 +180,7 @@ def create_record_and_xml_id(target_model, source_model, fields, source_record_i
     and creates an external id so that the record will not be duplicated
     example: create_record_and_xml_id('res.partner', {'name':'MyPartner'}, 2)
     '''
-    # print(f"Fields: {fields}")
+    print(f"Fields: {fields}")
     if get_target_record_from_id(target_model, source_record_id):
         print(
             f"INFO: skipping creation, an external id already exist for [{model}] [{source_record_id}]")
@@ -225,7 +231,6 @@ def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={},
     domain = domain or []
     source_model = model
     target_model = model
-    # Why? What is the point?
     if type(model) == dict:
         source_model = list(model.keys())[0]
         target_model = model[list(model.keys())[0]]
@@ -238,12 +243,10 @@ def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={},
         fields = {e:e for e in migrate_fields}
     for key in custom.keys():
         fields[key] = custom[key]
-    # ~ print(f"fields: {fields}")
-    # ~ print(s.read(1))
     errors = {'ERRORS:'}
-    # ~ print(s.search([]))
-    
-    to_migrate = find_all_ids_in_target_model(target_model, s.search(domain))
+    to_migrate = s.search(domain)
+    if create:
+        to_migrate = find_all_ids_in_target_model(target_model, to_migrate)
     for r in to_migrate:
         target_record = get_target_record_from_id(target_model, r)
         if create and target_record:
@@ -307,7 +310,7 @@ def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={},
             try:
                 # We will never get here if target_record exists...
                 target_record.write(vals)
-                print(f"Writing to existing {record}")
+                print(f"Writing to existing {vals}")
             except:
                 return vals
 
