@@ -4,6 +4,10 @@ import argparse
 import json
 import logging
 import logging.handlers
+import os
+
+import pprint
+pp = pprint.PrettyPrinter()
 
 from odoo import models, fields, api, http, registry
 import odoo
@@ -143,7 +147,7 @@ def create_xml_id(model, target_record_id, source_record_id):
     try:
         target.env['ir.model.data'].create(values)
         return f"xml_id = {xml_id} created"
-    except:
+    except Exception:
         return f"ERROR: create_xml_id('{model}', {target_record_id}, {source_record_id}) failed. Does the id already exist?"
         
 def map_record_to_xml_id(target_model, field, value, source_id):
@@ -166,15 +170,34 @@ def get_target_record_from_id(model, source_record_id):
         r = target.env['ir.model.data'].xmlid_to_res_model_res_id(f"{IMPORT_MODULE_STRING}.{model.replace('.', '_')}_{source_record_id}", raise_if_not_found=False)
         if r != [False, False]:
             r = target.env[r[0]].browse(r[1])
+            print(f"r {r}")
             return r
         else:
             print(f"couldnt find external id: {IMPORT_MODULE_STRING}.{model.replace('.', '_')}_{source_record_id}")
             return 0
-    except:
+    except Exception:
         print(f"couldnt find external id: {IMPORT_MODULE_STRING}.{model.replace('.', '_')}_{source_record_id}")
         return 0
-
-
+    
+def get_target_date_from_id(model, t, source_record_id):
+    ''' gets record from target database using record.id from source database
+    example: get_target_record_from_id('product.attribute', 3422)
+    returns: 0 if record cannot be found
+    '''
+    try:
+        # ~ r = target.env.ref(f"{IMPORT_MODULE_STRING}.{model.replace('.', '_')}_{source_record_id}", raise_if_not_found=False)
+        r = target.env['ir.model.data'].xmlid_to_res_model_res_id(f"{IMPORT_MODULE_STRING}.{model.replace('.', '_')}_{source_record_id}", raise_if_not_found=False)
+        if r != [False, False]:
+            r = t.read(r[1], ['last_migration_date'])
+            return r
+        else:
+            print(f"couldnt find external id: {IMPORT_MODULE_STRING}.{model.replace('.', '_')}_{source_record_id}")
+            return 0
+    except Exception as e:
+        print(f"couldnt find external id: {IMPORT_MODULE_STRING}.{model.replace('.', '_')}_{source_record_id}")
+        print(e)
+        return 0
+        
 def create_record_and_xml_id(target_model, source_model, fields, source_record_id, unique=None):
     ''' Creates record on target if it doesn't exist, using fields as values,
     and creates an external id so that the record will not be duplicated
@@ -212,7 +235,6 @@ def find_all_ids_in_target_model(target_model, ids=[]):
     # ~ print("="*99)
     # ~ print(f"target_ids: {target_ids}")
     to_migrate = (set(ids) - set(target_ids))
-    print(f"not in target: {to_migrate}")
     return to_migrate
 
 
@@ -244,10 +266,24 @@ def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={},
     for key in custom.keys():
         fields[key] = custom[key]
     errors = {'ERRORS:'}
-    to_migrate = s.search(domain)
     if create:
+        to_migrate = s.search(domain)
         to_migrate = find_all_ids_in_target_model(target_model, to_migrate)
+    elif not create:
+        to_migrate = s.search_read(domain, ['id', 'write_date'], order='write_date DESC')
+    # ~ print("to migrate:")
+    # ~ print(to_migrate)
     for r in to_migrate:
+        if not create:
+            
+            t_date = get_target_date_from_id(target_model, t, r['id'])
+            if t_date[0]['last_migration_date'] == False or t_date[0]['last_migration_date'] < r['write_date']:
+                r = r['id']
+            else:
+                # ~ print(f"record: {r}. is already up to date")
+                continue
+            
+        
         target_record = get_target_record_from_id(target_model, r)
         if create and target_record:
             print(
@@ -285,7 +321,7 @@ def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={},
                         else:
                             vals.update({fields[key]: get_target_record_from_id(field_definition['relation'], record[key][0]).id})
                         continue
-                    except:
+                    except Exception:
                         error = f"Target '{key}': {[record[key], field_definition['relation']]} does not exist"
                         if error not in errors:
                             errors.add(error)
@@ -309,9 +345,12 @@ def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={},
         elif not create:
             try:
                 # We will never get here if target_record exists...
+                vals.update({'last_migration_date': str(odoo.fields.Datetime.now())})
                 target_record.write(vals)
                 print(f"Writing to existing {vals}")
-            except:
+            except Exception as e:
+                print(f"Failed at writing to existing {vals}")
+                print(e)
                 return vals
 
     return errors
@@ -334,7 +373,7 @@ def get_relations_from_model(database, model):
                     used_uom[uom_id] = 1
                 else:
                     used_uom[uom_id] += 1
-        except:
+        except Exception:
             print(f"model: {result.model} doesnt exist")
         print(used_uom)
 

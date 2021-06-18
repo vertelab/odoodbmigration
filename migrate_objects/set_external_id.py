@@ -21,6 +21,23 @@ migrate_model('hr.employee', migrate_fields = hr_employee_fields, include=True, 
 if debug:
     input("press enter to continue")
 
+# hr.department fields to copy from source to target WORKS
+hr_department_fields = ['name']
+migrate_model('hr.department', migrate_fields = hr_department_fields, include=True)
+
+if debug:
+    input("press enter to continue")
+
+# hr.attendance fields to copy from source to target WORKS
+hr_attendance_fields = ['name', 'work_email', 'mobile_phone', 'work_location', 'company_id']
+hr_attendance_custom = {
+    'image_medium' : 'image_1920',
+}
+migrate_model('hr.employee', migrate_fields = hr_employee_fields, include=True, custom=hr_employee_custom)
+
+if debug:
+    input("press enter to continue")
+
 # account.account.type fields to copy from source to target WORKING
 account_type_field = ['name']
 account_type_hard_code = {'type': 'receivable', 'internal_group': 'equity'}
@@ -35,6 +52,27 @@ account_custom = {'user_type': 'user_type_id'}
 account_hard_code = {'reconcile': 1}
 account_unique = 'code'
 migrate_model('account.account', migrate_fields = account_fields, hard_code = account_hard_code, include=True, custom = account_custom, unique = account_unique)
+
+# account.move fields to copy from source to target WORKING
+account_move_fields = ['name', 'currency_id', 'journal_id', 'move_type', 'state']
+account_move_custom = {'type': 'move_type'}
+account_move_unique = 'name'
+migrate_model('account.account', migrate_fields = account_move_fields, hard_code = account_move_hard_code, include=True, custom = account_move_custom, unique = account_move_unique)
+
+if debug:
+    input("press enter to continue")
+
+# res.users fields to copy from source to target WORKS
+res_users_fields = ['company_id', 'login', 'partner_id']
+res_users_custom = {
+    'property_account_payable': 'property_account_payable_id',
+    'property_account_receivable': 'property_account_receivable_id'
+}
+res_users_hard_code = {
+    'notification_type': 'email'
+}
+res_users_unique = 'login'
+migrate_model('res.users', migrate_fields = res_users_fields, include=True, custom=res_users_custom, hard_code=res_users_hard_code, unique=res_users_unique)
 
 if debug:
     input("press enter to continue")
@@ -150,23 +188,6 @@ product_category_hard_code = {
     'property_valuation': 'manual_periodic'
 }
 migrate_model('product.category', migrate_fields = product_category_fields, include=True, hard_code = product_category_hard_code)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 if debug:
     input("press enter to continue")
