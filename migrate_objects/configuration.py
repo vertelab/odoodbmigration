@@ -29,6 +29,13 @@ del source.env.context['lang']
 target.env.context['lang'] = 'en_US'
 target.env.context['active_test'] = False
 source.env.context['active_test'] = False
+
+source_se = odoorpc.ODOO.load('source')
+target_se = odoorpc.ODOO.load('target')
+source.env.context['lang'] = 'sv_SE'
+target.env.context['lang'] = 'sv_SE'
+target.env.context['active_test'] = False
+source.env.context['active_test'] = False
 print(2)
 # HELPER FUNCTIONS
 IMPORT_MODULE_STRING = '__import__'
@@ -198,7 +205,7 @@ def get_target_date_from_id(model, t, source_record_id):
         print(e)
         return 0
         
-def create_record_and_xml_id(target_model, source_model, fields, source_record_id, unique=None):
+def create_record_and_xml_id(target_model, source_model, fields, source_record_id, unique=None, i18n_fields=None):
     ''' Creates record on target if it doesn't exist, using fields as values,
     and creates an external id so that the record will not be duplicated
     example: create_record_and_xml_id('res.partner', {'name':'MyPartner'}, 2)
@@ -208,19 +215,24 @@ def create_record_and_xml_id(target_model, source_model, fields, source_record_i
         print(
             f"INFO: skipping creation, an external id already exist for [{model}] [{source_record_id}]")
     else:
-        try:
+        # ~ try:
+        if True:
             target_record_id = target.env[target_model].create(fields)
             print(f"Recordset('{target_model}', [{target_record_id}]) created")
-        except Exception as e:
-            print(f"fields: {fields}")
-            print(f"ERROR: target.env['{target_model}'].create ({source_record_id}) failed")
-            if str(e).find('unique') != -1 and unique != None:
-                map_record_to_xml_id(target_model, unique, fields[unique], source_record_id)
-            else:
-                print(f"e: {e}")
-            return e
-        print(create_xml_id(target_model, target_record_id, source_record_id))
-        return 1
+            migrate_translation(source_model, target_model,
+                                source_record_id, target_record_id,
+                                i18n_fields)
+            print(f"Recordset('{target_model}', [{target_record_id}]) translated")
+            print(create_xml_id(target_model, target_record_id, source_record_id))
+            return target_record_id
+        # ~ except Exception as e:
+            # ~ print(f"fields: {fields}")
+            # ~ print(f"ERROR: target.env['{target_model}'].create ({source_record_id}) failed")
+            # ~ if str(e).find('unique') != -1 and unique != None:
+                # ~ map_record_to_xml_id(target_model, unique, fields[unique], source_record_id)
+            # ~ else:
+                # ~ print(f"e: {e}")
+            # ~ return e
 
 import re
 def get_trailing_number(s):
@@ -237,14 +249,47 @@ def find_all_ids_in_target_model(target_model, ids=[]):
     to_migrate = (set(ids) - set(target_ids))
     return to_migrate
 
+def get_translatable_fields(t_model, s_model, fields: dict) -> dict:
+    """ Return all fields that are translatable in both source
+    and target.
+    :returns: dict with source and target fields.
+    """
+    res = {}
+    t_fields = t_model.fields_get(list(fields.values()))
+    for name, field_data in s_model.fields_get(list(fields.keys())).items():
+        if field_data.get('translate') and t_fields[fields[name]].get('translate'):
+            res[name] = fields[name]
+    return res
 
-def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={}, hard_code={}, debug=False, create=True, domain=None, unique=None):
+def migrate_translation(source_model, target_model, source_id, target_id, fields):
+    """ Migrate swedish translations for the given source and
+    target records.
+    """
+    # TODO: Recreate for multiple languages.
+    if not fields:
+        return
+    vals = {}
+    s_record = source_se.env[source_model].search_read([('id', '=', source_id)], list(fields.keys()))
+    s_record = s_record and s_record[0] or None
+    if not s_record:
+        return
+    # TODO: not an exact replica of fields in migrate_model. Look into
+    #  that. Not every feature is needed, since this function will only
+    #  handle translateable fields. This includes Char, Text and Html
+    #  fields. Any more?
+    for name, value in s_record.items():
+        if name != 'id':
+            vals[fields[name]] = value
+    target_se.env[target_model].write([target_id], vals)
+    
+def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={}, hard_code={}, debug=False, create=True, domain=None, unique=None, after_migration=None):
     '''
     use this method for migrating a model with return dict from get_all_fields()
     example:
         product_template = get_all_fields(
             'product.template', exclude=['message_follower_ids'])
         simple_migrate_model('product.template', product_template)
+    :param after_migration: Custom method run after migration of a record.
     '''
     print()
     print("="*99)
@@ -265,7 +310,10 @@ def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={},
         fields = {e:e for e in migrate_fields}
     for key in custom.keys():
         fields[key] = custom[key]
+    i18n_fields = get_translatable_fields(s, t, fields)
     errors = {'ERRORS:'}
+    # Set migration date before reading. Otherwise we may miss updates in next migration.
+    now = odoo.fields.Datetime.now()
     if create:
         to_migrate = s.search(domain)
         to_migrate = find_all_ids_in_target_model(target_model, to_migrate)
@@ -340,18 +388,26 @@ def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={},
         #vals.update(custom[])
         # Break operation and return last dict used for creating record if something is wrong and debug is True
         vals.update(hard_code)
-        if create and create_record_and_xml_id(target_model, source_model, vals, r, unique) != 1 and debug:
-            return vals
-        elif not create:
+        if create:
+            target_record_id = create_record_and_xml_id(target_model, source_model, vals, r, unique, i18n_fields)
+            print(after_migration)
+            if after_migration:
+                after_migration(record['id'], target_record_id, create=True)
+            if type(target_record_id) != int and debug:
+                return vals
+        elif target_record:
             try:
-                # We will never get here if target_record exists...
-                vals.update({'last_migration_date': str(odoo.fields.Datetime.now())})
+                vals.update({'last_migration_date': str(now)})
                 target_record.write(vals)
                 print(f"Writing to existing {vals}")
+                migrate_translation(source_model, target_model, record['id'], target_record.id, i18n_fields)
+                if after_migration:
+                    after_migration(record['id'], target_record.id, create=False)
             except Exception as e:
                 print(f"Failed at writing to existing {vals}")
                 print(e)
                 return vals
+            
 
     return errors
 

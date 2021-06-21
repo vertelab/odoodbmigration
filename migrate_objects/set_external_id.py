@@ -193,21 +193,24 @@ if debug:
     input("press enter to continue")
 
 # product.template fields to copy from source to target NEEDS uom.uom to be migrated, which is product.uom on odoo8
-product_template_fields = ['name', 'sale_ok', 'purchase_ok', 'list_price', 'standard_price', 'description_sale', 'default_code', 'website_published', 'active', 'type', 'categ_id', 'sale_line_warn', 'tracking']
+product_template_fields = ['name', 'sale_ok', 'purchase_ok', 'list_price', 'standard_price', 'description_sale', 'default_code', 'website_published', 'active', 'type', 'categ_id', 'sale_line_warn', ]
 product_template_custom = {
     'image_medium' : 'image_1920',
 }
-product_template_hard_code = {'product_variant_ids': []}
-# ~ migrate_model('product.template', migrate_fields = product_template_fields, include=True, custom = product_template_custom) #the old one had some weird checks for default code? incase it doesnt work
+# Not used?
+domain = [('id', '=', 4838)]
+#migrate_model('product.template', migrate_fields=product_template_fields, include=True, custom=product_template_custom, domain=domain, after_migration=product_tmpl_set_attributes)
+#the old one had some weird checks for default code? incase it doesnt work
 
 # product.product fields to copy from source to target
 product_product_fields = ['name', 'sale_ok', 'description', 'purchase_ok', 'list_price', 'description_sale', 'default_code', 'active',
-'website_published', 'product_tmpl_id', 'lst_price', 'volume', 'attribute_value_ids', 'standard_price', 'available_in_pos', 'weight',
+'website_published', 'product_tmpl_id', 'lst_price', 'volume', 'standard_price', 'available_in_pos', 'weight',
 'ingredients', 'ingredients_last_changed', 'ingredients_changed_by_uid', 'use_desc', 'use_desc_last_changed', 'use_desc_changed_by_uid', 'event_ok']
 product_product_custom = {
     'image' : 'image_1920'
 }
-# ~ migrate_model('product.product', migrate_fields = product_product_fields, include=True, custom = product_product_custom)
+domain = [('product_tmpl_id', '=', 4838)]
+#migrate_model('product.product', migrate_fields=product_product_fields, include=True, custom=product_product_custom, domain=domain)
 #
 # if default_variant_ids:
 #     target.env['product.product'].browse(default_variant_ids).unlink()
