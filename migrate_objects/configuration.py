@@ -249,6 +249,7 @@ def find_all_ids_in_target_model(target_model, ids=[]):
     to_migrate = (set(ids) - set(target_ids))
     return to_migrate
 
+<<<<<<< HEAD
 def get_translatable_fields(t_model, s_model, fields: dict) -> dict:
     """ Return all fields that are translatable in both source
     and target.
@@ -283,6 +284,10 @@ def migrate_translation(source_model, target_model, source_id, target_id, fields
     target_se.env[target_model].write([target_id], vals)
     
 def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={}, hard_code={}, debug=False, create=True, domain=None, unique=None, after_migration=None):
+=======
+
+def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={}, hard_code={}, debug=False, create=True, domain=None, unique=None, calc=None, xml_id_suffix = None):
+>>>>>>> a066dad6eb314b83800360c5c000b532e2701390
     '''
     use this method for migrating a model with return dict from get_all_fields()
     example:
@@ -317,10 +322,11 @@ def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={},
     if create:
         to_migrate = s.search(domain)
         to_migrate = find_all_ids_in_target_model(target_model, to_migrate)
+        print("to migrate:")
+        print(to_migrate)
     elif not create:
         to_migrate = s.search_read(domain, ['id', 'write_date'], order='write_date DESC')
-    # ~ print("to migrate:")
-    # ~ print(to_migrate)
+    
     for r in to_migrate:
         if not create:
             
@@ -388,6 +394,7 @@ def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={},
         #vals.update(custom[])
         # Break operation and return last dict used for creating record if something is wrong and debug is True
         vals.update(hard_code)
+<<<<<<< HEAD
         if create:
             target_record_id = create_record_and_xml_id(target_model, source_model, vals, r, unique, i18n_fields)
             print(after_migration)
@@ -396,6 +403,14 @@ def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={},
             if type(target_record_id) != int and debug:
                 return vals
         elif target_record:
+=======
+        if calc:
+            for key in calc.keys():
+                vals[key] = exec(calc[key])
+        if create and create_record_and_xml_id(target_model, source_model, vals, r, unique) != 1 and debug:
+            return vals
+        elif not create:
+>>>>>>> a066dad6eb314b83800360c5c000b532e2701390
             try:
                 vals.update({'last_migration_date': str(now)})
                 target_record.write(vals)
