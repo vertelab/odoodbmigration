@@ -10,6 +10,13 @@ migrate_model('res.partner', migrate_fields= res_partner_fields, include=True)
 
 if debug:
     input("press enter to continue")
+    
+# res.partner.bank fields to copy from source to target WORKS
+res_partner_bank_fields = ['acc_number', 'partner_id']
+migrate_model('res.partner.bank', migrate_fields= res_partner_bank_fields, include=True, unique = 'acc_number')
+
+if debug:
+    input("press enter to continue")
 
 # hr.employee fields to copy from source to target WORKS
 hr_employee_fields = ['name', 'work_email', 'mobile_phone', 'work_location', 'company_id']
@@ -53,11 +60,40 @@ account_hard_code = {'reconcile': 1}
 account_unique = 'code'
 migrate_model('account.account', migrate_fields = account_fields, hard_code = account_hard_code, include=True, custom = account_custom, unique = account_unique)
 
+if debug:
+    input("press enter to continue")
+
+# account.journal fields to copy from source to target WORKING
+account_journal_fields = ['code', 'name', 'company_id', 'type']
+account_journal_custom = {}
+account_journal_hard_code = {'invoice_reference_model': 'odoo', 'invoice_reference_type': 'partner'}
+account_journal_unique = 'code'
+# ~ migrate_model('account.journal', migrate_fields = account_journal_fields, hard_code = account_journal_hard_code, include=True, custom = account_journal_custom, unique = account_journal_unique)
+
+if debug:
+    input("press enter to continue")
+
 # account.move fields to copy from source to target WORKING
-account_move_fields = ['name', 'currency_id', 'journal_id', 'move_type', 'state']
-account_move_custom = {'type': 'move_type'}
+account_move_fields = ['date', 'name', 'journal_id']
+account_move_custom = {}
+account_move_hard_code = {'move_type': 'entry'}
 account_move_unique = 'name'
-migrate_model('account.account', migrate_fields = account_move_fields, hard_code = account_move_hard_code, include=True, custom = account_move_custom, unique = account_move_unique)
+account_move_calc = {'currency_id': r" source.env['account.move'].search_read(record['journal_id'], 'currency')"}
+# ~ migrate_model('account.move', migrate_fields = account_move_fields, hard_code = account_move_hard_code, include=True, custom = account_move_custom, unique = account_move_unique)
+
+if debug:
+    input("press enter to continue")
+
+# account.invoice fields to copy from source to target WORKING
+account_invoice_fields = ['name', 'journal_id']
+account_invoice_custom = {
+    'type': 'move_type',
+    'date_invoice': 'date'
+    }
+account_invoice_unique = 'name'
+account_invoice_calc = {}
+account_invoice_xml_id_suffix = 'b'
+# ~ migrate_model({'account.invoice': 'account.move'}, migrate_fields = account_invoice_fields, include=True, custom = account_invoice_custom, unique = account_invoice_unique, xml_id_suffix = account_invoice_xml_id_suffix)
 
 if debug:
     input("press enter to continue")

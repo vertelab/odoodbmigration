@@ -238,7 +238,7 @@ def find_all_ids_in_target_model(target_model, ids=[]):
     return to_migrate
 
 
-def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={}, hard_code={}, debug=False, create=True, domain=None, unique=None):
+def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={}, hard_code={}, debug=False, create=True, domain=None, unique=None, calc=None, xml_id_suffix = None):
     '''
     use this method for migrating a model with return dict from get_all_fields()
     example:
@@ -269,10 +269,11 @@ def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={},
     if create:
         to_migrate = s.search(domain)
         to_migrate = find_all_ids_in_target_model(target_model, to_migrate)
+        print("to migrate:")
+        print(to_migrate)
     elif not create:
         to_migrate = s.search_read(domain, ['id', 'write_date'], order='write_date DESC')
-    # ~ print("to migrate:")
-    # ~ print(to_migrate)
+    
     for r in to_migrate:
         if not create:
             
@@ -340,6 +341,9 @@ def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={},
         #vals.update(custom[])
         # Break operation and return last dict used for creating record if something is wrong and debug is True
         vals.update(hard_code)
+        if calc:
+            for key in calc.keys():
+                vals[key] = exec(calc[key])
         if create and create_record_and_xml_id(target_model, source_model, vals, r, unique) != 1 and debug:
             return vals
         elif not create:
