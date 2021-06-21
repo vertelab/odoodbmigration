@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from configuration import *
+from set_variant_on_template import *
 
 debug = False
 
@@ -68,7 +69,7 @@ account_journal_fields = ['code', 'name', 'company_id', 'type']
 account_journal_custom = {}
 account_journal_hard_code = {'invoice_reference_model': 'odoo', 'invoice_reference_type': 'partner'}
 account_journal_unique = 'code'
-# ~ migrate_model('account.journal', migrate_fields = account_journal_fields, hard_code = account_journal_hard_code, include=True, custom = account_journal_custom, unique = account_journal_unique)
+migrate_model('account.journal', migrate_fields = account_journal_fields, hard_code = account_journal_hard_code, include=True, custom = account_journal_custom, unique = account_journal_unique)
 
 if debug:
     input("press enter to continue")
@@ -235,7 +236,7 @@ product_template_custom = {
 }
 # Not used?
 domain = [('id', '=', 4838)]
-#migrate_model('product.template', migrate_fields=product_template_fields, include=True, custom=product_template_custom, domain=domain, after_migration=product_tmpl_set_attributes)
+migrate_model('product.template', migrate_fields=product_template_fields, include=True, custom=product_template_custom, after_migration=product_tmpl_set_attributes)
 #the old one had some weird checks for default code? incase it doesnt work
 
 # product.product fields to copy from source to target
@@ -246,7 +247,7 @@ product_product_custom = {
     'image' : 'image_1920'
 }
 domain = [('product_tmpl_id', '=', 4838)]
-#migrate_model('product.product', migrate_fields=product_product_fields, include=True, custom=product_product_custom, domain=domain)
-#
-# if default_variant_ids:
-#     target.env['product.product'].browse(default_variant_ids).unlink()
+migrate_model('product.product', migrate_fields=product_product_fields, include=True, custom=product_product_custom)
+
+# ~ if default_variant_ids:
+    # ~ target.env['product.product'].browse(default_variant_ids).unlink()
