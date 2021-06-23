@@ -42,6 +42,8 @@ IMPORT_MODULE_STRING = '__import__'
 
 # TODO: Skriv en robust funktion för detta. ID beror på databasen. Denna
 #  metod fungerar bara för exakt den databas som listan togs fram för.
+COMPANY_ID = 1
+
 UNITS_OF_MEASURE = {
     21: 228,
     1: 227,
@@ -181,10 +183,10 @@ def get_target_record_from_id(model, source_record_id):
             return r
         else:
             print(f"couldnt find external id: {IMPORT_MODULE_STRING}.{model.replace('.', '_')}_{source_record_id}")
-            return 0
+            return False
     except Exception:
         print(f"couldnt find external id: {IMPORT_MODULE_STRING}.{model.replace('.', '_')}_{source_record_id}")
-        return 0
+        return False
     
 def get_target_date_from_id(model, t, source_record_id):
     ''' gets record from target database using record.id from source database
@@ -196,14 +198,14 @@ def get_target_date_from_id(model, t, source_record_id):
         r = target.env['ir.model.data'].xmlid_to_res_model_res_id(f"{IMPORT_MODULE_STRING}.{model.replace('.', '_')}_{source_record_id}", raise_if_not_found=False)
         if r != [False, False]:
             r = t.read(r[1], ['last_migration_date'])
-            return r
+            return r[0]['last_migration_date']
         else:
             print(f"couldnt find external id: {IMPORT_MODULE_STRING}.{model.replace('.', '_')}_{source_record_id}")
-            return 0
+            return False
     except Exception as e:
         print(f"couldnt find external id: {IMPORT_MODULE_STRING}.{model.replace('.', '_')}_{source_record_id}")
         print(e)
-        return 0
+        return False
         
 def create_record_and_xml_id(target_model, source_model, fields, source_record_id, unique=None, i18n_fields=None):
     ''' Creates record on target if it doesn't exist, using fields as values,
@@ -216,6 +218,7 @@ def create_record_and_xml_id(target_model, source_model, fields, source_record_i
             f"INFO: skipping creation, an external id already exist for [{model}] [{source_record_id}]")
     else:
         try:
+
             target_record_id = target.env[target_model].create(fields)
             print(f"Recordset('{target_model}', [{target_record_id}]) created")
             migrate_translation(source_model, target_model,
@@ -322,10 +325,12 @@ def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={},
         to_migrate = s.search_read(domain, ['id', 'write_date'], order='write_date DESC')
     
     for r in to_migrate:
+        print("="*99)
+        print(f"Migrating model: {model}")
         if not create:
-            
             t_date = get_target_date_from_id(target_model, t, r['id'])
-            if t_date[0]['last_migration_date'] == False or t_date[0]['last_migration_date'] < r['write_date']:
+            print(f"t_date: {t_date}, {r['write_date']}")
+            if t_date == False or r['write_date'] == False or t_date < r['write_date']:
                 r = r['id']
             else:
                 # ~ print(f"record: {r}. is already up to date")
@@ -345,53 +350,58 @@ def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={},
         # Customize certain fields before creating records
         for key in fields:
             # Remove /page if it exists in url (odoo v8 -> odoo 14)
-            if key == 'url' and type(record[key]) is str:
-                url = record[key]
-                if url.startswith('/page'):
-                    url = url.replace('/page', '')
-                vals.update({fields[key]: url})
+            if not calc or key not in calc.keys():
+                if key == 'url' and type(record[key]) is str:
+                    url = record[key]
+                    if url.startswith('/page'):
+                        url = url.replace('/page', '')
+                    vals.update({fields[key]: url})
 
-            # Stringify datetime objects
-            # TypeError('Object of type datetime is not JSON serializable')
-            elif type(record[key]) is datetime.datetime:
-                vals.update({fields[key]: str(record[key])})
+                # Stringify datetime objects
+                # TypeError('Object of type datetime is not JSON serializable')
+                elif type(record[key]) is datetime.datetime:
+                    vals.update({fields[key]: str(record[key])})
 
-            # If the value of the key is a list, look for the corresponding record on target instead of copying the value directly
-            # example: country_id 198, on source is 'Sweden' while
-            #          country_id 198, on target is 'Saint Helena, Ascension and Tristan da Cunha'
-            elif type(record[key]) is list:
-                field_definition = s.fields_get(key)[key]
-                if field_definition['type'] == 'many2one':
-                    # ~ print(f"field_definition: {field_definition}")
-                    try:
-                        if field_definition["relation"] == "product.uom":
-                            vals.update({fields[key]:  UNITS_OF_MEASURE[record[key][0]]})
-                        else:
-                            vals.update({fields[key]: get_target_record_from_id(field_definition['relation'], record[key][0]).id})
-                        continue
-                    except Exception:
-                        error = f"Target '{key}': {[record[key], field_definition['relation']]} does not exist"
-                        if error not in errors:
-                            errors.add(error)
-                            if debug:
-                                print(error)
-                elif field_definition['type'] in ('one2many', 'many2many'):
-                    # Convert every id in the list
-                    ids = []
-                    for id in record[key]:
-                        ids.append(
-                            get_target_record_from_id(
-                                field_definition['relation'], id).id)
-                    vals[fields[key]] = ids
-            else:
-                vals[fields[key]] = record[key]
+                # If the value of the key is a list, look for the corresponding record on target instead of copying the value directly
+                # example: country_id 198, on source is 'Sweden' while
+                #          country_id 198, on target is 'Saint Helena, Ascension and Tristan da Cunha'
+                elif type(record[key]) is list:
+                    field_definition = s.fields_get(key)[key]
+                    if field_definition['type'] == 'many2one':
+                        # ~ print(f"field_definition: {field_definition}")
+                        try:
+                            if field_definition["relation"] == "product.uom":
+                                vals.update({fields[key]:  UNITS_OF_MEASURE[record[key][0]]})
+                            elif field_definition["relation"] == "res.company":
+                                vals.update({fields[key]: COMPANY_ID})
+                            else:
+                                vals.update({fields[key]: get_target_record_from_id(field_definition['relation'], record[key][0]).id})
+                            continue
+                        except Exception:
+                            error = f"Target '{key}': {[record[key], field_definition['relation']]} does not exist"
+                            if error not in errors:
+                                errors.add(error)
+                                if debug:
+                                    print(error)
+                    elif field_definition['type'] in ('one2many', 'many2many'):
+                        # Convert every id in the list
+                        ids = []
+                        for id in record[key]:
+                            rec = get_target_record_from_id(field_definition['relation'], id)
+                            if rec:
+                                ids.append(rec.id )
+                        if ids:
+                            vals[fields[key]] = ids
+                else:
+                    vals[fields[key]] = record[key]
         #vals.update(custom[])
         # Break operation and return last dict used for creating record if something is wrong and debug is True
         vals.update(hard_code)
 
         if calc:
             for key in calc.keys():
-                vals[key] = exec(calc[key])
+                print(calc[key])
+                exec(calc[key])
         if create:
             target_record_id = create_record_and_xml_id(target_model, source_model, vals, r, unique, i18n_fields)
             print(after_migration)

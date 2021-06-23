@@ -79,8 +79,8 @@ account_move_fields = ['date', 'name', 'journal_id']
 account_move_custom = {}
 account_move_hard_code = {'move_type': 'entry'}
 account_move_unique = 'name'
-account_move_calc = {'currency_id': r" source.env['account.move'].search_read(record['journal_id'], 'currency')"}
-# ~ migrate_model('account.move', migrate_fields = account_move_fields, hard_code = account_move_hard_code, include=True, custom = account_move_custom, unique = account_move_unique)
+account_move_calc = {'currency_id': r" return source.env['account.move'].search_read(record['journal_id'], 'currency')"}
+# ~ #migrate_model('account.move', migrate_fields = account_move_fields, hard_code = account_move_hard_code, include=True, custom = account_move_custom, unique = account_move_unique)
 
 if debug:
     input("press enter to continue")
@@ -94,7 +94,7 @@ account_invoice_custom = {
 account_invoice_unique = 'name'
 account_invoice_calc = {}
 account_invoice_xml_id_suffix = 'b'
-# ~ migrate_model({'account.invoice': 'account.move'}, migrate_fields = account_invoice_fields, include=True, custom = account_invoice_custom, unique = account_invoice_unique, xml_id_suffix = account_invoice_xml_id_suffix)
+# ~ #migrate_model({'account.invoice': 'account.move'}, migrate_fields = account_invoice_fields, include=True, custom = account_invoice_custom, unique = account_invoice_unique, xml_id_suffix = account_invoice_xml_id_suffix)
 
 if debug:
     input("press enter to continue")
@@ -192,7 +192,7 @@ migrate_model('res.groups', migrate_fields = res_groups_fields, include=True)
 if debug:
     input("press enter to continue")
 
-# product.public.category fields to copy from source to target WORKING
+# ~ # product.public.category fields to copy from source to target WORKING
 product_public_category_fields = ['name', 'display_name']
 migrate_model('product.public.category', migrate_fields = product_public_category_fields, include=True, )
 
@@ -216,7 +216,7 @@ migrate_model('product.attribute.value', migrate_fields = product_attribute_valu
 if debug:
     input("press enter to continue")
 
-# product.category fields to copy from source to target
+# ~ # product.category fields to copy from source to target
 product_category_fields = ['name']
 product_category_custom = {
 }

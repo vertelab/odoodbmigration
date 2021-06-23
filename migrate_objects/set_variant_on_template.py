@@ -29,7 +29,7 @@ def product_tmpl_set_attributes(source_template_id, target_template_id, create=F
             target_val_ids.append(get_target_record_from_id('product.attribute.value', id).id)
         target_line = [l for l in filter(lambda r: r['attribute_id'][0] == target_attr_id, target_lines)]
         target_line = target_line and target_line[0] or None
-        if target_line:
+        if target_line and target_val_ids:
             target_lines.remove(target_line)
             if set(target_val_ids) == set(target_line['value_ids']):
                 # Source and target lines are identical
@@ -37,7 +37,7 @@ def product_tmpl_set_attributes(source_template_id, target_template_id, create=F
             # This will create/delete/archive product variants
             attribute_line_ids.append((1, target_line['id'], {'value_ids': [(6, 0, target_val_ids)]}))
             #target.env['product.template.attribute.line'].write(target_line['id'], {'value_ids': [(6, 0, target_val_ids)]})
-        else:
+        elif target_val_ids:
             # This will create/delete/archive product variants
             attribute_line_ids.append((0, 0, {
                 'product_tmpl_id': target_template_id,
@@ -93,7 +93,6 @@ def product_tmpl_set_attributes(source_template_id, target_template_id, create=F
         print(domain)
         print(source_variant)
         if source_variant:
-            print('archiving')
             create_xml_id('product.product', variant['id'], source_variant['id'])
             if not source_variant['active'] and variant['active']:
                 target.env['product.product'].write(variant['id'], {'active': False})
