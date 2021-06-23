@@ -12,7 +12,7 @@ migrate_model('res.partner', migrate_fields= res_partner_fields, include=True)
 if debug:
     input("press enter to continue")
     
-# res.partner.bank fields to copy from source to target WORKS
+# res.partner.bank fields to copy from source to target BROKEN
 res_partner_bank_fields = ['acc_number', 'partner_id']
 migrate_model('res.partner.bank', migrate_fields= res_partner_bank_fields, include=True, unique = 'acc_number')
 
@@ -99,7 +99,7 @@ account_invoice_xml_id_suffix = 'b'
 if debug:
     input("press enter to continue")
 
-# res.users fields to copy from source to target WORKS
+# ~ # res.users fields to copy from source to target WORKS
 res_users_fields = ['company_id', 'login', 'partner_id']
 res_users_custom = {
     'property_account_payable': 'property_account_payable_id',

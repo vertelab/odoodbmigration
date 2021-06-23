@@ -5,6 +5,7 @@ import json
 import logging
 import logging.handlers
 import os
+import pprint
 
 import pprint
 pp = pprint.PrettyPrinter()
@@ -44,38 +45,40 @@ IMPORT_MODULE_STRING = '__import__'
 #  metod fungerar bara för exakt den databas som listan togs fram för.
 COMPANY_ID = 1
 
-UNITS_OF_MEASURE = {
-    21: 228,
-    1: 227,
-    8: 233,
-    17: 230,
-    22: 233,
-    25: 239,
-    26: 240,
-    2: 229,
-    34: 229,
-    3: 229,
-    36: 230,
-    37: 230,
-    4: 249,
-    5: 250,
-    6: 251,
-    33: 229,
-    10: 232,
-    11: 231,
-    14: 235,
-    27: 241,
-    28: 242,
-    29: 243,
-    13: 234,
-    23: 236,
-    31: 245,
-    30: 244,
-    24: 237,
-    32: 246,
-    35: 227,
-
+UNITS_OF_MEASURE_EXID = {
+    5: 'product_uom_cl',
+    23: 'product_uom_cm',
+    11: 'product_uom_day',
+    4: 'product_uom_dl',
+    21: 'product_uom_dozen',
+    30: 'product_uom_floz',
+    28: 'product_uom_foot',
+    17: 'product_uom_gram',
+    32: 'product_uom_gal',
+    37: 'product_uom_gram',
+    36: 'product_uom_gram',
+    10: 'product_uom_hour',
+    27: 'product_uom_inch',
+    2: 'product_uom_kgm',
+    33: 'product_uom_kgm',
+    34: 'product_uom_kgm',
+    3: 'product_uom_kgm',
+    14: 'product_uom_km',
+    25: 'product_uom_lb',
+    24: 'product_uom_litre',
+    13: 'product_uom_meter',
+    29: 'product_uom_mile',
+    6: 'product_uom_ml',
+    26: 'product_uom_oz',
+    1: 'product_uom_unit',
+    31: 'product_uom_qt',
+    35: 'product_uom_unit',
+    22: 'product_uom_ton',
+    8: 'product_uom_ton'
 }
+
+UNITS_OF_MEASURE = {}
+
 
 ''' Glossary
        domain = list of search criterias
@@ -284,6 +287,18 @@ def migrate_translation(source_model, target_model, source_id, target_id, fields
             vals[fields[name]] = value
     target_se.env[target_model].write([target_id], vals)
     
+def get_uom_ids():
+    uom_xmlid_values = UNITS_OF_MEASURE_EXID.values()
+    for data in target.env['ir.model.data'].search_read([
+            ('model', '=', 'uom.uom'),
+            ('name', '=like', 'product_uom_%'),
+            ('module', '=', 'uom')], ['res_id', 'name']):
+        for key in UNITS_OF_MEASURE_EXID.keys():
+            if UNITS_OF_MEASURE_EXID[key] == data['name']:
+                UNITS_OF_MEASURE[key] = data['res_id']
+    pprint.pprint(UNITS_OF_MEASURE)
+get_uom_ids()
+    
 def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={}, hard_code={}, debug=False, create=True, domain=None, unique=None, after_migration=None, calc=None, xml_id_suffix = None):
     '''
     use this method for migrating a model with return dict from get_all_fields()
@@ -413,11 +428,15 @@ def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={},
             try:
                 vals.update({'last_migration_date': str(now)})
                 target_record.write(vals)
+                if 'image_1920' in vals.keys():
+                    vals.pop('image_1920')
                 print(f"Writing to existing {vals}")
                 migrate_translation(source_model, target_model, record['id'], target_record.id, i18n_fields)
                 if after_migration:
                     after_migration(record['id'], target_record.id, create=False)
             except Exception as e:
+                if 'image_1920' in vals.keys():
+                    vals.pop('image_1920')
                 print(f"Failed at writing to existing {vals}")
                 print(e)
                 return vals
