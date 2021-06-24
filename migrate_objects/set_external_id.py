@@ -7,7 +7,10 @@ debug = False
 
 # res.partner fields to copy from source to target WORKS
 res_partner_fields = ['name', 'email', 'mobile', 'phone', 'street', 'city', 'zip']
-migrate_model('res.partner', migrate_fields= res_partner_fields, include=True)
+# ~ res_partner_domain = [('partner_id.commercial_partner_id.access_group_ids', '=', target.env.ref("__export__.res_groups_283").id))]
+res_partner_ids = []
+res_partner_domain = [('attribute_value_ids', '=', id) for id in res_partner_ids]
+migrate_model('res.partner', migrate_fields= res_partner_fields, include=True, domain = res_partner_domain)
 
 if debug:
     input("press enter to continue")

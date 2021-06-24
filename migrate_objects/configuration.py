@@ -366,6 +366,8 @@ def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={},
         for key in fields:
             # Remove /page if it exists in url (odoo v8 -> odoo 14)
             if not calc or key not in calc.keys():
+                if key == 'company_id':
+                    vals.update({'company_id': 1})
                 if key == 'url' and type(record[key]) is str:
                     url = record[key]
                     if url.startswith('/page'):
@@ -427,13 +429,20 @@ def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={},
         elif target_record:
             try:
                 vals.update({'last_migration_date': str(now)})
-                target_record.write(vals)
                 if 'image_1920' in vals.keys():
-                    vals.pop('image_1920')
+                    image = vals.pop('image_1920')
+                target_record.write(vals)
                 print(f"Writing to existing {vals}")
+                try:
+                    target_record.write({'image_1920': image})
+                    print(f"Writing image to existing")
+                except:
+                    print(f"writing image failed")
                 migrate_translation(source_model, target_model, record['id'], target_record.id, i18n_fields)
+                print(f"migrated translation")
                 if after_migration:
                     after_migration(record['id'], target_record.id, create=False)
+                    print(f"after_migration")
             except Exception as e:
                 if 'image_1920' in vals.keys():
                     vals.pop('image_1920')
