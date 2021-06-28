@@ -7,14 +7,14 @@ debug = False
 
 # res.partner fields to copy from source to target WORKS
 res_partner_fields = ['name', 'email', 'mobile', 'phone', 'street', 'city', 'zip']
-migrate_model('res.partner', migrate_fields= res_partner_fields, include=True)
+#migrate_model('res.partner', migrate_fields= res_partner_fields, include=True)
 
 if debug:
     input("press enter to continue")
     
 # res.partner.bank fields to copy from source to target BROKEN
 res_partner_bank_fields = ['acc_number', 'partner_id']
-migrate_model('res.partner.bank', migrate_fields= res_partner_bank_fields, include=True, unique = 'acc_number')
+#migrate_model('res.partner.bank', migrate_fields= res_partner_bank_fields, include=True, unique = 'acc_number')
 
 if debug:
     input("press enter to continue")
@@ -24,14 +24,14 @@ hr_employee_fields = ['name', 'work_email', 'mobile_phone', 'work_location', 'co
 hr_employee_custom = {
     'image_medium' : 'image_1920',
 }
-migrate_model('hr.employee', migrate_fields = hr_employee_fields, include=True, custom=hr_employee_custom)
+#migrate_model('hr.employee', migrate_fields = hr_employee_fields, include=True, custom=hr_employee_custom)
 
 if debug:
     input("press enter to continue")
 
 # hr.department fields to copy from source to target WORKS
 hr_department_fields = ['name']
-migrate_model('hr.department', migrate_fields = hr_department_fields, include=True)
+#migrate_model('hr.department', migrate_fields = hr_department_fields, include=True)
 
 if debug:
     input("press enter to continue")
@@ -41,7 +41,7 @@ hr_attendance_fields = ['name', 'work_email', 'mobile_phone', 'work_location', '
 hr_attendance_custom = {
     'image_medium' : 'image_1920',
 }
-migrate_model('hr.employee', migrate_fields = hr_employee_fields, include=True, custom=hr_employee_custom)
+#migrate_model('hr.employee', migrate_fields = hr_employee_fields, include=True, custom=hr_employee_custom)
 
 if debug:
     input("press enter to continue")
@@ -49,7 +49,7 @@ if debug:
 # account.account.type fields to copy from source to target WORKING
 account_type_field = ['name']
 account_type_hard_code = {'type': 'receivable', 'internal_group': 'equity'}
-migrate_model('account.account.type', migrate_fields = account_type_field, include=True, hard_code = account_type_hard_code)
+#migrate_model('account.account.type', migrate_fields = account_type_field, include=True, hard_code = account_type_hard_code)
 
 if debug:
     input("press enter to continue")
@@ -59,7 +59,7 @@ account_fields = ['code', 'name', 'company_id']
 account_custom = {'user_type': 'user_type_id'}
 account_hard_code = {'reconcile': 1}
 account_unique = 'code'
-migrate_model('account.account', migrate_fields = account_fields, hard_code = account_hard_code, include=True, custom = account_custom, unique = account_unique)
+#migrate_model('account.account', migrate_fields = account_fields, hard_code = account_hard_code, include=True, custom = account_custom, unique = account_unique)
 
 if debug:
     input("press enter to continue")
@@ -69,7 +69,7 @@ account_journal_fields = ['code', 'name', 'company_id', 'type']
 account_journal_custom = {}
 account_journal_hard_code = {'invoice_reference_model': 'odoo', 'invoice_reference_type': 'partner'}
 account_journal_unique = 'code'
-migrate_model('account.journal', migrate_fields = account_journal_fields, hard_code = account_journal_hard_code, include=True, custom = account_journal_custom, unique = account_journal_unique)
+#migrate_model('account.journal', migrate_fields = account_journal_fields, hard_code = account_journal_hard_code, include=True, custom = account_journal_custom, unique = account_journal_unique)
 
 if debug:
     input("press enter to continue")
@@ -109,7 +109,7 @@ res_users_hard_code = {
     'notification_type': 'email'
 }
 res_users_unique = 'login'
-migrate_model('res.users', migrate_fields = res_users_fields, include=True, custom=res_users_custom, hard_code=res_users_hard_code, unique=res_users_unique)
+#migrate_model('res.users', migrate_fields = res_users_fields, include=True, custom=res_users_custom, hard_code=res_users_hard_code, unique=res_users_unique)
 
 if debug:
     input("press enter to continue")
@@ -138,7 +138,7 @@ if debug:
 
 # stock.location fields to copy from source to target WORKING
 stock_location_fields = ['name', 'usage']
-migrate_model('stock.location', migrate_fields = stock_location_fields, include=True, )
+#migrate_model('stock.location', migrate_fields = stock_location_fields, include=True, )
 
 if debug:
     input("press enter to continue")
@@ -146,14 +146,14 @@ if debug:
 # stock.warehouse fields to copy from source to target WORKING
 stock_warehouse_fields = ['name', 'code', 'view_location_id', 'delivery_steps', 'reception_steps', 'partner_id', 'lot_stock_id', 'view_location_id']
 stock_warehouse_unique = 'code'
-migrate_model('stock.warehouse', migrate_fields = stock_warehouse_fields, include=True, unique = stock_warehouse_unique)
+#migrate_model('stock.warehouse', migrate_fields = stock_warehouse_fields, include=True, unique = stock_warehouse_unique)
 
 if debug:
     input("press enter to continue")
 
 # sale.order fields to copy from source to target WORKING
 sale_order_fields = ['name', 'date_order', 'company_id', 'partner_id', 'partner_shipping_id', 'partner_invoice_id', 'picking_policy', 'pricelist_id', 'warehouse_id']
-migrate_model('sale.order', migrate_fields = sale_order_fields, include=True, )
+#migrate_model('sale.order', migrate_fields = sale_order_fields, include=True, )
 
 if debug:
     input("press enter to continue")
@@ -163,7 +163,7 @@ sale_order_line_fields = ['name', 'price_unit', 'product_uom_qty', 'order_id', '
 account_custom = {
     'delay': 'customer_lead'
 }
-migrate_model('sale.order.line', migrate_fields = sale_order_line_fields, include=True, custom = account_custom, hard_code = {'product_id': 45})
+#migrate_model('sale.order.line', migrate_fields = sale_order_line_fields, include=True, custom = account_custom, hard_code = {'product_id': 45})
 
 if debug:
     input("press enter to continue")
@@ -211,7 +211,8 @@ if debug:
 
 # product.attribute.value fields to copy from source to target WORKING
 product_attribute_value_fields = ['name', 'attribute_id']
-migrate_model('product.attribute.value', migrate_fields = product_attribute_value_fields, include=True, )
+product_attribute_unique = 'name'
+migrate_model('product.attribute.value', migrate_fields = product_attribute_value_fields, include=True, unique = product_attribute_unique)
 
 if debug:
     input("press enter to continue")
