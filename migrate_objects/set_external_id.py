@@ -6,18 +6,18 @@ from set_variant_on_template import *
 debug = False
 
 # res.partner fields to copy from source to target WORKS
-res_partner_fields = ['name', 'email', 'mobile', 'phone', 'street', 'city', 'zip']
-migrate_model('res.partner', migrate_fields= res_partner_fields, include=True)
+# res_partner_fields = ['name', 'email', 'mobile', 'phone', 'street', 'city', 'zip']
+# migrate_model('res.partner', migrate_fields= res_partner_fields, include=True)
 
-if debug:
-    input("press enter to continue")
+# if debug:
+#     input("press enter to continue")
     
 # res.partner.bank fields to copy from source to target BROKEN
-res_partner_bank_fields = ['acc_number', 'partner_id']
-migrate_model('res.partner.bank', migrate_fields= res_partner_bank_fields, include=True, unique = 'acc_number')
+# res_partner_bank_fields = ['acc_number', 'partner_id']
+# migrate_model('res.partner.bank', migrate_fields= res_partner_bank_fields, include=True, unique = 'acc_number')
 
-if debug:
-    input("press enter to continue")
+# if debug:
+#     input("press enter to continue")
 
 # hr.employee fields to copy from source to target WORKS
 hr_employee_fields = ['name', 'work_email', 'mobile_phone', 'work_location', 'company_id']
@@ -100,19 +100,19 @@ if debug:
     input("press enter to continue")
 
 # ~ # res.users fields to copy from source to target WORKS
-res_users_fields = ['company_id', 'login', 'partner_id']
-res_users_custom = {
-    'property_account_payable': 'property_account_payable_id',
-    'property_account_receivable': 'property_account_receivable_id'
-}
-res_users_hard_code = {
-    'notification_type': 'email'
-}
-res_users_unique = 'login'
-migrate_model('res.users', migrate_fields = res_users_fields, include=True, custom=res_users_custom, hard_code=res_users_hard_code, unique=res_users_unique)
-
-if debug:
-    input("press enter to continue")
+# res_users_fields = ['company_id', 'login', 'partner_id']
+# res_users_custom = {
+#     'property_account_payable': 'property_account_payable_id',
+#     'property_account_receivable': 'property_account_receivable_id'
+# }
+# res_users_hard_code = {
+#     'notification_type': 'email'
+# }
+# res_users_unique = 'login'
+# migrate_model('res.users', migrate_fields = res_users_fields, include=True, custom=res_users_custom, hard_code=res_users_hard_code, unique=res_users_unique)
+#
+# if debug:
+#     input("press enter to continue")
 
 # product.pricelist fields to copy from source to target WORKING
 product_pricelist_fields = ['name', 'code', 'display_name']
@@ -137,19 +137,19 @@ if debug:
     input("press enter to continue")
 
 # stock.location fields to copy from source to target WORKING
-stock_location_fields = ['name', 'usage']
-migrate_model('stock.location', migrate_fields = stock_location_fields, include=True, )
-
-if debug:
-    input("press enter to continue")
+# stock_location_fields = ['name', 'usage']
+# migrate_model('stock.location', migrate_fields = stock_location_fields, include=True, )
+#
+# if debug:
+#     input("press enter to continue")
 
 # stock.warehouse fields to copy from source to target WORKING
-stock_warehouse_fields = ['name', 'code', 'view_location_id', 'delivery_steps', 'reception_steps', 'partner_id', 'lot_stock_id', 'view_location_id']
-stock_warehouse_unique = 'code'
-migrate_model('stock.warehouse', migrate_fields = stock_warehouse_fields, include=True, unique = stock_warehouse_unique)
-
-if debug:
-    input("press enter to continue")
+# stock_warehouse_fields = ['name', 'code', 'view_location_id', 'delivery_steps', 'reception_steps', 'partner_id', 'lot_stock_id', 'view_location_id']
+# stock_warehouse_unique = 'code'
+# migrate_model('stock.warehouse', migrate_fields = stock_warehouse_fields, include=True, unique = stock_warehouse_unique)
+#
+# if debug:
+#     input("press enter to continue")
 
 # sale.order fields to copy from source to target WORKING
 sale_order_fields = ['name', 'date_order', 'company_id', 'partner_id', 'partner_shipping_id', 'partner_invoice_id', 'picking_policy', 'pricelist_id', 'warehouse_id']
