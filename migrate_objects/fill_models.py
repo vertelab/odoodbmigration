@@ -54,7 +54,7 @@ if debug:
     input("press enter to continue")
 
 # res.users fields to copy from source to target BROKEN
-res_users_exclude = ['invoice_ids', 'message_follower_ids']
+res_users_exclude = ['invoice_ids', 'message_follower_ids', 'groups_id']
 res_users_exclude_patterns = [r'\w+_\w+_\d.*']
 res_users_custom = {
     'property_account_payable': 'property_account_payable_id',
