@@ -3,26 +3,13 @@
 from configuration import *
 from set_variant_on_template import *
 
-# ~ # product.category fields to copy from source to target
-# ~ product_category_fields = ['name']
-# ~ product_category_custom = {
-# ~ }
-# ~ product_category_hard_code = {
-    # ~ 'property_cost_method': 'standard',
-    # ~ 'property_valuation': 'manual_periodic'
-# ~ }
-# ~ migrate_model('product.category', migrate_fields = product_category_fields, include=True, hard_code = product_category_hard_code)
-
-
-# product.category fields to sync from source to target
-
 # to force all objects of a model to go through data updating(to for example add new fields that gets migrated) run the following sql command: 
 # UPDATE table_name SET last_migration_date = NULL;
 
-debug = False
+debug = True
 
 
-# res.partner fields to copy from source to target WORKS
+# ~ # res.partner fields to copy from source to target WORKS
 res_partner_exclude = ['invoice_ids', 'message_follower_ids']
 res_partner_calc = {'type': """
 type_val = record['type']
@@ -67,6 +54,8 @@ if debug:
     input("press enter to continue")
 
 # res.users fields to copy from source to target BROKEN
+res_users_exclude = ['invoice_ids', 'message_follower_ids']
+res_users_exclude_patterns = [r'\w+_\w+_\d.*']
 res_users_custom = {
     'property_account_payable': 'property_account_payable_id',
     'property_account_receivable': 'property_account_receivable_id'
@@ -74,30 +63,13 @@ res_users_custom = {
 res_users_hard_code = {
     'notification_type': 'email'
 }
-migrate_model('res.users', include=False, create=False, custom=res_users_custom, hard_code=res_users_hard_code)
-
-if debug:
-    input("press enter to continue")
-
-# ~ # product.pricelist fields to copy from source to target WORKS
-migrate_model('product.pricelist', include=False, create=False)
-
-if debug:
-    input("press enter to continue")
-
-# ~ # product.pricelist.item fields to copy from source to target WORKS
-pricelist_item_hardcode = {'company_id': 1}
-pricelist_item_calc = {'base': """
-translation = {-1: 'pricelist', 1: 'list_price', 2: 'standard_price', -2: 'standard_price'}
-vals[key] = translation[record['base']]
-"""}
-migrate_model('product.pricelist.item', include=False, create=False, calc = pricelist_item_calc, hard_code = pricelist_item_hardcode)
+migrate_model('res.users', include=False, create=False, custom=res_users_custom, hard_code=res_users_hard_code, migrate_fields = res_users_exclude, exclude_patterns = res_users_exclude_patterns)
 
 if debug:
     input("press enter to continue")
 
 # res.currency fields to copy from source to target
-migrate_model('res.currency', include=False, create=False)
+#migrate_model('res.currency', include=False, create=False)
 
 if debug:
     input("press enter to continue")
@@ -107,7 +79,7 @@ product_category_hardcode = {
     'property_cost_method': 'standard',
     'property_valuation': 'manual_periodic'
 }
-migrate_model('product.category', include=False, hard_code = product_category_hardcode, create = False)
+#migrate_model('product.category', include=False, hard_code = product_category_hardcode, create = False)
 
 if debug:
     input("press enter to continue")
@@ -122,14 +94,14 @@ if debug:
 
 
 # product.attribute.value fields to copy from source to target
-migrate_model('product.attribute.value', include=False, create=False)
+#migrate_model('product.attribute.value', include=False, create=False)
 
 
 # product.public.category fields to copy from source to target WORKS
 product_public_category_custom = {
     'image_medium' : 'image_1920'
 }
-migrate_model('product.public.category', custom = product_public_category_custom, include=False, create = False)
+#migrate_model('product.public.category', custom = product_public_category_custom, include=False, create = False)
 
 if debug:
     input("press enter to continue")
@@ -140,7 +112,7 @@ product_template_custom = {
     'image_medium' : 'image_1920',
 }
 product_template_hardcode = {'company_id': 1}
-migrate_model('product.template', include=False, custom=product_template_custom, migrate_fields = product_template_exclude, hard_code = product_template_hardcode, create = False)
+#migrate_model('product.template', include=False, custom=product_template_custom, migrate_fields = product_template_exclude, hard_code = product_template_hardcode, create = False)
 
 if debug:
     input("press enter to continue")
@@ -155,6 +127,20 @@ migrate_model('product.product', include=False, custom=product_product_custom, m
 if debug:
     input("press enter to continue")
 migrate_model('product.product', include=True, migrate_fields = ['virtual_available_days'], create = False)
+
+# product.pricelist fields to copy from source to target WORKS
+# ~ migrate_model('product.pricelist', include=False, create=False)
+
+if debug:
+    input("press enter to continue")
+
+# product.pricelist.item fields to copy from source to target WORKS
+pricelist_item_hardcode = {'company_id': 1}
+pricelist_item_calc = {'base': """
+translation = {-1: 'pricelist', 1: 'list_price', 2: 'standard_price', -2: 'standard_price'}
+vals[key] = translation[record['base']]
+"""}
+# ~ migrate_model('product.pricelist.item', include=False, create=False, calc = pricelist_item_calc, hard_code = pricelist_item_hardcode)
 
 if debug:
     input("press enter to continue")

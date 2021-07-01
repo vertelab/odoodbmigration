@@ -6,6 +6,7 @@ import logging
 import logging.handlers
 import os
 import pprint
+import re
 
 import pprint
 pp = pprint.PrettyPrinter()
@@ -40,6 +41,19 @@ source.env.context['active_test'] = False
 print(2)
 # HELPER FUNCTIONS
 IMPORT_MODULE_STRING = '__import__'
+
+                # ~ if 'in_group_' in key:
+                    # ~ print("start_ingroup")
+                    # ~ s_id = re.findall(r'\d+', key)[0]
+                    # ~ print(s_id)
+                    # ~ t_id = target.env.ref(IMPORT_MODULE_STRING+'.'+'res_groups_'+str(s_id)).res_id
+                    
+                    # ~ t_id = target.env['ir.model.data'].search_read([
+                            # ~ ('model', '=', 'res.groups'),
+                            # ~ ('name', '=', f'res_groups_{s_id}')], ['res_id'])[0]['res_id']
+                    # ~ print(t_id)
+                    # ~ vals.update({'in_group_'+str(t_id): (record[key])})
+                    # ~ print("end_ingroup")
 
 # TODO: Skriv en robust funktion för detta. ID beror på databasen. Denna
 #  metod fungerar bara för exakt den databas som listan togs fram för.
@@ -162,12 +176,16 @@ def create_xml_id(model, target_record_id, source_record_id):
     except Exception:
         return f"ERROR: create_xml_id('{model}', {target_record_id}, {source_record_id}) failed. Does the id already exist?"
         
-def map_record_to_xml_id(target_model, field, value, source_id):
-    print(field, value)
-    r_id = target.env[target_model].search([(field, '=', value)])
-    print(r_id)
-    if r_id != []:
-        print(create_xml_id(target_model, r_id[0], source_id))
+def map_record_to_xml_id(target_model, fields, unique, source_id):
+    if unique:
+        domain = [(unique, '=', fields[unique]) for item in unique]
+        print(field, value)
+        r_id = target.env[target_model].search(domain)
+        print(r_id)
+        if r_id != []:
+            print(create_xml_id(target_model, r_id[0], source_id))
+            return True
+    return False
     
 # ~ map_record_to_xml_id('account.account', 'code', '2710123', 10)
 
@@ -215,7 +233,6 @@ def create_record_and_xml_id(target_model, source_model, fields, source_record_i
     and creates an external id so that the record will not be duplicated
     example: create_record_and_xml_id('res.partner', {'name':'MyPartner'}, 2)
     '''
-    print(f"Fields: {fields}")
     if get_target_record_from_id(target_model, source_record_id):
         print(
             f"INFO: skipping creation, an external id already exist for [{model}] [{source_record_id}]")
@@ -231,13 +248,13 @@ def create_record_and_xml_id(target_model, source_model, fields, source_record_i
             print(create_xml_id(target_model, target_record_id, source_record_id))
             return target_record_id
         except Exception as e:
-            print(f"fields: {fields}")
             print(f"ERROR: target.env['{target_model}'].create ({source_record_id}) failed")
-            if str(e).find('unique') != -1 and unique != None:
-                map_record_to_xml_id(target_model, unique, fields[unique], source_record_id)
-            else:
+            if not map_record_to_xml_id(target_model, fields, unique, source_record_id):
+                if 'image_1920' in fields.keys():
+                    fields.pop('image_1920')
+                print(f"Fields: {fields}")
+                print(f"couldnt find the target record")
                 print(f"e: {e}")
-            return e
 
 import re
 def get_trailing_number(s):
@@ -299,7 +316,7 @@ def get_uom_ids():
     pprint.pprint(UNITS_OF_MEASURE)
 get_uom_ids()
     
-def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={}, hard_code={}, debug=False, create=True, domain=None, unique=None, after_migration=None, calc=None, xml_id_suffix = None):
+def migrate_model(model, migrate_fields=[], include = False, exclude_patterns = [], diff={}, custom={}, hard_code={}, debug=False, create=True, domain=None, unique=None, after_migration=None, calc=None, xml_id_suffix = None):
     '''
     use this method for migrating a model with return dict from get_all_fields()
     example:
@@ -322,7 +339,7 @@ def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={},
     s = source.env[source_model]
     t = target.env[target_model]
     if not include:
-        fields = get_all_fields(source_model, target_model, migrate_fields, diff)
+        fields = get_all_fields(source_model, target_model, migrate_fields, custom, exclude_patterns)
     else:
         fields = {e:e for e in migrate_fields}
     for key in custom.keys():
@@ -338,7 +355,9 @@ def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={},
         print(to_migrate)
     elif not create:
         to_migrate = s.search_read(domain, ['id', 'write_date'], order='write_date DESC')
-    
+
+    print('wtf')
+    print(f'fields to migrate: {fields}')
     for r in to_migrate:
         print("="*99)
         print(f"Migrating model: {model}")
@@ -350,8 +369,6 @@ def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={},
             else:
                 # ~ print(f"record: {r}. is already up to date")
                 continue
-            
-        
         target_record = get_target_record_from_id(target_model, r)
         if create and target_record:
             print(
@@ -368,7 +385,7 @@ def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={},
             if not calc or key not in calc.keys():
                 if key == 'company_id':
                     vals.update({'company_id': 1})
-                if key == 'url' and type(record[key]) is str:
+                elif key == 'url' and type(record[key]) is str:
                     url = record[key]
                     if url.startswith('/page'):
                         url = url.replace('/page', '')
@@ -408,7 +425,7 @@ def migrate_model(model, migrate_fields=[], include = False, diff={}, custom={},
                             if rec:
                                 ids.append(rec.id )
                         if ids:
-                            vals[fields[key]] = ids
+                            vals[fields[key]] = [(6,0,ids)]
                 else:
                     vals[fields[key]] = record[key]
         #vals.update(custom[])
@@ -494,7 +511,7 @@ def get_id_from_xml_id(record, relation):
     return r
 
 
-def get_all_fields(source_model, target_model, exclude=[], diff={}):
+def get_all_fields(source_model, target_model, exclude=[], diff={}, exclude_patterns=[]):
     '''
     Returns dict with key as source model keys and value as target model keys
     Use exclude = ['this_field', 'that_field'] to exclude keys on source model
@@ -508,12 +525,20 @@ def get_all_fields(source_model, target_model, exclude=[], diff={}):
     #         target_field_keys.append(key)
 
     for key in source.env[source_model]._columns:
+        if exclude_patterns:
+            for exclude_pattern in exclude_patterns:
+                if re.search(exclude_pattern, key):
+                    print(f'skipping key {key}')
+                    exclude.append(key)
         if key in exclude:
+            print(f'skipping key {key}')
             continue
         elif key in target_field_keys:
             fields.update({key: key})
+            print(f'adding key {key}')
 
     fields.update(diff)
+    print(fields, diff)
 
     return fields
 

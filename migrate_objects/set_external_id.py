@@ -7,9 +7,9 @@ debug = False
 
 # res.partner fields to copy from source to target WORKS
 res_partner_fields = ['name', 'email', 'mobile', 'phone', 'street', 'city', 'zip']
-# ~ res_partner_domain = [('partner_id.commercial_partner_id.access_group_ids', '=', target.env.ref("__export__.res_groups_283").id))]
+res_partner_domain = [('partner_id.commercial_partner_id.access_group_ids', '=', target.env.ref("__export__.res_groups_283").id)]
 res_partner_ids = []
-res_partner_domain = [('attribute_value_ids', '=', id) for id in res_partner_ids]
+res_partner_domain = [('id', '=', id) for id in res_partner_ids]
 migrate_model('res.partner', migrate_fields= res_partner_fields, include=True, domain = res_partner_domain)
 
 if debug:
@@ -111,8 +111,10 @@ res_users_custom = {
 res_users_hard_code = {
     'notification_type': 'email'
 }
+res_users_ids = []
+res_users_domain = [('id', '=', id) for id in res_users_ids]
 res_users_unique = 'login'
-migrate_model('res.users', migrate_fields = res_users_fields, include=True, custom=res_users_custom, hard_code=res_users_hard_code, unique=res_users_unique)
+migrate_model('res.users', migrate_fields = res_users_fields, include=True, custom=res_users_custom, hard_code=res_users_hard_code, unique=res_users_unique, domain = res_users_domain)
 
 if debug:
     input("press enter to continue")
@@ -161,28 +163,12 @@ migrate_model('sale.order', migrate_fields = sale_order_fields, include=True, )
 if debug:
     input("press enter to continue")
 
-# sale.order.line fields to copy from source to target NEEDS sale.order fully migrated
+# sale.order.line fields to copy from source to target WORKING
 sale_order_line_fields = ['name', 'price_unit', 'product_uom_qty', 'order_id', 'company_id']
 account_custom = {
     'delay': 'customer_lead'
 }
 migrate_model('sale.order.line', migrate_fields = sale_order_line_fields, include=True, custom = account_custom, hard_code = {'product_id': 45})
-
-if debug:
-    input("press enter to continue")
-
-# ~ # account.tax.group fields to copy from source to target BROKEN
-# ~ account_tax_group_fields = ['name']
-# ~ account_tax_group_unique = 'name'
-# ~ # migrate_model('account.tax.group', migrate_fields = account_tax_group_fields, include=True, unique = account_tax_group_unique)
-
-if debug:
-    input("press enter to continue")
-
-# ~ # account.tax fields to copy from source to target BROKEN
-# ~ account_tax_fields = ['name', 'amount', 'sequence', 'description']
-# ~ account_tax_unique = 'name'
-# ~ # migrate_model('account.tax', migrate_fields = account_tax_fields, include=True, unique = account_tax_unique)
 
 if debug:
     input("press enter to continue")
@@ -214,7 +200,8 @@ if debug:
 
 # product.attribute.value fields to copy from source to target WORKING
 product_attribute_value_fields = ['name', 'attribute_id']
-migrate_model('product.attribute.value', migrate_fields = product_attribute_value_fields, include=True, )
+product_attribute_value_unique = ['name', 'attribute_id']
+migrate_model('product.attribute.value', migrate_fields = product_attribute_value_fields, include=True, unique = product_attribute_value_unique)
 
 if debug:
     input("press enter to continue")
@@ -238,7 +225,6 @@ product_template_custom = {
     'image_medium' : 'image_1920',
 }
 # Not used?
-domain = [('id', '=', 4838)]
 migrate_model('product.template', migrate_fields=product_template_fields, include=True, custom=product_template_custom, after_migration=product_tmpl_set_attributes)
 #the old one had some weird checks for default code? incase it doesnt work
 
@@ -249,7 +235,6 @@ product_product_fields = ['name', 'sale_ok', 'description', 'purchase_ok', 'list
 product_product_custom = {
     'image' : 'image_1920'
 }
-domain = [('product_tmpl_id', '=', 4838)]
 migrate_model('product.product', migrate_fields=product_product_fields, include=True, custom=product_product_custom)
 
 # ~ if default_variant_ids:
