@@ -177,10 +177,10 @@ migrate_model('sale.order.line', migrate_fields = sale_order_line_fields, includ
 if debug:
     input("press enter to continue")
 
-# res.groups fields to copy from source to target WORKING
-res_groups_fields = ['name']
-
-migrate_model('res.groups', migrate_fields = res_groups_fields, include=True)
+# res.groups fields to copy from source to target NOT WORKING(cant migrate groups from 8, they work differently)
+# ~ res_groups_fields = ['name']
+# ~ res_groups_unique = ['name']
+# ~ migrate_model('res.groups', migrate_fields = res_groups_fields, include=True, unique = res_groups_unique, just_bind = True)
 
 if debug:
     input("press enter to continue")

@@ -333,7 +333,7 @@ def get_uom_ids():
     pprint.pprint(UNITS_OF_MEASURE)
 get_uom_ids()
     
-def migrate_model(model, migrate_fields=[], include = False, exclude_patterns = [], diff={}, custom={}, hard_code={}, debug=False, create=True, domain=None, unique=None, after_migration=None, calc=None, xml_id_suffix = None):
+def migrate_model(model, migrate_fields=[], include = False, exclude_patterns = [], diff={}, custom={}, hard_code={}, debug=False, create=True, domain=None, unique=None, after_migration=None, calc=None, xml_id_suffix = None, just_bind = False):
     '''
     use this method for migrating a model with return dict from get_all_fields()
     example:
@@ -375,6 +375,9 @@ def migrate_model(model, migrate_fields=[], include = False, exclude_patterns = 
 
     print(f'fields to migrate: {fields}')
     for r in to_migrate:
+        if just_bind:
+            map_record_to_xml_id(target_model, fields, unique, source_id)
+            continue
         print("="*99)
         print(f"Migrating model: {model}")
         if not create:
