@@ -178,8 +178,7 @@ def create_xml_id(model, target_record_id, source_record_id):
         
 def map_record_to_xml_id(target_model, fields, unique, source_id):
     if unique:
-        domain = [(unique, '=', fields[unique]) for item in unique]
-        print(field, value)
+        domain = [(item, '=', fields[item]) for item in unique]
         r_id = target.env[target_model].search(domain)
         print(r_id)
         if r_id != []:
@@ -202,6 +201,24 @@ def get_target_record_from_id(model, source_record_id):
             r = target.env[r[0]].browse(r[1])
             print(f"r {r}")
             return r
+        else:
+            print(f"couldnt find external id: {IMPORT_MODULE_STRING}.{model.replace('.', '_')}_{source_record_id}")
+            return False
+    except Exception:
+        print(f"couldnt find external id: {IMPORT_MODULE_STRING}.{model.replace('.', '_')}_{source_record_id}")
+        return False
+        
+def get_target_id_from_id(model, source_record_id):
+    ''' gets record from target database using record.id from source database
+    example: get_target_record_from_id('product.attribute', 3422)
+    returns: 0 if record cannot be found
+    '''
+    try:
+        # ~ r = target.env.ref(f"{IMPORT_MODULE_STRING}.{model.replace('.', '_')}_{source_record_id}", raise_if_not_found=False)
+        r = target.env['ir.model.data'].xmlid_to_res_model_res_id(f"{IMPORT_MODULE_STRING}.{model.replace('.', '_')}_{source_record_id}", raise_if_not_found=False)
+        if r != [False, False]:
+            print(f"r {r[1]}")
+            return r[1]
         else:
             print(f"couldnt find external id: {IMPORT_MODULE_STRING}.{model.replace('.', '_')}_{source_record_id}")
             return False
@@ -356,7 +373,6 @@ def migrate_model(model, migrate_fields=[], include = False, exclude_patterns = 
     elif not create:
         to_migrate = s.search_read(domain, ['id', 'write_date'], order='write_date DESC')
 
-    print('wtf')
     print(f'fields to migrate: {fields}')
     for r in to_migrate:
         print("="*99)
@@ -375,12 +391,14 @@ def migrate_model(model, migrate_fields=[], include = False, exclude_patterns = 
                 f"INFO: skipping creation, an external id already exist for [{target_model}] [{r}]")
             continue
         # WTF? Sending a dict to read. Seems to work, but it sure feels icky.
-        record = s.read(r, fields)
+        record = s.read(r, list(fields.keys()))
+        print(f"record: {record}")
         if type(record) is list:
             record = record[0]
         vals = {}
         # Customize certain fields before creating records
         for key in fields:
+            print(record[key])
             # Remove /page if it exists in url (odoo v8 -> odoo 14)
             if not calc or key not in calc.keys():
                 if key == 'company_id':
@@ -401,15 +419,15 @@ def migrate_model(model, migrate_fields=[], include = False, exclude_patterns = 
                 #          country_id 198, on target is 'Saint Helena, Ascension and Tristan da Cunha'
                 elif type(record[key]) is list:
                     field_definition = s.fields_get(key)[key]
+                    print(f"field_definition: {field_definition}")
                     if field_definition['type'] == 'many2one':
-                        # ~ print(f"field_definition: {field_definition}")
                         try:
                             if field_definition["relation"] == "product.uom":
                                 vals.update({fields[key]:  UNITS_OF_MEASURE[record[key][0]]})
                             elif field_definition["relation"] == "res.company":
                                 vals.update({fields[key]: COMPANY_ID})
                             else:
-                                vals.update({fields[key]: get_target_record_from_id(field_definition['relation'], record[key][0]).id})
+                                vals.update({fields[key]: get_target_id_from_id(field_definition['relation'], record[key][0])})
                             continue
                         except Exception:
                             error = f"Target '{key}': {[record[key], field_definition['relation']]} does not exist"
@@ -421,9 +439,9 @@ def migrate_model(model, migrate_fields=[], include = False, exclude_patterns = 
                         # Convert every id in the list
                         ids = []
                         for id in record[key]:
-                            rec = get_target_record_from_id(field_definition['relation'], id)
+                            rec = get_target_id_from_id(field_definition['relation'], id)
                             if rec:
-                                ids.append(rec.id )
+                                ids.append(rec)
                         if ids:
                             vals[fields[key]] = [(6,0,ids)]
                 else:
@@ -446,6 +464,7 @@ def migrate_model(model, migrate_fields=[], include = False, exclude_patterns = 
         elif target_record:
             try:
                 vals.update({'last_migration_date': str(now)})
+                image = False
                 if 'image_1920' in vals.keys():
                     image = vals.pop('image_1920')
                 target_record.write(vals)
@@ -453,8 +472,9 @@ def migrate_model(model, migrate_fields=[], include = False, exclude_patterns = 
                 try:
                     target_record.write({'image_1920': image})
                     print(f"Writing image to existing")
-                except:
+                except Exception as e:
                     print(f"writing image failed")
+                    print(e)
                 migrate_translation(source_model, target_model, record['id'], target_record.id, i18n_fields)
                 print(f"migrated translation")
                 if after_migration:

@@ -9,7 +9,7 @@ from set_variant_on_template import *
 debug = True
 
 
-# ~ # res.partner fields to copy from source to target WORKS
+# res.partner fields to copy from source to target WORKS
 res_partner_exclude = ['invoice_ids', 'message_follower_ids']
 res_partner_calc = {'type': """
 type_val = record['type']
@@ -129,7 +129,7 @@ if debug:
 migrate_model('product.product', include=True, migrate_fields = ['virtual_available_days'], create = False)
 
 # product.pricelist fields to copy from source to target WORKS
-# ~ migrate_model('product.pricelist', include=False, create=False)
+migrate_model('product.pricelist', include=False, create=False)
 
 if debug:
     input("press enter to continue")
@@ -140,7 +140,7 @@ pricelist_item_calc = {'base': """
 translation = {-1: 'pricelist', 1: 'list_price', 2: 'standard_price', -2: 'standard_price'}
 vals[key] = translation[record['base']]
 """}
-# ~ migrate_model('product.pricelist.item', include=False, create=False, calc = pricelist_item_calc, hard_code = pricelist_item_hardcode)
+migrate_model('product.pricelist.item', include=False, create=False, calc = pricelist_item_calc, hard_code = pricelist_item_hardcode)
 
 if debug:
     input("press enter to continue")
@@ -172,12 +172,6 @@ sale_order_line_custom = {
     'delay': 'customer_lead'
 }
 migrate_model('sale.order.line', include=False, create=False, custom = sale_order_line_custom)
-
-if debug:
-    input("press enter to continue")
-
-# res.groups fields to copy from source to target
-migrate_model('res.groups', include=False, create=False)
 
 
 

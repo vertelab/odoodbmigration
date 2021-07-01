@@ -3,11 +3,15 @@
 from configuration import *
 from set_variant_on_template import *
 
-debug = False
+debug = True
 
 # res.partner fields to copy from source to target WORKS
 res_partner_fields = ['name', 'email', 'mobile', 'phone', 'street', 'city', 'zip']
-res_partner_domain = [('partner_id.commercial_partner_id.access_group_ids', '=', target.env.ref("__export__.res_groups_283").id)]
+
+# this domain will migrate all users in a specified group
+# res_partner_domain = [('partner_id.commercial_partner_id.access_group_ids', '=', target.env.ref("__export__.res_groups_283").id)]
+
+# this domain will migrate users with the specified ids
 res_partner_ids = []
 res_partner_domain = [('id', '=', id) for id in res_partner_ids]
 migrate_model('res.partner', migrate_fields= res_partner_fields, include=True, domain = res_partner_domain)
@@ -17,7 +21,7 @@ if debug:
     
 # res.partner.bank fields to copy from source to target BROKEN
 res_partner_bank_fields = ['acc_number', 'partner_id']
-migrate_model('res.partner.bank', migrate_fields= res_partner_bank_fields, include=True, unique = 'acc_number')
+migrate_model('res.partner.bank', migrate_fields= res_partner_bank_fields, include=True, unique = ['acc_number'])
 
 if debug:
     input("press enter to continue")
@@ -44,7 +48,7 @@ hr_attendance_fields = ['name', 'work_email', 'mobile_phone', 'work_location', '
 hr_attendance_custom = {
     'image_medium' : 'image_1920',
 }
-migrate_model('hr.employee', migrate_fields = hr_employee_fields, include=True, custom=hr_employee_custom)
+# ~ migrate_model('hr.attendance', migrate_fields = hr_employee_fields, include=True, custom=hr_employee_custom)
 
 if debug:
     input("press enter to continue")
@@ -61,7 +65,7 @@ if debug:
 account_fields = ['code', 'name', 'company_id']
 account_custom = {'user_type': 'user_type_id'}
 account_hard_code = {'reconcile': 1}
-account_unique = 'code'
+account_unique = ['code']
 migrate_model('account.account', migrate_fields = account_fields, hard_code = account_hard_code, include=True, custom = account_custom, unique = account_unique)
 
 if debug:
@@ -71,7 +75,7 @@ if debug:
 account_journal_fields = ['code', 'name', 'company_id', 'type']
 account_journal_custom = {}
 account_journal_hard_code = {'invoice_reference_model': 'odoo', 'invoice_reference_type': 'partner'}
-account_journal_unique = 'code'
+account_journal_unique = ['code']
 migrate_model('account.journal', migrate_fields = account_journal_fields, hard_code = account_journal_hard_code, include=True, custom = account_journal_custom, unique = account_journal_unique)
 
 if debug:
@@ -81,7 +85,7 @@ if debug:
 account_move_fields = ['date', 'name', 'journal_id']
 account_move_custom = {}
 account_move_hard_code = {'move_type': 'entry'}
-account_move_unique = 'name'
+account_move_unique = ['name']
 account_move_calc = {'currency_id': r" return source.env['account.move'].search_read(record['journal_id'], 'currency')"}
 # ~ #migrate_model('account.move', migrate_fields = account_move_fields, hard_code = account_move_hard_code, include=True, custom = account_move_custom, unique = account_move_unique)
 
@@ -94,7 +98,7 @@ account_invoice_custom = {
     'type': 'move_type',
     'date_invoice': 'date'
     }
-account_invoice_unique = 'name'
+account_invoice_unique = ['name']
 account_invoice_calc = {}
 account_invoice_xml_id_suffix = 'b'
 # ~ #migrate_model({'account.invoice': 'account.move'}, migrate_fields = account_invoice_fields, include=True, custom = account_invoice_custom, unique = account_invoice_unique, xml_id_suffix = account_invoice_xml_id_suffix)
@@ -113,7 +117,7 @@ res_users_hard_code = {
 }
 res_users_ids = []
 res_users_domain = [('id', '=', id) for id in res_users_ids]
-res_users_unique = 'login'
+res_users_unique = ['login']
 migrate_model('res.users', migrate_fields = res_users_fields, include=True, custom=res_users_custom, hard_code=res_users_hard_code, unique=res_users_unique, domain = res_users_domain)
 
 if debug:
@@ -135,7 +139,7 @@ if debug:
 
 # res.currency fields to copy from source to target WORKING i think?
 res_currency_fields = ['name', 'symbol']
-res_currency_unique = 'name'
+res_currency_unique = ['name']
 migrate_model('res.currency', migrate_fields = res_currency_fields, include=True, unique = res_currency_unique)
 
 if debug:
@@ -150,7 +154,7 @@ if debug:
 
 # stock.warehouse fields to copy from source to target WORKING
 stock_warehouse_fields = ['name', 'code', 'view_location_id', 'delivery_steps', 'reception_steps', 'partner_id', 'lot_stock_id', 'view_location_id']
-stock_warehouse_unique = 'code'
+stock_warehouse_unique = ['code']
 migrate_model('stock.warehouse', migrate_fields = stock_warehouse_fields, include=True, unique = stock_warehouse_unique)
 
 if debug:
