@@ -5,20 +5,45 @@ from set_variant_on_template import *
 
 debug = True
 
-# res.partner fields to copy from source to target WORKS
+# project.project fields to copy from source to target WORKS
+project_project_fields = ['name', 'alias_contact', 'alias_defaults', 'alias_id', 'alias_model_id', 'company_id']
+project_project_hard_code = {
+    'rating_status': 'stage',
+    'rating_status_period': 'weekly',
+    'privacy_visibility': 'followers'
+}
+migrate_model('project.project', migrate_fields = project_project_fields, include=True, hard_code = project_project_hard_code)
+
+
+if debug:
+    input("press enter to continue")
+
+# project.task fields to copy from source to target WORKS
+project_task_fields = ['company_id', 'kanban_state', 'name']
+project_task_hard_code = {
+
+}
+migrate_model('project.task', migrate_fields = project_task_fields, include=True, hard_code = project_task_hard_code)
+
+
+if debug:
+    input("press enter to continue")
+
+# ~ # res.partner fields to copy from source to target WORKS
 res_partner_fields = ['name', 'email', 'mobile', 'phone', 'street', 'city', 'zip']
 
-# this domain will migrate all users in a specified group
-# res_partner_domain = [('partner_id.commercial_partner_id.access_group_ids', '=', target.env.ref("__export__.res_groups_283").id)]
+# ~ # this domain will migrate all users in a specified group
+# ~ # res_partner_domain = [('partner_id.commercial_partner_id.access_group_ids', '=', target.env.ref("__export__.res_groups_283").id)]
 
-# this domain will migrate users with the specified ids
+# ~ # this domain will migrate users with the specified ids
 res_partner_ids = []
 res_partner_domain = [('id', '=', id) for id in res_partner_ids]
 migrate_model('res.partner', migrate_fields= res_partner_fields, include=True, domain = res_partner_domain)
 
+
 if debug:
     input("press enter to continue")
-    
+
 # res.partner.bank fields to copy from source to target BROKEN
 res_partner_bank_fields = ['acc_number', 'partner_id']
 migrate_model('res.partner.bank', migrate_fields= res_partner_bank_fields, include=True, unique = ['acc_number'])
@@ -48,7 +73,7 @@ hr_attendance_fields = ['name', 'work_email', 'mobile_phone', 'work_location', '
 hr_attendance_custom = {
     'image_medium' : 'image_1920',
 }
-# ~ migrate_model('hr.attendance', migrate_fields = hr_employee_fields, include=True, custom=hr_employee_custom)
+# ~ # migrate_model('hr.attendance', migrate_fields = hr_employee_fields, include=True, custom=hr_employee_custom)
 
 if debug:
     input("press enter to continue")
@@ -130,7 +155,7 @@ migrate_model('product.pricelist',migrate_fields = product_pricelist_fields, inc
 if debug:
     input("press enter to continue")
 
-# product.pricelist.item fields to copy from source to target WORKING
+# ~ # product.pricelist.item fields to copy from source to target WORKING
 product_pricelist_item_fields = ['price_discount', 'price_round', 'price_discount', 'price_min_margin', 'price_max_margin']
 migrate_model('product.pricelist.item', migrate_fields = product_pricelist_item_fields , include=True, )
 

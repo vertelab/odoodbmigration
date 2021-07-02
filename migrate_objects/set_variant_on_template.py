@@ -11,7 +11,7 @@ def get_t2s_attr_values():
         for data in target.env['ir.model.data'].search_read([
                 ('model', '=', 'product.attribute.value'),
                 ('name', '=like', 'product_attribute_value_%'),
-                ('module', '=', '__import__')], ['res_id', 'name']):
+                ('module', '=', IMPORT_MODULE_STRING)], ['res_id', 'name']):
             t2s_attr_values[data['res_id']] = int(data['name'].replace('product_attribute_value_', ''))
     return t2s_attr_values
 
