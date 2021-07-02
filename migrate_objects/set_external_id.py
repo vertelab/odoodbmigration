@@ -92,7 +92,7 @@ account_move_calc = {'currency_id': r" return source.env['account.move'].search_
 if debug:
     input("press enter to continue")
 
-# account.invoice fields to copy from source to target WORKING
+# account.invoice fields to copy from source to target BROKEN
 account_invoice_fields = ['name', 'journal_id']
 account_invoice_custom = {
     'type': 'move_type',

@@ -199,7 +199,6 @@ def get_target_record_from_id(model, source_record_id):
         r = target.env['ir.model.data'].xmlid_to_res_model_res_id(f"{IMPORT_MODULE_STRING}.{model.replace('.', '_')}_{source_record_id}", raise_if_not_found=False)
         if r != [False, False]:
             r = target.env[r[0]].browse(r[1])
-            print(f"r {r}")
             return r
         else:
             print(f"couldnt find external id: {IMPORT_MODULE_STRING}.{model.replace('.', '_')}_{source_record_id}")
@@ -217,7 +216,6 @@ def get_target_id_from_id(model, source_record_id):
         # ~ r = target.env.ref(f"{IMPORT_MODULE_STRING}.{model.replace('.', '_')}_{source_record_id}", raise_if_not_found=False)
         r = target.env['ir.model.data'].xmlid_to_res_model_res_id(f"{IMPORT_MODULE_STRING}.{model.replace('.', '_')}_{source_record_id}", raise_if_not_found=False)
         if r != [False, False]:
-            print(f"r {r[1]}")
             return r[1]
         else:
             print(f"couldnt find external id: {IMPORT_MODULE_STRING}.{model.replace('.', '_')}_{source_record_id}")
@@ -486,7 +484,7 @@ def migrate_model(model, migrate_fields=[], include = False, exclude_patterns = 
             except Exception as e:
                 if 'image_1920' in vals.keys():
                     vals.pop('image_1920')
-                print(f"Failed at writing to existing {vals}")
+                print(f"Failed at writing to existing {target_record, r, vals}")
                 print(e)
                 return vals
             
