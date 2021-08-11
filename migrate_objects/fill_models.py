@@ -13,26 +13,30 @@ res_users_exclude = ['invoice_ids', 'message_follower_ids', 'groups_id', 'access
 res_users_exclude_patterns = [r'\w+_\w+_\d.*']
 res_users_custom = {
     'property_account_payable': 'property_account_payable_id',
-    'property_account_receivable': 'property_account_receivable_id'
+    'property_account_receivable': 'property_account_receivable_id',
 }
 res_users_hard_code = {
     'notification_type': 'email'
 }
-migrate_model('res.users', include=False, create=False, custom=res_users_custom, hard_code=res_users_hard_code, migrate_fields = res_users_exclude, exclude_patterns = res_users_exclude_patterns)
+#migrate_model('res.users', include=False, create=False, custom=res_users_custom, hard_code=res_users_hard_code, migrate_fields = res_users_exclude, exclude_patterns = res_users_exclude_patterns)
 
 
 if debug:
     input("press enter to continue")
 
 # ~ # res.partner fields to copy from source to target WORKS
-res_partner_exclude = ['invoice_ids', 'message_follower_ids', 'access_group_ids', 'user_ids']
+res_partner_domain = [('id', 'in', [8947,29061])]
+res_partner_exclude = ['invoice_ids', 'message_follower_ids', 'access_group_ids', 'user_ids', 'lang']
 res_partner_calc = {'type': """
 type_val = record['type']
 if type_val == 'default':
     type_val = 'contact'
 vals[key] = type_val
 """}
-migrate_model('res.partner', migrate_fields = res_partner_exclude, include=False, create=False, calc = res_partner_calc)
+res_partner_custom = {
+    'agents': 'agent_ids'
+}
+migrate_model('res.partner', migrate_fields = res_partner_exclude, include=False, create=False, calc = res_partner_calc, domain=res_partner_domain, custom=res_partner_custom)
 
 
 if debug:
@@ -43,14 +47,14 @@ hr_employee_exclude = ['message_follower_ids']
 hr_employee_custom = {
     'image_medium' : 'image_1920',
 }
-migrate_model('hr.employee', migrate_fields = hr_employee_exclude, include=False, create=False, custom=hr_employee_custom)
+#migrate_model('hr.employee', migrate_fields = hr_employee_exclude, include=False, create=False, custom=hr_employee_custom)
 
 
 if debug:
     input("press enter to continue")
 
 # hr.department fields to copy from source to target WORKS
-migrate_model('hr.department', include=False, create=False)
+#migrate_model('hr.department', include=False, create=False)
 
 
 if debug:
@@ -58,7 +62,7 @@ if debug:
 
 # account.account.type fields to copy from source to target WORKS
 account_type_hard_code = {'type': 'receivable', 'internal_group': 'equity'}
-migrate_model('account.account.type', include=False, create=False, hard_code = account_type_hard_code)
+#migrate_model('account.account.type', include=False, create=False, hard_code = account_type_hard_code)
 
 
 if debug:
@@ -67,7 +71,7 @@ if debug:
 # ~ # account.account fields to copy from source to target WORKS
 account_custom = {'user_type': 'user_type_id'}
 account_hard_code = {'reconcile': 1}
-migrate_model('account.account', hard_code = account_hard_code, include=False, create=False, custom = account_custom)
+#migrate_model('account.account', hard_code = account_hard_code, include=False, create=False, custom = account_custom)
 
 
 if debug:
@@ -94,7 +98,7 @@ if debug:
 # product.attribute fields to copy from source to target
 product_attribute_custom = {'type': 'display_type'} # create variant should be hardcoded to no_variant
 product_attribute_hard_code = {'create_variant': 'always'}
-migrate_model('product.attribute', include=False, create=False, custom = product_attribute_custom, hard_code = product_attribute_hard_code)
+#migrate_model('product.attribute', include=False, create=False, custom = product_attribute_custom, hard_code = product_attribute_hard_code)
 
 if debug:
     input("press enter to continue")
@@ -130,13 +134,13 @@ product_product_custom = {
     'image' : 'image_1920'
 }
 product_product_hardcode = {}
-migrate_model('product.product', include=False, custom=product_product_custom, migrate_fields = product_product_exclude, hard_code = product_product_hardcode, create = False)
+#migrate_model('product.product', include=False, custom=product_product_custom, migrate_fields = product_product_exclude, hard_code = product_product_hardcode, create = False)
 if debug:
     input("press enter to continue")
-migrate_model('product.product', include=True, migrate_fields = ['virtual_available_days'], create = False)
+#migrate_model('product.product', include=True, migrate_fields = ['virtual_available_days'], create = False)
 
 # product.pricelist fields to copy from source to target WORKS
-migrate_model('product.pricelist', include=False, create=False)
+#migrate_model('product.pricelist', include=False, create=False)
 
 if debug:
     input("press enter to continue")
@@ -147,7 +151,7 @@ pricelist_item_calc = {'base': """
 translation = {-1: 'pricelist', 1: 'list_price', 2: 'standard_price', -2: 'standard_price'}
 vals[key] = translation[record['base']]
 """}
-migrate_model('product.pricelist.item', include=False, create=False, calc = pricelist_item_calc, hard_code = pricelist_item_hardcode)
+#migrate_model('product.pricelist.item', include=False, create=False, calc = pricelist_item_calc, hard_code = pricelist_item_hardcode)
 
 if debug:
     input("press enter to continue")
@@ -155,7 +159,7 @@ if debug:
 # stock.location fields to copy from source to target
 stock_location_exclude = ['company_id']
 stock_location_hardcode = {'company_id': 1}
-migrate_model('stock.location', hard_code = stock_location_hardcode, migrate_fields = stock_location_exclude, include=False, create=False)
+#migrate_model('stock.location', hard_code = stock_location_hardcode, migrate_fields = stock_location_exclude, include=False, create=False)
 
 if debug:
     input("press enter to continue")
@@ -163,14 +167,14 @@ if debug:
 # stock.warehouse fields to copy from source to target
 stock_warehouse_exclude = ['company_id']
 stock_warehouse_hardcode = {'company_id': 1}
-migrate_model('stock.warehouse', hard_code = stock_warehouse_hardcode, migrate_fields = stock_warehouse_exclude, include=False, create=False)
+#migrate_model('stock.warehouse', hard_code = stock_warehouse_hardcode, migrate_fields = stock_warehouse_exclude, include=False, create=False)
 
 if debug:
     input("press enter to continue")
 
 # sale.order fields to copy from source to target
 sale_order_exclude = ['message_follower_ids', 'message_is_follower']
-migrate_model('sale.order', include=False, exclude = sale_order_exclude, create=False)
+#migrate_model('sale.order', include=False, exclude = sale_order_exclude, create=False)
 
 if debug:
     input("press enter to continue")
@@ -179,7 +183,7 @@ if debug:
 sale_order_line_custom = {
     'delay': 'customer_lead'
 }
-migrate_model('sale.order.line', include=False, create=False, custom = sale_order_line_custom)
+#migrate_model('sale.order.line', include=False, create=False, custom = sale_order_line_custom)
 
 
 

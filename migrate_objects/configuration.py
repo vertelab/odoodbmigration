@@ -40,7 +40,7 @@ target.env.context['active_test'] = False
 source.env.context['active_test'] = False
 print(2)
 # HELPER FUNCTIONS
-IMPORT_MODULE_STRING = '__import__'
+IMPORT_MODULE_STRING = '__ma_import__'
 
                 # ~ if 'in_group_' in key:
                     # ~ print("start_ingroup")
