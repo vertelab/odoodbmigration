@@ -3,9 +3,9 @@
 from configuration import *
 from set_variant_on_template import *
 
-debug = True
+debug = False
 
-# project.project fields to copy from source to target WORKS
+# ~ # project.project fields to copy from source to target WORKS
 project_project_fields = ['name', 'alias_contact', 'alias_defaults', 'alias_id', 'alias_model_id', 'company_id']
 project_project_hard_code = {
     'rating_status': 'stage',
@@ -202,10 +202,10 @@ migrate_model('sale.order.line', migrate_fields = sale_order_line_fields, includ
 if debug:
     input("press enter to continue")
 
-# res.groups fields to copy from source to target NOT WORKING(cant migrate groups from 8, they work differently)
-# ~ res_groups_fields = ['name']
-# ~ res_groups_unique = ['name']
-# ~ migrate_model('res.groups', migrate_fields = res_groups_fields, include=True, unique = res_groups_unique, just_bind = True)
+# ~ # res.groups fields to copy from source to target NOT WORKING(cant migrate groups from 8, they work differently)
+res_groups_fields = ['name']
+res_groups_unique = ['name']
+migrate_model('res.groups', migrate_fields = res_groups_fields, include=True, unique = res_groups_unique, just_bind = True)
 
 if debug:
     input("press enter to continue")
@@ -249,7 +249,7 @@ if debug:
     input("press enter to continue")
 
 # product.template fields to copy from source to target NEEDS uom.uom to be migrated, which is product.uom on odoo8
-product_template_fields = ['name', 'sale_ok', 'purchase_ok', 'list_price', 'standard_price', 'description_sale', 'default_code', 'website_published', 'active', 'type', 'categ_id', 'sale_line_warn', ]
+product_template_fields = ['name', 'active', 'sale_ok', 'purchase_ok', 'list_price', 'standard_price', 'description_sale', 'default_code', 'website_published', 'active', 'type', 'categ_id', 'sale_line_warn', ]
 product_template_custom = {
     'image_medium' : 'image_1920',
 }
@@ -258,7 +258,7 @@ migrate_model('product.template', migrate_fields=product_template_fields, includ
 #the old one had some weird checks for default code? incase it doesnt work
 
 # product.product fields to copy from source to target
-product_product_fields = ['name', 'sale_ok', 'description', 'purchase_ok', 'list_price', 'description_sale', 'default_code', 'active',
+product_product_fields = ['name', 'active', 'sale_ok', 'description', 'purchase_ok', 'list_price', 'description_sale', 'default_code', 'active',
 'website_published', 'product_tmpl_id', 'lst_price', 'volume', 'standard_price', 'available_in_pos', 'weight',
 'ingredients', 'ingredients_last_changed', 'ingredients_changed_by_uid', 'use_desc', 'use_desc_last_changed', 'use_desc_changed_by_uid', 'event_ok']
 product_product_custom = {

@@ -8,8 +8,9 @@ from set_variant_on_template import *
 
 debug = True
 
-# ~ # res.users fields to copy from source to target BROKEN
-res_users_exclude = ['invoice_ids', 'message_follower_ids', 'groups_id', 'access_group_ids']
+# res.users fields to copy from source to target BROKEN
+# ~ res_users_exclude = ['invoice_ids', 'message_follower_ids', 'access_group_ids']
+res_users_exclude = ['groups_id']
 res_users_exclude_patterns = [r'\w+_\w+_\d.*']
 res_users_custom = {
     'property_account_payable': 'property_account_payable_id',
@@ -18,7 +19,29 @@ res_users_custom = {
 res_users_hard_code = {
     'notification_type': 'email'
 }
-migrate_model('res.users', include=False, create=False, custom=res_users_custom, hard_code=res_users_hard_code, migrate_fields = res_users_exclude, exclude_patterns = res_users_exclude_patterns)
+
+# ~ id_name = {284: 'Hudterapeut', 
+# ~ 286: 'Slutkonsument', 
+# ~ 283: 'Återförsäljare', 
+# ~ 285: 'SPA-Terapeut', 
+# ~ 242: 'Portal',
+# ~ 243: 'Public',
+# ~ }
+res_users_calc = {
+'groups_id': """
+print("#"*99)
+print(f"groups_id: {record[key]}")
+to_sync = [286, 283, 284, 285, 242, 243]
+ids = []
+for source_id in to_sync:
+    if source_id in record[key]:
+        ids.append(get_target_id_from_id("res.groups", source_id))
+if not (242 in record[key] or 243 in record[key]):
+    ids.append(target.env['ir.model.data'].xmlid_to_res_model_res_id(f"{IMPORT_MODULE_STRING}.res_groups_internal", raise_if_not_found=False)[1])
+vals[fields[key]] = [(6,0,ids)]
+print(vals[fields[key]])
+"""}
+migrate_model('res.users', create=False, custom=res_users_custom, hard_code=res_users_hard_code, migrate_fields = res_users_exclude, exclude_patterns = res_users_exclude_patterns, include = True, calc = res_users_calc, domain = [('id', '!=', 1)])
 
 
 if debug:
@@ -58,7 +81,7 @@ if debug:
 
 # account.account.type fields to copy from source to target WORKS
 account_type_hard_code = {'type': 'receivable', 'internal_group': 'equity'}
-migrate_model('account.account.type', include=False, create=False, hard_code = account_type_hard_code)
+#migrate_model('account.account.type', include=False, create=False, hard_code = account_type_hard_code)
 
 
 if debug:
@@ -67,7 +90,7 @@ if debug:
 # ~ # account.account fields to copy from source to target WORKS
 account_custom = {'user_type': 'user_type_id'}
 account_hard_code = {'reconcile': 1}
-migrate_model('account.account', hard_code = account_hard_code, include=False, create=False, custom = account_custom)
+#migrate_model('account.account', hard_code = account_hard_code, include=False, create=False, custom = account_custom)
 
 
 if debug:
@@ -85,7 +108,7 @@ product_category_hardcode = {
     'property_cost_method': 'standard',
     'property_valuation': 'manual_periodic'
 }
-#migrate_model('product.category', include=False, hard_code = product_category_hardcode, create = False)
+migrate_model('product.category', include=False, hard_code = product_category_hardcode, create = False)
 
 
 if debug:
@@ -119,24 +142,28 @@ product_template_custom = {
     'image_medium' : 'image_1920',
 }
 product_template_hardcode = {'company_id': 1}
-#migrate_model('product.template', include=False, custom=product_template_custom, migrate_fields = product_template_exclude, hard_code = product_template_hardcode, create = False)
+migrate_model('product.template', include=False, custom=product_template_custom, migrate_fields = product_template_exclude, hard_code = product_template_hardcode, create = False)
 
 if debug:
     input("press enter to continue")
 
-# ~ # product.product fields to copy from source to target WORKS
-product_product_exclude = ['uom_po_id','message_follower_ids', 'company_id', 'attribute_value_names', 'product_variant_ids', 'virtual_available_days', 'purchase_line_warn', 'purchase_line_warn_message', 'uom_id', 'sale_line_warn', 'categ_id', 'access_group_ids']
+# product.product fields to copy from source to target WORKS
+product_product_exclude = ['uom_po_id','message_follower_ids', 'company_id', 'attribute_value_names', 'product_variant_ids', 'virtual_available_days', 'purchase_line_warn', 'purchase_line_warn_message', 'uom_id', 'sale_line_warn', 'categ_id', 'access_group_ids', 'variant_access_group_ids']
 product_product_custom = {
-    'image' : 'image_1920'
+    'image' : 'image_1920',
 }
 product_product_hardcode = {}
-migrate_model('product.product', include=False, custom=product_product_custom, migrate_fields = product_product_exclude, hard_code = product_product_hardcode, create = False)
+# ~ migrate_model('product.product', include=False, custom=product_product_custom, migrate_fields = product_product_exclude, hard_code = product_product_hardcode, create = False)
+
+product_product_include = ['ean13', 'default_variant']
+migrate_model('product.product', include=True, migrate_fields=product_product_include, create = False, bypass_date = True)
+
 if debug:
     input("press enter to continue")
-migrate_model('product.product', include=True, migrate_fields = ['virtual_available_days'], create = False)
+# ~ migrate_model('product.product', include=True, migrate_fields = ['virtual_available_days'], create = False)
 
 # product.pricelist fields to copy from source to target WORKS
-migrate_model('product.pricelist', include=False, create=False)
+# ~ migrate_model('product.pricelist', include=False, create=False)
 
 if debug:
     input("press enter to continue")
@@ -147,7 +174,7 @@ pricelist_item_calc = {'base': """
 translation = {-1: 'pricelist', 1: 'list_price', 2: 'standard_price', -2: 'standard_price'}
 vals[key] = translation[record['base']]
 """}
-migrate_model('product.pricelist.item', include=False, create=False, calc = pricelist_item_calc, hard_code = pricelist_item_hardcode)
+# ~ migrate_model('product.pricelist.item', include=False, create=False, calc = pricelist_item_calc, hard_code = pricelist_item_hardcode)
 
 if debug:
     input("press enter to continue")
@@ -170,7 +197,7 @@ if debug:
 
 # sale.order fields to copy from source to target
 sale_order_exclude = ['message_follower_ids', 'message_is_follower']
-migrate_model('sale.order', include=False, exclude = sale_order_exclude, create=False)
+migrate_model('sale.order', migrate_fields = sale_order_exclude, include=False, create=False)
 
 if debug:
     input("press enter to continue")

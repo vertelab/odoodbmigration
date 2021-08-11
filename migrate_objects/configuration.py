@@ -171,6 +171,7 @@ def create_xml_id(model, target_record_id, source_record_id):
         'res_id': target_record_id,
     }
     try:
+        print(values)
         target.env['ir.model.data'].create(values)
         return f"xml_id = {xml_id} created"
     except Exception:
@@ -331,7 +332,7 @@ def get_uom_ids():
     pprint.pprint(UNITS_OF_MEASURE)
 get_uom_ids()
     
-def migrate_model(model, migrate_fields=[], include = False, exclude_patterns = [], diff={}, custom={}, hard_code={}, debug=False, create=True, domain=None, unique=None, after_migration=None, calc=None, xml_id_suffix = None, just_bind = False):
+def migrate_model(model, migrate_fields=[], include = False, exclude_patterns = [], diff={}, custom={}, hard_code={}, debug=False, create=True, domain=None, unique=None, after_migration=None, calc=None, xml_id_suffix = None, just_bind = False, bypass_date = False):
     '''
     use this method for migrating a model with return dict from get_all_fields()
     example:
@@ -381,7 +382,7 @@ def migrate_model(model, migrate_fields=[], include = False, exclude_patterns = 
         if not create:
             t_date = get_target_date_from_id(target_model, t, r['id'])
             print(f"t_date: {t_date}, {r['write_date']}")
-            if t_date == False or r['write_date'] == False or t_date < r['write_date']:
+            if t_date == False or r['write_date'] == False or t_date < r['write_date'] or bypass_date:
                 r = r['id']
             else:
                 # ~ print(f"record: {r}. is already up to date")
