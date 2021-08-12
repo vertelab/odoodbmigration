@@ -149,7 +149,7 @@ if debug:
     input("press enter to continue")
 
 # product.pricelist fields to copy from source to target WORKING
-product_pricelist_fields = ['name', 'code', 'display_name']
+product_pricelist_fields = ['name', 'code', 'display_name', 'company_id']
 #migrate_model('product.pricelist',migrate_fields = product_pricelist_fields, include=True, )
 
 if debug:

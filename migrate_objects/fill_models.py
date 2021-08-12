@@ -36,7 +36,10 @@ vals[key] = type_val
 res_partner_custom = {
     'agents': 'agent_ids'
 }
-migrate_model('res.partner', migrate_fields = res_partner_exclude, include=False, create=False, calc = res_partner_calc, domain=res_partner_domain, custom=res_partner_custom)
+res_partner_hard_code = {
+    'property_product_pricelist': 1,
+}
+migrate_model('res.partner', migrate_fields = res_partner_exclude, include=False, create=False, calc = res_partner_calc, domain=res_partner_domain, custom=res_partner_custom, hard_code=res_partner_hard_code)
 
 
 if debug:
