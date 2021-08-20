@@ -244,14 +244,15 @@ def get_target_date_from_id(model, t, source_record_id):
         print(e)
         return False
         
-def create_record_and_xml_id(target_model, source_model, fields, source_record_id, unique=None, i18n_fields=None):
+def create_record_and_xml_id(target_model, source_model, fields, source_record_id, unique=None, i18n_fields=None, custom_xml_id = False):
     ''' Creates record on target if it doesn't exist, using fields as values,
     and creates an external id so that the record will not be duplicated
     example: create_record_and_xml_id('res.partner', {'name':'MyPartner'}, 2)
     '''
+    if(custom_xml_id):
+        source_record_id=custom_xml_id+str(source_record_id)
     if get_target_record_from_id(target_model, source_record_id):
-        print(
-            f"INFO: skipping creation, an external id already exist for [{model}] [{source_record_id}]")
+        print(f"INFO: skipping creation, an external id already exist for [{target_model}] [{source_record_id}]")
     else:
         try:
 
@@ -367,12 +368,12 @@ def migrate_model(model, migrate_fields=[], include = False, exclude_patterns = 
     if create:
         to_migrate = s.search(domain)
         to_migrate = find_all_ids_in_target_model(target_model, to_migrate)
-        print("to migrate:")
-        print(to_migrate)
+        # ~ print("to migrate:")
+        # ~ print(to_migrate)
     elif not create:
         to_migrate = s.search_read(domain, ['id', 'write_date'], order='write_date DESC')
 
-    print(f'fields to migrate: {fields}')
+    # ~ print(f'fields to migrate: {fields}')
     for r in to_migrate:
         if just_bind:
             map_record_to_xml_id(target_model, fields, unique, source_id)
@@ -394,13 +395,13 @@ def migrate_model(model, migrate_fields=[], include = False, exclude_patterns = 
             continue
         # WTF? Sending a dict to read. Seems to work, but it sure feels icky.
         record = s.read(r, list(fields.keys()))
-        print(f"record: {record}")
+        # ~ print(f"record: {record}")
         if type(record) is list:
             record = record[0]
         vals = {}
         # Customize certain fields before creating records
         for key in fields:
-            print(record[key])
+            # ~ print(record[key])
             # Remove /page if it exists in url (odoo v8 -> odoo 14)
             if not calc or key not in calc.keys():
                 if key == 'company_id':
@@ -453,6 +454,7 @@ def migrate_model(model, migrate_fields=[], include = False, exclude_patterns = 
         vals.update(hard_code)
 
         if calc:
+            print("CALC"*99)
             for key in calc.keys():
                 print(calc[key])
                 exec(calc[key])
