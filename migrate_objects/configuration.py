@@ -243,11 +243,13 @@ def get_target_date_from_id(model, t, source_record_id):
         print(e)
         return False
         
-def create_record_and_xml_id(target_model, source_model, fields, source_record_id, unique=None, i18n_fields=None):
+def create_record_and_xml_id(target_model, source_model, fields, source_record_id, unique=None, i18n_fields=None, custom_xml_id = False):
     ''' Creates record on target if it doesn't exist, using fields as values,
     and creates an external id so that the record will not be duplicated
     example: create_record_and_xml_id('res.partner', {'name':'MyPartner'}, 2)
     '''
+    if(custom_xml_id):
+        source_record_id=custom_xml_id+str(source_record_id)
     if get_target_record_from_id(target_model, source_record_id):
         print(
             f"INFO: skipping creation, an external id already exist for [{model}] [{source_record_id}]")

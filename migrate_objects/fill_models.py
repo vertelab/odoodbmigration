@@ -137,7 +137,25 @@ product_product_custom = {
     'image' : 'image_1920'
 }
 product_product_hardcode = {}
-#migrate_model('product.product', include=False, custom=product_product_custom, migrate_fields = product_product_exclude, hard_code = product_product_hardcode, create = False)
+product_product_calc = {'lst_price': """
+# ~ print(record['attribute_line_ids'])
+# ~ print(record['lst_price'])
+pricelist_item_fields = {
+'product_id': get_target_id_from_id('product.product', r),
+'compute_price': 'fixed',
+'name': record['name'],
+'fixed_price': record['lst_price'],
+'min_quantity': 0,
+'pricelist_id': 1
+}
+custom_xml = 'variant_price_'
+print("#"*99)
+if not create_record_and_xml_id('product.pricelist.item', 'product.pricelist.item', pricelist_item_fields, r, custom_xml_id = custom_xml):
+    get_target_record_from_id('product.pricelist.item', custom_xml+str(r)).write(pricelist_item_fields)
+    print(f"Writing to existing {pricelist_item_fields}")
+print("#"*99)
+"""}
+#migrate_model('product.product', include=False, custom=product_product_custom, migrate_fields = product_product_exclude, hard_code = product_product_hardcode, create = False, calc = product_product_calc)
 if debug:
     input("press enter to continue")
 #migrate_model('product.product', include=True, migrate_fields = ['virtual_available_days'], create = False)
