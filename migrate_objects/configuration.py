@@ -252,7 +252,7 @@ def create_record_and_xml_id(target_model, source_model, fields, source_record_i
         source_record_id=custom_xml_id+str(source_record_id)
     if get_target_record_from_id(target_model, source_record_id):
         print(
-            f"INFO: skipping creation, an external id already exist for [{model}] [{source_record_id}]")
+            f"INFO: skipping creation, an external id already exist for [{target_model}] [{source_record_id}]")
     else:
         try:
 

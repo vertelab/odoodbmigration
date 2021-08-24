@@ -39,7 +39,7 @@ res_partner_custom = {
 res_partner_hard_code = {
     'property_product_pricelist': 1,
 }
-migrate_model('res.partner', migrate_fields = res_partner_exclude, include=False, create=False, calc = res_partner_calc, domain=res_partner_domain, custom=res_partner_custom, hard_code=res_partner_hard_code)
+#migrate_model('res.partner', migrate_fields = res_partner_exclude, include=False, create=False, calc = res_partner_calc, domain=res_partner_domain, custom=res_partner_custom, hard_code=res_partner_hard_code)
 
 
 if debug:
@@ -123,7 +123,7 @@ if debug:
 # product.template fields to copy from source to target WORKS(needs uom to be set up correctly)
 product_template_exclude = ['message_follower_ids', 'company_id', 'product_variant_ids', 'product_variant_count', 'variant_access_group_ids']
 product_template_custom = {
-    'image_medium' : 'image_1920',
+    'image' : 'image_1920',
 }
 product_template_hardcode = {'company_id': 1}
 #migrate_model('product.template', include=False, custom=product_template_custom, migrate_fields = product_template_exclude, hard_code = product_template_hardcode, create = False)
@@ -132,9 +132,12 @@ if debug:
     input("press enter to continue")
 
 # ~ # product.product fields to copy from source to target WORKS
-product_product_exclude = ['uom_po_id','message_follower_ids', 'company_id', 'attribute_value_names', 'product_variant_ids', 'virtual_available_days', 'purchase_line_warn', 'purchase_line_warn_message', 'uom_id', 'sale_line_warn', 'categ_id', 'access_group_ids']
+product_product_exclude = ['uom_po_id','message_follower_ids', 'company_id', 'attribute_value_names', 'product_variant_ids', 'virtual_available_days', 'purchase_line_warn', 'purchase_line_warn_message', 'uom_id', 'sale_line_warn', 'categ_id', 'access_group_ids', 'product_tmpl_id']
 product_product_custom = {
-    'image' : 'image_1920'
+    'image' : 'image_1920',
+    'public_desc' : 'description_webshop',
+    'use_desc' : 'description_use',
+    'ingredients' : 'description_ingredients',
 }
 product_product_hardcode = {}
 product_product_calc = {'lst_price': """
@@ -146,7 +149,9 @@ pricelist_item_fields = {
 'name': record['name'],
 'fixed_price': record['lst_price'],
 'min_quantity': 0,
-'pricelist_id': 1
+'pricelist_id': 1,
+'applied_on': '0_product_variant',
+'company_id': 1,
 }
 custom_xml = 'variant_price_'
 print("#"*99)
@@ -155,7 +160,7 @@ if not create_record_and_xml_id('product.pricelist.item', 'product.pricelist.ite
     print(f"Writing to existing {pricelist_item_fields}")
 print("#"*99)
 """}
-#migrate_model('product.product', include=False, custom=product_product_custom, migrate_fields = product_product_exclude, hard_code = product_product_hardcode, create = False, calc = product_product_calc)
+migrate_model('product.product', include=False, custom=product_product_custom, migrate_fields = product_product_exclude, hard_code = product_product_hardcode, create = False, calc = product_product_calc)
 if debug:
     input("press enter to continue")
 #migrate_model('product.product', include=True, migrate_fields = ['virtual_available_days'], create = False)

@@ -38,7 +38,7 @@ res_partner_fields = ['name', 'email', 'mobile', 'phone', 'street', 'city', 'zip
 # ~ # this domain will migrate users with the specified ids
 res_partner_ids = [29061]
 res_partner_domain = [('id', '=', id) for id in res_partner_ids]
-migrate_model('res.partner', migrate_fields= res_partner_fields, include=True, domain = res_partner_domain)
+#migrate_model('res.partner', migrate_fields= res_partner_fields, include=True, domain = res_partner_domain)
 
 
 if debug:
@@ -254,7 +254,7 @@ product_template_custom = {
     'image_medium' : 'image_1920',
 }
 # Not used?
-#migrate_model('product.template', migrate_fields=product_template_fields, include=True, custom=product_template_custom, after_migration=product_tmpl_set_attributes)
+migrate_model('product.template', migrate_fields=product_template_fields, include=True, custom=product_template_custom, after_migration=product_tmpl_set_attributes)
 #the old one had some weird checks for default code? incase it doesnt work
 
 # product.product fields to copy from source to target
