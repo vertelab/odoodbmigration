@@ -253,8 +253,10 @@ product_template_fields = ['name', 'sale_ok', 'purchase_ok', 'list_price', 'stan
 product_template_custom = {
     'image_medium' : 'image_1920',
 }
+product_template_hardcode = {'company_id': 1}
+product_template_domain = [('access_group_ids', '=', 286)]
 # Not used?
-migrate_model('product.template', migrate_fields=product_template_fields, include=True, custom=product_template_custom, after_migration=product_tmpl_set_attributes)
+migrate_model('product.template', hard_code = product_template_hardcode, migrate_fields=product_template_fields, include=True, custom=product_template_custom, after_migration=product_tmpl_set_attributes, domain=product_template_domain)
 #the old one had some weird checks for default code? incase it doesnt work
 
 # product.product fields to copy from source to target
@@ -262,7 +264,7 @@ product_product_fields = ['name', 'sale_ok', 'description', 'purchase_ok', 'list
 product_product_custom = {
     'image' : 'image_1920'
 }
-#migrate_model('product.product', migrate_fields=product_product_fields, include=True, custom=product_product_custom)
+migrate_model('product.product', hard_code = product_template_hardcode, migrate_fields=product_product_fields, include=True, custom=product_product_custom, domain=product_template_domain)
 
 # ~ if default_variant_ids:
     # ~ target.env['product.product'].browse(default_variant_ids).unlink()
