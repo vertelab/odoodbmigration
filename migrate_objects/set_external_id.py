@@ -211,8 +211,9 @@ if debug:
     input("press enter to continue")
 
 # ~ # product.public.category fields to copy from source to target WORKING
+ppc_domain = [('id', 'in', [39, 40, 41, 42, 43])]
 product_public_category_fields = ['name', 'display_name']
-#migrate_model('product.public.category', migrate_fields = product_public_category_fields, include=True, )
+migrate_model('product.public.category', migrate_fields=product_public_category_fields, include=True, domain=ppc_domain)
 
 if debug:
     input("press enter to continue")
@@ -251,12 +252,13 @@ if debug:
 # product.template fields to copy from source to target NEEDS uom.uom to be migrated, which is product.uom on odoo8
 product_template_fields = ['name', 'sale_ok', 'purchase_ok', 'list_price', 'standard_price', 'description_sale', 'default_code', 'website_published', 'active', 'type', 'categ_id', 'sale_line_warn', ]
 product_template_custom = {
-    'image_medium' : 'image_1920',
+    'image' : 'image_1920',
 }
 product_template_hardcode = {'company_id': 1}
-product_template_domain = [('access_group_ids', '=', 286)]
+#product_template_domain = [('access_group_ids', '=', 286)]
+product_template_domain = [('id', '=', 11751)]
 # Not used?
-migrate_model('product.template', hard_code = product_template_hardcode, migrate_fields=product_template_fields, include=True, custom=product_template_custom, after_migration=product_tmpl_set_attributes, domain=product_template_domain)
+#migrate_model('product.template', hard_code = product_template_hardcode, migrate_fields=product_template_fields, include=True, custom=product_template_custom, after_migration=product_tmpl_set_attributes, domain=product_template_domain)
 #the old one had some weird checks for default code? incase it doesnt work
 
 # product.product fields to copy from source to target
@@ -264,7 +266,7 @@ product_product_fields = ['name', 'sale_ok', 'description', 'purchase_ok', 'list
 product_product_custom = {
     'image' : 'image_1920'
 }
-migrate_model('product.product', hard_code = product_template_hardcode, migrate_fields=product_product_fields, include=True, custom=product_product_custom, domain=product_template_domain)
+#migrate_model('product.product', hard_code = product_template_hardcode, migrate_fields=product_product_fields, include=True, custom=product_product_custom, domain=product_template_domain)
 
 # ~ if default_variant_ids:
     # ~ target.env['product.product'].browse(default_variant_ids).unlink()

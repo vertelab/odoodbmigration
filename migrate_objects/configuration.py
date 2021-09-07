@@ -453,7 +453,7 @@ def migrate_model(model, migrate_fields=[], include = False, exclude_patterns = 
         # Break operation and return last dict used for creating record if something is wrong and debug is True
         vals.update(hard_code)
 
-        if calc:
+        if calc and target_record:
             for key in calc.keys():
                 print(calc[key])
                 exec(calc[key])

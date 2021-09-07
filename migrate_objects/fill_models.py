@@ -112,10 +112,11 @@ if debug:
 
 
 # product.public.category fields to copy from source to target WORKS
+product_public_category_domain = [('id', 'in', [39,40,41,42,43])]
 product_public_category_custom = {
-    'image_medium' : 'image_1920'
+    'image' : 'image_1920'
 }
-#migrate_model('product.public.category', custom = product_public_category_custom, include=False, create = False)
+migrate_model('product.public.category', custom=product_public_category_custom, domain=product_public_category_domain, include=False, create = False)
 
 if debug:
     input("press enter to continue")
@@ -126,7 +127,8 @@ product_template_custom = {
     'image' : 'image_1920',
 }
 product_template_hardcode = {'company_id': 1}
-product_template_domain = [('access_group_ids', '=', 286)]
+#product_template_domain = [('access_group_ids', '=', 286)]
+product_template_domain = [('id', '=', 6000)]
 #product_template_domain = []
 #migrate_model('product.template', include=False, domain = product_template_domain, custom=product_template_custom, migrate_fields = product_template_exclude, hard_code = product_template_hardcode, create = False)
 
@@ -162,7 +164,7 @@ if not create_record_and_xml_id('product.pricelist.item', 'product.pricelist.ite
     print(f"Writing to existing {pricelist_item_fields}")
 print("#"*99)
 """}
-migrate_model('product.product', include=False, custom=product_product_custom, domain = product_template_domain, migrate_fields = product_product_exclude, hard_code = product_product_hardcode, create = False, calc = product_product_calc)
+#migrate_model('product.product', include=False, custom=product_product_custom, domain = product_template_domain, migrate_fields = product_product_exclude, hard_code = product_product_hardcode, create = False, calc = product_product_calc)
 if debug:
     input("press enter to continue")
 #migrate_model('product.product', include=True, migrate_fields = ['virtual_available_days'], create = False)
