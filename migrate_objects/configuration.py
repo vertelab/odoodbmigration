@@ -27,6 +27,10 @@ Image.MAX_IMAGE_PIXELS = 100000000000
 print(1)
 source = odoorpc.ODOO.load('source')
 target = odoorpc.ODOO.load('target')
+
+# ~ dirty is loaded for manual testing purposes
+dirty = odoorpc.ODOO.load('dirty')
+
 del source.env.context['lang']
 target.env.context['lang'] = 'en_US'
 target.env.context['active_test'] = False
@@ -332,7 +336,7 @@ def get_uom_ids():
                 UNITS_OF_MEASURE[key] = data['res_id']
     pprint.pprint(UNITS_OF_MEASURE)
 get_uom_ids()
-    
+
 def migrate_model(model, migrate_fields=[], include = False, exclude_patterns = [], diff={}, custom={}, hard_code={}, debug=False, create=True, domain=None, unique=None, after_migration=None, calc=None, xml_id_suffix = None, just_bind = False, bypass_date = False):
     '''
     use this method for migrating a model with return dict from get_all_fields()
@@ -373,7 +377,7 @@ def migrate_model(model, migrate_fields=[], include = False, exclude_patterns = 
     elif not create:
         to_migrate = s.search_read(domain, ['id', 'write_date'], order='write_date DESC')
 
-    # ~ print(f'fields to migrate: {fields}')
+    print(f'fields to migrate: {fields}')
     for r in to_migrate:
         if just_bind:
             map_record_to_xml_id(target_model, fields, unique, source_id)
@@ -386,14 +390,13 @@ def migrate_model(model, migrate_fields=[], include = False, exclude_patterns = 
             if t_date == False or r['write_date'] == False or t_date < r['write_date'] or bypass_date:
                 r = r['id']
             else:
-                # ~ print(f"record: {r}. is already up to date")
+                print(f"record: {r}. is already up to date")
                 continue
         target_record = get_target_record_from_id(target_model, r)
         if create and target_record:
             print(
                 f"INFO: skipping creation, an external id already exist for [{target_model}] [{r}]")
             continue
-        # WTF? Sending a dict to read. Seems to work, but it sure feels icky.
         record = s.read(r, list(fields.keys()))
         # ~ print(f"record: {record}")
         if type(record) is list:
@@ -404,6 +407,8 @@ def migrate_model(model, migrate_fields=[], include = False, exclude_patterns = 
             # ~ print(record[key])
             # Remove /page if it exists in url (odoo v8 -> odoo 14)
             if not calc or key not in calc.keys():
+                print(f"key: {key}")
+                print(record[key])
                 if key == 'company_id':
                     vals.update({'company_id': 1})
                 elif key == 'url' and type(record[key]) is str:
@@ -453,7 +458,7 @@ def migrate_model(model, migrate_fields=[], include = False, exclude_patterns = 
         # Break operation and return last dict used for creating record if something is wrong and debug is True
         vals.update(hard_code)
 
-        if calc:
+        if calc and target_record:
             print("CALC"*99)
             for key in calc.keys():
                 print(calc[key])
