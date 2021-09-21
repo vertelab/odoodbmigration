@@ -12,7 +12,7 @@ if debug:
     input("press enter to continue")
 
 # ~ # res.partner fields to copy from source to target WORKS
-res_partner_domain = [('id', 'in', [28488])]
+res_partner_domain = [('id', 'in', [5522])]
 res_partner_exclude = ['invoice_ids', 'message_follower_ids', 'access_group_ids', 'user_ids', 'lang']
 res_partner_calc = {'type': """
 type_val = record['type']

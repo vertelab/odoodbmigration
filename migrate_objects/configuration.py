@@ -395,13 +395,13 @@ def migrate_model(model, migrate_fields=[], include = False, exclude_patterns = 
             continue
         # WTF? Sending a dict to read. Seems to work, but it sure feels icky.
         record = s.read(r, list(fields.keys()))
-        print(f"record: {record}")
+        #print(f"record: {record}")
         if type(record) is list:
             record = record[0]
         vals = {}
         # Customize certain fields before creating records
         for key in fields:
-            print(record[key])
+            #print(record[key])
             # Remove /page if it exists in url (odoo v8 -> odoo 14)
             if not calc or key not in calc.keys():
                 if key == 'company_id':
