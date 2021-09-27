@@ -58,13 +58,13 @@ debug = True
 # ~ migrate_model('res.partner', migrate_fields = res_partner_exclude, include=False, create=False, calc = res_partner_calc)
 
 # project.task fields to copy from source to target WORKS
-project_task_exclude = ['priority', 'message_follower_ids', 'message_ids']
+# ~ project_task_exclude = ['priority', 'message_follower_ids', 'message_ids']
 
-migrate_model('project.task', migrate_fields = project_task_exclude, include=False, create=False)
+# ~ migrate_model('project.task', migrate_fields = project_task_exclude, include=False, create=False)
 
 
-if debug:
-    input("press enter to continue")
+# ~ if debug:
+    # ~ input("press enter to continue")
 
 # ~ # hr.employee fields to copy from source to target WORKS
 # ~ hr_employee_exclude = ['message_follower_ids']
@@ -142,15 +142,15 @@ if debug:
     # ~ input("press enter to continue")
 
 # ~ # product.template fields to copy from source to target WORKS(needs uom to be set up correctly)
-product_template_exclude = ['message_follower_ids', 'company_id', 'product_variant_ids', 'product_variant_count', 'variant_access_group_ids']
-product_template_custom = {
-    'image_medium' : 'image_1920',
-}
-product_template_hardcode = {'company_id': 1}
+# ~ product_template_exclude = ['message_follower_ids', 'company_id', 'product_variant_ids', 'product_variant_count', 'variant_access_group_ids']
+# ~ product_template_custom = {
+    # ~ 'image_medium' : 'image_1920',
+# ~ }
+# ~ product_template_hardcode = {'company_id': 1}
 # ~ migrate_model('product.template', include=False, custom=product_template_custom, migrate_fields = product_template_exclude, hard_code = product_template_hardcode, create = False)
 
-if debug:
-    input("press enter to continue")
+# ~ if debug:
+    # ~ input("press enter to continue")
 
 # product.product fields to copy from source to target WORKS
 # ~ product_product_exclude = ['uom_po_id','message_follower_ids', 'company_id', 'attribute_value_names', 'product_variant_ids', 'virtual_available_days', 'purchase_line_warn', 'purchase_line_warn_message', 'uom_id', 'sale_line_warn', 'categ_id', 'access_group_ids', 'variant_access_group_ids']
@@ -205,11 +205,11 @@ if debug:
 # ~ }
 # ~ migrate_model('product.product', include=False, custom=product_product_custom, migrate_fields = product_product_exclude, hard_code = product_product_hardcode, create = False, bypass_date = True, calc = product_product_calc)
 
-product_product_include = ['ean13', 'default_variant', 'default_code']
+# ~ product_product_include = ['ean13', 'default_variant', 'default_code']
 # ~ migrate_model('product.product', include=True, migrate_fields=product_product_include, create = False, bypass_date = True)
 
-product_template_include = ['default_code']
-migrate_model('product.template', include=True, migrate_fields=product_template_include, create = False, bypass_date = True)
+# ~ product_template_include = ['default_code']
+# ~ migrate_model('product.template', include=True, migrate_fields=product_template_include, create = False, bypass_date = True)
 
 # ~ if debug:
     # ~ input("press enter to continue")
@@ -262,13 +262,38 @@ migrate_model('product.template', include=True, migrate_fields=product_template_
 # ~ migrate_model('sale.order.line', include=False, create=False, custom = sale_order_line_custom)
 
 # stock.move fields to copy from source to target WORKING
-stock_move_fields = ['product_qty']
-stock_move_hardcode = {
-    'company_id': 1
-}
-stock_move_domain = [('date', '>', '2020-09-1 10:10:10')]
-migrate_model('stock.move', migrate_fields = stock_move_fields, include=False, hard_code = stock_move_hardcode, domain = stock_move_domain, create=False)
+# ~ stock_move_fields = ['product_qty']
+# ~ stock_move_hardcode = {
+    # ~ 'company_id': 1
+# ~ }
+# ~ stock_move_domain = [('date', '>', '2020-09-1 10:10:10')]
+# ~ migrate_model('stock.move', migrate_fields = stock_move_fields, include=False, hard_code = stock_move_hardcode, domain = stock_move_domain, create=False)
 
 
+# ~ account_move_fields = ['name','state','ref']
+# ~ account_move_custom = {}
+# ~ account_move_domain = ['|',('period_id' ,'=',208),('date', '>=', '2021-08-01'),('date', '<=', '2021-08-31')]
+# ~ account_move_unique = ['name']
+# ~ migrate_model('account.move', migrate_fields = account_move_fields, include=True, unique = account_move_unique, domain = account_move_domain,create=False, bypass_date = True)
+
+account_move_line_fields = []
+account_move_line_custom = {"tax_code_id":"tax_line_id"}
+account_move_line_domain = ['|',('period_id' ,'=',208),('date', '>=', '2021-08-01'),('date', '<=', '2021-08-31')]
+#account_move_line_domain = [('move_id.name' ,'=',"145631")]
+account_move_line_unique = ['name']
+migrate_model('account.move.line', migrate_fields = account_move_line_fields, include=True, unique = account_move_line_unique, domain = account_move_line_domain,create=False, bypass_date = True, custom = account_move_line_custom)
 
 
+# ~ from configuration import *
+# ~ values = {'account_id': 217, 'date': '2021-08-17', 'name': 'Anna Österberg (SO145635)', 'journal_id': 10, 'move_id': 2263, 'credit': 0.0, 'debit': 3370.0, 'display_name': '144900 (Anna Österberg (SO145635))', 'tax_ids': False, 'state': 'valid', 'last_migration_date': '2021-09-20 14:40:45'}
+# ~ keys = list(values.keys())
+# ~ record = get_target_record_from_id('account.move', 3169831)
+# ~ for key in values:
+    # ~ try:
+        # ~ print(key)
+        # ~ record.write({key: values[key]})
+        # ~ print('success!')
+    # ~ except Exception as e:
+        # ~ print('failed!'*99)
+        # ~ print(e)
+        # ~ break
