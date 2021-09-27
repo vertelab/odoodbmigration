@@ -12,10 +12,10 @@ if debug:
     input("press enter to continue")
 
 # ~ # product.product fields to copy from source to target WORKS
-#product_product_domain = [('id', 'in', [2921,3232,5540,9796,9799])]
-product_product_domain = [('access_group_ids', '=', 286), ('sale_ok', '=', True), ('website_published', '=', True)]
+product_product_domain = [('id', 'in', [2338])]
+#product_product_domain = [('access_group_ids', '=', 286), ('sale_ok', '=', True), ('website_published', '=', True)]
 #product_product_include = ['image']
-product_product_include = ['image', 'default_code']
+product_product_include = ['image']
 product_product_custom = {
     'image' : 'image_1920',
 }

@@ -12,11 +12,11 @@ if debug:
     input("press enter to continue")
 
 # ~ # product.product fields to copy from source to target WORKS
-product_product_domain = [('id', 'in', [11495,11496,11497,11498,11499,11500,9564,9568,9572,9626,9627,9628,9632,9633,9634,9635,9636,9637,9638,9639,9640,9641,9642,9643,9644,9645,9646,9651,9652,9653,9654,9655,9656,9662,9663,9664,9665,9666,9667,9668,9669,9670,9674,9675,9676,9683,9684,9685,9686,9687,9688,9689,9690,9691,9692,9693,9694,9695,9696,9697,9698,9699,9700,9701,9702,9703,9704,9705,9706,9707,9708,9709,9710,9711,9712,9713,9714,9715,9716,9717,9718,9719,9720,9721])]
+product_product_domain = [('id', 'in', [5593])]
 #product_product_domain = [('access_group_ids', '=', 286), ('sale_ok', '=', True), ('website_published', '=', True)]
 #product_product_include = ['image']
 #product_product_include = ['image', 'image_attachment_ids']
-product_product_include = ['image']
+product_product_include = ['image','image_attachment_ids']
 product_product_custom = {
     'image' : 'image_1920',
 }
@@ -46,8 +46,8 @@ for image_id in record['image_attachment_ids']:
         print("#"*99)
 """}
 
-migrate_model('product.product', include=True, custom=product_product_custom, migrate_fields=product_product_include, domain=product_product_domain, create=False)
-#migrate_model('product.product', include=True, calc=product_product_calc, custom=product_product_custom, migrate_fields=product_product_include, domain=product_product_domain, create=False)
+#migrate_model('product.product', include=True, custom=product_product_custom, migrate_fields=product_product_include, domain=product_product_domain, create=False)
+migrate_model('product.product', include=True, calc=product_product_calc, custom=product_product_custom, migrate_fields=product_product_include, domain=product_product_domain, create=False)
 if debug:
     input("press enter to continue")
 

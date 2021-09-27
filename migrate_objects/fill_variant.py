@@ -12,8 +12,8 @@ if debug:
     input("press enter to continue")
 
 # ~ # product.product fields to copy from source to target WORKS
-product_product_domain = [('access_group_ids', '=', 286), ('sale_ok', '=', True), ('website_published', '=', True)]
-#product_product_domain = [('id', 'in', [2112])]
+#product_product_domain = [('access_group_ids', '=', 286), ('sale_ok', '=', True), ('website_published', '=', True)]
+product_product_domain = [('id', 'in', [5593])]
 product_product_exclude = ['image','uom_po_id','message_follower_ids', 'company_id', 'attribute_value_names', 'product_variant_ids', 'virtual_available_days', 'purchase_line_warn', 'purchase_line_warn_message', 'uom_id', 'sale_line_warn', 'categ_id', 'access_group_ids', 'product_tmpl_id', 'inventory_availability']
 product_product_custom = {
     'public_desc': 'description_webshop',

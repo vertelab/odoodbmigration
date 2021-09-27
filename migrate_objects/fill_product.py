@@ -18,7 +18,8 @@ product_template_hardcode = {
      'company_id': 1,
      'inventory_availability': 'never',
 }
-product_template_domain = [('access_group_ids', '=', 286), ('sale_ok', '=', True), ('website_published', '=', True)]
+#product_template_domain = [('access_group_ids', '=', 286), ('sale_ok', '=', True), ('website_published', '=', True)]
+product_template_domain = [('id', 'in', [2338])]
 migrate_model('product.template', include=False, domain = product_template_domain, custom=product_template_custom, migrate_fields = product_template_exclude, hard_code = product_template_hardcode, create = False)
 
 if debug:
