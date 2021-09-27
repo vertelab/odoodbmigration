@@ -5,6 +5,72 @@ from set_variant_on_template import *
 
 debug = False
 
+# ~ # account.journal fields to copy from source to target WORKING
+account_journal_fields = ['code', 'name', 'type']
+account_journal_custom = {}
+account_journal_hard_code = {'invoice_reference_model': 'odoo', 'invoice_reference_type': 'partner', 'company_id':1}
+account_journal_unique = ['code']
+migrate_model('account.journal', migrate_fields = account_journal_fields, hard_code = account_journal_hard_code, include=True, custom = account_journal_custom, unique = account_journal_unique)
+
+# ~ FIXA PERIODER
+FIX PERIOD EXTERNAL ID 
+source_to_target_dict = {
+200:1,    #opening
+201:2,    #01
+202:3,    #02
+203:4,    #03
+204:5,    #04
+205:6,    #05
+206:7,    #06
+207:8,    #07
+208:9,    #08
+209:10,    #09
+210:11,   #10
+211:12,    #11
+212:13,    #12
+}
+
+for source_id in source_to_target_dict:
+    target_id = source_to_target_dict[source_id]
+    create_xml_id('account.period',target_id,source_id)
+    
+# account.move fields to copy from source to target WORKING
+account_move_fields = ['date', 'name', 'journal_id', 'period_id', 'state', 'tax_amount',' credit', 'debit', 'balance', 'display_name', 'account_tax_id', 'ref','partner_id']
+account_move_custom = {}
+account_move_domain = ['|',('period_id' ,'=',208),('date', '>=', '2021-08-01'),('date', '<=', '2021-08-31')]
+account_move_hard_code = {'move_type': 'entry'}
+account_move_unique = ['name']
+account_move_calc = {'currency_id': r" return source.env['account.move'].search_read(record['journal_id'], 'currency')"}
+migrate_model('account.move', migrate_fields = account_move_fields, hard_code = account_move_hard_code, include=True, custom = account_move_custom, unique = account_move_unique,domain = account_move_domain)
+
+# account.move.line fields to copy from source to target WORKING
+account_move_line_fields = ['account_id', 'date', 'name', 'journal_id', 'move_id','credit','debit','display_name','account_tax_id','currency_id','partner_id']
+account_move_line_custom = {"tax_code_id":"tax_line_id"}
+account_move_line_domain = ['|',('period_id' ,'=',208),('date', '>=', '2021-08-01'),('date', '<=', '2021-08-31')]
+account_move_hard_code = {'tax_id': 'tax_ids'}
+account_move_unique = ['name']
+account_move_line_calc = {'currency_id':r" return source.env['account.move.line'].search_read(record['journal_id'], 'currency')"}
+migrate_model('account.move.line', migrate_fields = account_move_line_fields, include=True, custom = account_move_line_custom, unique = account_move_unique, domain = account_move_line_domain,calc = account_move_line_calc)
+
+
+# ~ account_move_fields = ['name','state','ref']
+# ~ account_move_custom = {}
+# ~ account_move_domain = ['|',('period_id' ,'=',208),('date', '>=', '2021-08-01'),('date', '<=', '2021-08-31')]
+# ~ account_move_unique = ['name']
+# ~ migrate_model('account.move', migrate_fields = account_move_fields, include=True, unique = account_move_unique, domain = account_move_domain,create=False, bypass_date = True)
+
+# ~ account_move_line_fields = []
+# ~ account_move_line_custom = {"tax_code_id":"tax_line_id"}
+# ~ account_move_line_domain = ['|',('period_id' ,'=',208),('date', '>=', '2021-08-01'),('date', '<=', '2021-08-31')]
+# ~ #account_move_line_domain = [('move_id.name' ,'=',"145631")]
+# ~ account_move_line_unique = ['name']
+# ~ migrate_model('account.move.line', migrate_fields = account_move_line_fields, include=True, unique = account_move_line_unique, domain = account_move_line_domain,create=False, bypass_date = True, custom = account_move_line_custom)
+
+
+
+
+
+
 # ~ # project.project fields to copy from source to target WORKS
 # ~ project_project_fields = ['name', 'alias_contact', 'alias_defaults', 'alias_id', 'alias_model_id', 'company_id']
 # ~ project_project_hard_code = {

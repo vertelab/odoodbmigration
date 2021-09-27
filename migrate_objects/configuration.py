@@ -124,8 +124,28 @@ account_tax_code_to_account_tax_table_xid = {
 
 account_tax_code_to_account_tax_table = {}
 
-account_tax_table_xid = {}
+account_tax_table_xid = {
+2:"1_mp1",
+40:"1_i6",
+34:"1_i",
+36:"1_i",
+37:"1_i",
+11:"1_mp2",
+33:"1_mbbui1",
+31:"1_i6",
+956:"1_vteu",
+970:"1_tfeu",
+6:"1_vfeu",
+49:"1_mbbui3",
+966:"1_e",
+47:"1_i6",
+39:"1_i12"
+
+}
 account_tax_table = {}
+
+
+
 
 ''' Glossary
        domain = list of search criterias
@@ -289,10 +309,11 @@ def create_record_and_xml_id(target_model, source_model, fields, source_record_i
     else:
         try:
             print(fields)
-            # ~ if fields['type'] == 'sale_refund':
-                # ~ fields['type'] = 'sale'
-            # ~ if fields['type'] == 'purchase_refund':
-                # ~ fields['type'] = 'purchase'
+            if target_model == "account.journal":
+                if fields['type'] == 'sale_refund':
+                    fields['type'] = 'sale'
+                if fields['type'] == 'purchase_refund':
+                    fields['type'] = 'purchase'
             if target_model == "account.move.line":
                 target.env.context['check_move_validity'] = False
 
@@ -382,6 +403,7 @@ def get_accounts_ids():
         for key in account_translation_table_xid.keys():
             if account_translation_table_xid[key] == data['name']:
                 account_translation_table[key] = data['res_id']
+    pprint.pprint("ACCOUNT TABLE")
     pprint.pprint(account_translation_table)
 get_accounts_ids()
 
@@ -394,8 +416,22 @@ def get_account_tax_ids_from_account_tax_code_ids():
         for key in account_tax_code_to_account_tax_table_xid.keys():
             if account_tax_code_to_account_tax_table_xid[key] == data['name']:
                 account_tax_code_to_account_tax_table[key] = data['res_id']
+    pprint.pprint("ACCOUNT TAX CODE TO ACCOUNT TAX TABLE")
     pprint.pprint(account_tax_code_to_account_tax_table)
 get_account_tax_ids_from_account_tax_code_ids()
+
+def get_account_tax_ids():
+    account_tax_xmlid_values = account_tax_table_xid.values()
+    for data in target.env['ir.model.data'].search_read([
+            ('model', '=', 'account.tax'),
+            ('name', 'in', list(account_tax_table_xid.values())),
+            ('module', '=', 'l10n_se')], ['res_id', 'name']):
+        for key in account_tax_table_xid.keys():
+            if account_tax_table_xid[key] == data['name']:
+                account_tax_table[key] = data['res_id']
+    pprint.pprint("ACCOUNT TAX TABLE")
+    pprint.pprint(account_tax_table)
+get_account_tax_ids()
 
 def migrate_model(model, migrate_fields=[], include = False, exclude_patterns = [], diff={}, custom={}, hard_code={}, debug=False, create=True, domain=None, unique=None, after_migration=None, calc=None, xml_id_suffix = None, just_bind = False, bypass_date = False):
     '''
@@ -493,9 +529,9 @@ def migrate_model(model, migrate_fields=[], include = False, exclude_patterns = 
                             if field_definition["relation"] == "product.uom":
                                 vals.update({fields[key]:  UNITS_OF_MEASURE[record[key][0]]})
                             elif field_definition["relation"] == "account.account":
-                                print(record[key][0])
-                                print(account_translation_table[record[key][0]])
                                 vals.update({fields[key]:  account_translation_table[record[key][0]]})
+                            elif field_definition["relation"] == "account.tax":
+                                vals.update({fields[key]:  account_tax_table_xid[record[key][0]]})
                             elif field_definition["relation"] == "account.tax.code":
                                 if record[key] not in [29,37,47,49,53,55]:# don't need to set tax_line_id in these cases
                                     vals.update({fields[key]:  account_tax_code_to_account_tax_table[record[key][0]]})
