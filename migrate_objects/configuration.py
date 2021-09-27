@@ -132,7 +132,7 @@ account_tax_table_xid = {
 37:"1_i",
 11:"1_mp2",
 33:"1_mbbui1",
-31:"1_i6",
+31:"1_i",
 956:"1_vteu",
 970:"1_tfeu",
 6:"1_vfeu",
