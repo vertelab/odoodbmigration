@@ -102,9 +102,9 @@ account_translation_table_xid = {91: '1_K3_1011_2017', 101: '1_K3_1040_2017', 12
 account_translation_table = {}
 
 account_tax_code_to_account_tax_table_xid = {
-2:"1_u1",
+2:"1_mp1",
 4:"accounts numbers are used instead for the report",
-23:"1_u2",
+23:"1_mp2",
 # ~ 28:"accounts numbers are used instead for the report",
 # ~ 29:"accounts numbers are used instead for the report",
 30:"1_tffu",
