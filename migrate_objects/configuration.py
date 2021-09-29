@@ -105,7 +105,7 @@ account_tax_code_to_account_tax_table_xid = {
 2:"1_mp1",
 4:"accounts numbers are used instead for the report",
 23:"1_mp2",
-# ~ 28:"accounts numbers are used instead for the report",
+28:"1_vfeu",
 # ~ 29:"accounts numbers are used instead for the report",
 30:"1_tffu",
 33:"1_u1mi",
