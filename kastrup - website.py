@@ -88,8 +88,8 @@ def bootstrap_3to4(arch):
 
 def update_images(arch):
     model = 'ir.attachment'
-    record_list = source.env[model].search([('website_url', '=', True)])
-    rs = source.env[model].browse(record_list)
+    record_list = s.env[model].search([('website_url', '=', True)])
+    rs = s.env[model].browse(record_list)
     for record in rs:
         target_record = get_target_record_from_id(model, record.id)
         arch = arch.replace(record.website_url, target_record.website_url)
@@ -102,7 +102,7 @@ def create_new_webpages():
     Also updates each page's [is_published] to True '''
     model = 'ir.ui.view'
     domain = [('type', '=', 'qweb'), ('page', '=', True)]
-    source_records = source.env[model].browse(source.env[model].search(domain))
+    source_records = s.env[model].browse(s.env[model].search(domain))
     for source_record in source_records:
         target_record = get_target_record_from_id(model, source_record.id)
         if target_record != 0:
