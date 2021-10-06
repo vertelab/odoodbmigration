@@ -1,19 +1,9 @@
 #!/usr/bin/env python3
-import http.client as http
-from termcolor import colored, cprint
-from PIL import Image
-import sys
-import datetime
-import argparse
-import json
-import logging
-import logging.handlers
-import os
-import pprint
-import re
 
-import pprint
-pp = pprint.PrettyPrinter()
+import http.client as http
+from termcolor import colored
+import datetime
+from pprint import pprint as pp
 
 
 try:
@@ -22,29 +12,32 @@ except ImportError:
     raise Warning(
         'odoorpc library missing. Please install the library. Eg: pip3 install odoorpc')
 
-
 http.HTTPConnection._http_vsn = 10
 http.HTTPConnection._http_vsn_str = 'HTTP/1.0'
 
-source = odoorpc.ODOO.load('source')
-target = odoorpc.ODOO.load('target')
 odoorpc_context = {'active_test': False}
+
+source = odoorpc.ODOO.load('source')
 source.env.context.update(odoorpc_context)
+
+target = odoorpc.ODOO.load('target')
 target.env.context.update(odoorpc_context)
 
-txt_d = colored('DEBUG:', 'white', 'on_green')
-txt_e = colored('ERROR:', 'red')
-txt_i = colored('INFO:', 'green')
-txt_w = colored('WARNING:', 'yellow')
-IMPORT_MODULE_STRING = '__import_bure__'
-# IMPORT_MODULE_STRING = '__import__'
+cd = colored('DEBUG:', 'white', 'on_green')
+ce = colored('ERROR:', 'red')
+ci = colored('INFO:', 'green')
+cw = colored('WARNING:', 'yellow')
 
-print(f"{txt_i} source.env\n{source.env}")
-print(f"{txt_i} source.host\n{source.host}")
-print(f"{txt_i} source.db.list()\n{source.db.list()}\n")
-print(f"{txt_i} target.env\n{target.env}")
-print(f"{txt_i} target.host\n{target.host}")
-print(f"{txt_i} target.db.list()\n{target.db.list()}\n")
+# IMPORT_MODULE_STRING = '__import_bure__'
+IMPORT_MODULE_STRING = '__import__'
+
+print(f"{ci} source.host\n{source.host}")
+print(f"{ci} source.db.list()\n{source.db.list()}\n")
+print(f"{ci} source.env\n{source.env}")
+
+print(f"{ci} target.host\n{target.host}")
+print(f"{ci} target.env\n{target.env}")
+print(f"{ci} target.db.list()\n{target.db.list()}\n")
 
 ''' Glossary
 domain = list of search criterias
@@ -66,26 +59,26 @@ def unlink(model, only_migrated=True):
     record_list = []
     if only_migrated:
         domain = [('module', '=', IMPORT_MODULE_STRING), ('model', '=', model)]
-        record_list = sorted((x.get('res_id') for x in target.env['ir.model.data'].search_read(
-            domain, ['res_id'])), reverse=1)
+        record_list = [x.get('res_id') for x in target.env['ir.model.data'].search_read(
+            domain, ['res_id'], order='id')]
     else:
-        record_list = sorted(target.env[model].search([]), reverse=1)
+        record_list = target.env[model].search([], order='id')
 
     try:
         target.env[model].unlink(record_list)
-        print(
-            f"{txt_i} Recordset('{model}', {record_list}) unlinked"
-        )
     except Exception as e:
         print(e)
-        choice = input(
-            'Unlinking failed, try to unlink one record at a time? [y/N]')
-        if choice.lower() != 'n' or choice != '':
-            for x in record_list:
-                try:
-                    target.env[model].unlink(x)
-                except Exception as e:
-                    print(e)
+    else:
+        print(f"{ci} Recordset('{model}', {record_list}) unlinked")
+        return
+
+    finally:
+        option = input('Unlinking failed, unlink one record at a time? [y/N]')
+        if option.lower() != 'n' or option != '':
+            try:
+                [target.env[model].unlink(x) for x in record_list]
+            except Exception as e:
+                print(e)
 
 
 def create_xmlid(model, target_record_id, source_record_id, module=IMPORT_MODULE_STRING):
@@ -102,11 +95,11 @@ def create_xmlid(model, target_record_id, source_record_id, module=IMPORT_MODULE
     }
     try:
         target.env['ir.model.data'].create(values)
-        print(f"{txt_i} TARGET: XML_ID: {xml_id} | CREATE: SUCCESS!")
     except:
-        print(
-            f"{txt_e} TARGET: XML_ID: {xml_id} | CREATE: FAIL! Should not happen...Did you call this method manually?"
-        )
+        print(f"{ce} TARGET: XML_ID: {xml_id} | CREATE: FAIL!"
+              "Should not happen...Did you call this method manually?")
+    else:
+        print(f"{ci} TARGET: XML_ID: {xml_id} | CREATE: SUCCESS!")
 
 
 def get_target_id_from_source_id(model, source_id, module=IMPORT_MODULE_STRING):
@@ -126,12 +119,12 @@ def get_target_id_from_source_xmlid(model, source_id):
     Returns: False if record cannot be found
     """
     domain = [('model', '=', model), ('res_id', '=', source_id)]
-    for _id in sorted(source.env['ir.model.data'].search(domain)):
+    for _id in source.env['ir.model.data'].search(domain, order='id'):
         key = 'complete_name'
         data = source.env['ir.model.data'].read(_id, [key])
         if type(data) is list:
             data = data[0]
-        xmlid = data.get(key, None)
+        xmlid = data.get(key)
         if xmlid:
             target_id = target.env['ir.model.data'].xmlid_to_res_id(xmlid)
             if target_id:
@@ -150,18 +143,27 @@ def create_record_and_xmlid(model, model2, fields, source_id):
     """
     target_id = get_target_id_from_source_id(model2, source_id)
     if target_id:
-        print(f"{txt_i} External id already exist ({model2} {source_id})")
+        print(f"{ci} External id already exist ({model2} {source_id})")
+
+    try:
+        target_id = target.env[model2].create(fields)
+    except Exception as e:
+        print(f"{ce} SOURCE: {model} {source_id} | TARGET: {model2} {target_id}"
+              " | CREATE: FAIL! Read the log...", e)
+
     else:
+        print(f"{ci} SOURCE: {model} {source_id} | TARGET: {model2} {target_id}"
+              " | CREATE: SUCCESS! Creating external id...")
+
         try:
-            target_id = target.env[model2].create(fields)
-            print(f"{txt_i} SOURCE: {model} {source_id} | TARGET: {model2} {target_id} | CREATE: SUCCESS! Creating external id...")
             create_xmlid(model2, target_id, source_id)
-            return target_id
         except Exception as e:
-            print(
-                f"{txt_e} SOURCE: {model} {source_id} | TARGET: {model2} {target_id} | CREATE: FAIL! Read the log...")
-            print(e)
-            return 0
+            print("Create xmlid FAILED", e)
+
+        else:
+            return target_id
+
+    return 0
 
 
 def migrate_model(model, **vars):
@@ -199,16 +201,18 @@ def migrate_model(model, **vars):
     domain = vars.get('domain', [])
     force = vars.get('force', [])
     ids = vars.pop('ids', [])
+    
     model2 = vars.get('model2', model)
     module = vars.get('module', IMPORT_MODULE_STRING)
     source.env.context.update(context)
     target.env.context.update(context)
 
+
     if debug:
         print(f"""
-{txt_d} Source context: {source.env.context}
-{txt_d} Target context: {target.env.context}
-{txt_d} vars: {vars}
+{cd} Source context: {source.env.context}
+{cd} Target context: {target.env.context}
+{cd} vars: {vars}
 """)
 
     source_model = source.env[model]
@@ -220,7 +224,7 @@ def migrate_model(model, **vars):
 
     source_ids = ids if ids else source_model.search(domain, order='id')
     if not source_ids:
-        f"{txt_i} No records to migrate..."
+        f"{ci} No records to migrate..."
 
     if create:
         source_ids = find_all_ids_in_target_model(model2, source_ids, module)
@@ -229,28 +233,28 @@ def migrate_model(model, **vars):
     for source_id in source_ids:
         target_id = 0 if create else get_target_id_from_source_id(
             model2, source_id, module)
-
-        print(f"{txt_d} Source record: '{model}' {source_id}"
+        
+        print(f"{cd} Source record: '{model}' {source_id}"
               "{txt_d} Target record: '{model2}' {target_id}") if debug else None
 
         if not target_id:
             # if debug:
-            print(f"{txt_d} No record found with {IMPORT_MODULE_STRING}.{model2.replace('.', '_')}"
+            print(f"{cd} No record found with {IMPORT_MODULE_STRING}.{model2.replace('.', '_')}"
                   "_{source_id} external identifier") if debug else None
             target_id = get_target_id_from_source_xmlid(model2, source_id)
 
         if create and target_id:
-            print(f"{txt_w} SOURCE: {model} {source_id} | TARGET: {model2} {target_id}"
+            print(f"{cw} SOURCE: {model} {source_id} | TARGET: {model2} {target_id}"
                   " | CREATE: FAIL! External id exists...")
             continue
 
         if not create and not target_id:
             if not force:
                 print(
-                    f"{txt_w} SOURCE: {model} {source_id} | TARGET: {model2} {target_id} | WRITE: FAIL! External id exists...")
+                    f"{cw} SOURCE: {model} {source_id} | TARGET: {model2} {target_id} | WRITE: FAIL! External id exists...")
                 continue
             print(
-                f"{txt_i} FORCE = TRUE: External id exists...Trying to write to record")
+                f"{ci} FORCE = TRUE: External id exists...Trying to write to record")
 
         vals = {'last_migration_date': now}
         try:
@@ -262,7 +266,7 @@ def migrate_model(model, **vars):
                 record = record[0]
         except:
             print(
-                f"{txt_e} SOURCE: {model} {source_id} READ: FAIL! Does the record exist?")
+                f"{ce} SOURCE: {model} {source_id} READ: FAIL! Does the record exist?")
             if debug:
                 return source_id
             continue
@@ -283,8 +287,8 @@ def migrate_model(model, **vars):
             val = record[key]
 
             if debug:
-                print(f"{txt_d}     Field: {key}, Type: {key_type}")
-                print(f"{txt_d}         Source value: {val}")
+                print(f"{cd}     Field: {key}, Type: {key_type}")
+                print(f"{cd}         Source value: {val}")
 
             # if not val:
             #     print('')
@@ -369,16 +373,19 @@ def migrate_model(model, **vars):
 
                 vals.update({fields[key]: val})
 
-            print(f"""{txt_d}         Target value: {val}""") if debug else None
+            print(f"""{cd}         Target value: {val}""") if debug else None
 
         vals.update(custom)
 
-        print(f"{txt_d} Custom value: {custom}") if debug and custom else None
+        print(f"{cd} Custom value: {custom}") if debug and custom else None
 
         if calc:
             for key in calc.keys():
                 exec(calc[key])
 
+        if vals.get('skip', None):
+            continue
+        
         # Break operation and return last dict used for creating record if something is wrong and debug is True
         if create and vals:
             create_id = create_record_and_xmlid(
@@ -392,7 +399,7 @@ def migrate_model(model, **vars):
                 success = target_model.write(target_id, vals)
                 if success:
                     print(
-                        f"{txt_i} SOURCE: {model} {source_id} TARGET: {model2} {target_id} WRITE: SUCCESS!!!"
+                        f"{ci} SOURCE: {model} {source_id} TARGET: {model2} {target_id} WRITE: SUCCESS!!!"
                     )
                 else:
                     print(target_id)
@@ -400,7 +407,7 @@ def migrate_model(model, **vars):
             except:
                 if not force:
                     print(
-                        f"{txt_e} SOURCE: {model} {source_id} TARGET: {model2} {target_id} WRITE: FAIL!"
+                        f"{ce} SOURCE: {model} {source_id} TARGET: {model2} {target_id} WRITE: FAIL!"
                     )
                     return vals
                 else:
@@ -415,7 +422,7 @@ def migrate_model(model, **vars):
         source.env.context.pop(key)
         target.env.context.pop(key)
 
-    print(txt_i, f"Done!")
+    print(ci, f"Done!")
 
 
 def get_common_fields(source_fields, target_fields, **kwargs):
@@ -492,7 +499,7 @@ def print_relation_fields(model, model2=''):
             key_type = source_fields[key]['type']
             text = 'relation: {:<30} type: {:<10} key: {:<30}'
             print(text.format(relation, key_type, key))
-    input(f"{txt_i} Press ENTER key to continue")
+    input(f"{ci} Press ENTER key to continue")
     print('target')
     for key in sorted(target_fields):
         if target_fields[key].get('relation', None):
@@ -500,7 +507,7 @@ def print_relation_fields(model, model2=''):
             key_type = target_fields[key]['type']
             text = 'relation: {:<30} type: {:<10} key: {:<30}'
             print(text.format(relation, key_type, key))
-    input(f"{txt_i} The end")
+    input(f"{ci} The end")
 
 
 def print_list(my_list, rows=40):
@@ -582,7 +589,7 @@ def create_new_webpages(model, ids=[]):
             'website_page', source_val['id'])
         if target_id:
             print(
-                f"{txt_i} SOURCE: {model} {source_id} | TARGET: {model} {target_id} | CREATE: FAIL! External id exists...")
+                f"{ci} SOURCE: {model} {source_id} | TARGET: {model} {target_id} | CREATE: FAIL! External id exists...")
             continue
         new_page = target.env['website'].new_page(name=source_name)
         create_xmlid(model, new_page['view_id'], source_id)
@@ -632,7 +639,7 @@ def update_images(arch):
                     try:
                         migrate_model(model, ids=[source_id])
                     except:
-                        print(f"{txt_e} {source_id}")
+                        print(f"{ce} {source_id}")
             if target_id:
                 url[i] = str(target_id)
                 if t:
@@ -761,4 +768,4 @@ def map_ids_from_module_1to2(model, ids, module, module2):
         print({tid: sid})
 
 
-print(f"{txt_i} functions loaded")
+print(f"{ci} functions loaded")

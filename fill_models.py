@@ -30,8 +30,10 @@ for s_model in models:
         t_model = models.get(s_model).get('model', s_model)
         t_count = len(target.env[t_model].search([]))
         print('target model', t_model, t_count)
-        m_count = len(target.env['ir.model.data'].find_all_ids_in_target(t_model))
-        m_count += len(target.env['ir.model.data'].find_all_ids_in_target(t_model,'__import_bure__'))
+        m_count = len(
+            target.env['ir.model.data'].find_all_ids_in_target(t_model))
+        m_count += len(target.env['ir.model.data'].find_all_ids_in_target(
+            t_model, '__import_bure__'))
         print('migrated', m_count)
         if m_count < s_count:
             print(colored(f"missing {t_model} {s_count-m_count}", 'red'))
@@ -61,11 +63,11 @@ create_xmlid('project.tags',
 
 
 'project.project'
-project_calc = {'privacy_visibility': """
+project_attachment_calc = {'privacy_visibility': """
 vals.update(
     {fields[key]: 'portal' if record[key] in ['public'] else record[key]})"""}
 project_domain = [('id', '!=', 55)]
-migrate_model('project.project', calc=project_calc, domain=project_domain)
+migrate_model('project.project', calc=project_attachment_calc, ids=[30, 55])#domain=project_domain)
 # bure_project_domain = [('id', '=', 42)]
 # create_xmlid('project.project', 44, 42)
 # migrate_model('project.project', calc=project_calc, domain=bure_project_domain)
@@ -210,3 +212,33 @@ for task_id in task_records:
     else:
         continue
     print(f"Recordset('project.task', [{task_id}]).message_ids DONE!")
+
+ids = source.env['ir.attachment'].search_read(
+    [], ['file_type', 'mimetype', 'res_model', 'type'], order='id')
+file_types = sorted(set([str(x['file_type']) for x in ids]))
+mimetypes = sorted(set([str(x['mimetype']) for x in ids]))
+res_models = sorted(set([str(x['res_model']) for x in ids]))
+types = sorted(set([str(x['type']) for x in ids]))
+print(f"{file_types = }".split('=')[0])
+pp(file_types)
+print(f"{mimetypes=}".split('=')[0])
+pp(mimetypes)
+print(f"{res_models=}".split('=')[0])
+pp(res_models)
+print(f"{types=}".split('=')[0])
+pp(types)
+
+
+project_attachments = source.env['ir.attachment'].search([('res_model','=','project.project')])
+sorted(set([x.get('res_id') for x in source.env['ir.attachment'].read(project_attachments, ['res_id'])])) # [30, 55]
+
+'ir.attachment'
+project_attachment_calc = {'res_id': """
+project_id = get_target_id_from_source_id(record['res_model'], record[key])
+if not project_id:
+    vals.update({'skip':True})
+    print(record[key], 'not found')
+vals.update({fields[key]: project_id})
+"""}
+project_attachments = source.env['ir.attachment'].search([('res_model','=','project.project')], order='id')
+migrate_model('ir.attachment', calc=project_attachment_calc, ids=project_attachments)
