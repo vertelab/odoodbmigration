@@ -28,16 +28,15 @@ ce = colored('ERROR:', 'red')
 ci = colored('INFO:', 'green')
 cw = colored('WARNING:', 'yellow')
 
-# IMPORT_MODULE_STRING = '__import_bure__'
 IMPORT_MODULE_STRING = '__import__'
 
 print(f"{ci} source.host\n{source.host}")
-print(f"{ci} source.db.list()\n{source.db.list()}\n")
-print(f"{ci} source.env\n{source.env}")
+print(f"{ci} source.db.list()\n{source.db.list()}")
+print(f"{ci} source.env\n{source.env}\n")
 
 print(f"{ci} target.host\n{target.host}")
-print(f"{ci} target.env\n{target.env}")
-print(f"{ci} target.db.list()\n{target.db.list()}\n")
+print(f"{ci} target.db.list()\n{target.db.list()}")
+print(f"{ci} target.env\n{target.env}\n")
 
 ''' Glossary
 domain = list of search criterias
@@ -144,22 +143,19 @@ def create_record_and_xmlid(model, model2, fields, source_id):
     target_id = get_target_id_from_source_id(model2, source_id)
     if target_id:
         print(f"{ci} External id already exist ({model2} {source_id})")
-
-    try:
-        target_id = target.env[model2].create(fields)
-    except Exception as e:
-        print(f"{ce} SOURCE: {model} {source_id} | TARGET: {model2} {target_id}"
-              " | CREATE: FAIL! Read the log...", e)
-
     else:
-        print(f"{ci} SOURCE: {model} {source_id} | TARGET: {model2} {target_id}"
-              " | CREATE: SUCCESS! Creating external id...")
-
+        try:
+            target_id = target.env[model2].create(fields)
+        except Exception as e:
+            print(f"{ce} SOURCE: {model} {source_id} | TARGET: {model2} {target_id}"
+                  " | CREATE: FAIL! Read the log...", e)
+        else:
+            print(f"{ci} SOURCE: {model} {source_id} | TARGET: {model2} {target_id}"
+                  " | CREATE: SUCCESS! Creating external id...")
         try:
             create_xmlid(model2, target_id, source_id)
         except Exception as e:
             print("Create xmlid FAILED", e)
-
         else:
             return target_id
 
@@ -201,12 +197,11 @@ def migrate_model(model, **vars):
     domain = vars.get('domain', [])
     force = vars.get('force', [])
     ids = vars.pop('ids', [])
-    
+
     model2 = vars.get('model2', model)
     module = vars.get('module', IMPORT_MODULE_STRING)
     source.env.context.update(context)
     target.env.context.update(context)
-
 
     if debug:
         print(f"""
@@ -233,7 +228,7 @@ def migrate_model(model, **vars):
     for source_id in source_ids:
         target_id = 0 if create else get_target_id_from_source_id(
             model2, source_id, module)
-        
+
         print(f"{cd} Source record: '{model}' {source_id}"
               "{txt_d} Target record: '{model2}' {target_id}") if debug else None
 
@@ -385,7 +380,7 @@ def migrate_model(model, **vars):
 
         if vals.get('skip', None):
             continue
-        
+
         # Break operation and return last dict used for creating record if something is wrong and debug is True
         if create and vals:
             create_id = create_record_and_xmlid(

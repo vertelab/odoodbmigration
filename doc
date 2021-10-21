@@ -1,0 +1,35 @@
+open terminal on target machine
+
+clone odoodbmigration-repo to target machine
+git clone -b han https://github.com/vertelab/odoodbmigration.git
+
+add yourself to group odoo if you're not already (type groups to check)
+sudo adduser YOUR_USER_NAME odoo
+
+move repo to /usr/share
+sudo mv odoodbmigration /usr/share/odoo-migration-helpers
+
+set owner to odoo and mod g+w
+sudo chown odoo:odoo -R /usr/share/odoo*
+sudo chmod g+w -R  /usr/share/odoo*
+
+run the following commands to add repo-modules to odoo
+odooaddons
+odoorestart
+
+if you added yourself, login again and check 
+groups
+
+open ssh tunnel to source machine if source is behind a router (see example)
+ssh source_router -L6789:source:8069
+
+install odoorpc using pip on target machine
+pip install odoorpc
+
+run credentials.py in repo and setup source and target credentials
+cd /usr/share/odoodbmigration
+python3 credentials.py
+
+install migration_helper_* that matches the tables you want to migrate
+they should appear in odoo apps
+

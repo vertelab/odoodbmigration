@@ -1,0 +1,10 @@
+map = {'res.partner': {'ext_id': 'idkund',
+                       'city': 'ort',
+                       'comment': 'annan_info',
+                       'email': 'epost',
+                       'name': 'namn',
+                       'phone': 'telefon',
+                       'street': 'adress',
+                       'vat': 'vatnr',
+                       'zip': 'postnr',
+                       }}
