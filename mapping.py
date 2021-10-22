@@ -1,4 +1,4 @@
-map = {'res.partner': {'ext_id': 'idkund',
+MAPS = {'res.partner': {'ext_id': 'idkund',
                        'city': 'ort',
                        'comment': 'annan_info',
                        'email': 'epost',
