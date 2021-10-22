@@ -30,16 +30,22 @@ def migrate_from_sheet(model, cols, ws, **kwargs):
     for row in ws.iter_rows(min_row=2):
         vals = vals_builder(row, cols, maps)
         xml_id = set_xml_id(model, vals.pop('ext_id'))
-        if mode == 'create':
-            create_record_and_xmlid(model, vals, xml_id)
-        elif mode == 'write':
-            write_record(model, vals, xml_id)
-        elif mode == 'debug':
-            if count == 0:
-                pp(cols)
-            pp(f"{xml_id}, {vals}")
-            input()
-            count += 1
+        while True:
+            try:
+                if mode == 'create':
+                    create_record_and_xmlid(model, vals, xml_id)
+                elif mode == 'write':
+                    write_record(model, vals, xml_id)
+                elif mode == 'debug':
+                    if count == 0:
+                        pp(cols)
+                    pp(f"{xml_id}, {vals}")
+                    input()
+                    count += 1
+            except:
+                input('Continue? Press enter')
+            else:
+                break
 
 def vals_builder(row, cols, maps):
     vals = {}
@@ -109,7 +115,7 @@ def create_xml_id(model, res_id, xml_id):
 if __name__ == "__main__":
     if len(sys.argv) != 3:
         print(
-            f"\nUsage: python3 {sys.argv[0]} res.partner /path/of/file.xslx\n")
+            f"\nUsage: python3 {sys.argv[0]} /path/of/file.xslx res.partner\n")
         raise SyntaxError("Wrong number of argument.")
 
     try:
