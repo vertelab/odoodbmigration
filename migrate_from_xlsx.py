@@ -10,7 +10,7 @@ IMPORT = '__import__'
 
 def main(file_path, model):
     mode = input('Mode? [Create, Write, Debug] ')
-    print('Loading workbook . . . ', end=' ')
+    print('\nLoading workbook . . . ', end=' ')
     xlsx_file = Path(file_path)
     wb = openpyxl.load_workbook(xlsx_file)
     print('Ok!\nLoading worksheet . . .', end=' ')
@@ -27,6 +27,7 @@ def migrate_from_sheet(model, cols, ws, **kwargs):
     mode = kwargs.get('mode', 'debug')
     maps = MAPS.get(model)
     count = 0
+    errors = []
     for row in ws.iter_rows(min_row=2):
         vals = vals_builder(row, cols, maps)
         xml_id = set_xml_id(model, vals.pop('ext_id'))
@@ -43,10 +44,13 @@ def migrate_from_sheet(model, cols, ws, **kwargs):
                     input()
                     count += 1
             except Exception as e:
-                print(e)
-                input('Continue? Press enter')
+                errors.append(
+                    {'e': e, 'row': row, 'vals': vals, 'xml_id': xml_id})
+                message = input('Continue? Press enter')
             else:
                 break
+    print(errors)
+
 
 def vals_builder(row, cols, maps):
     vals = {}
@@ -54,11 +58,11 @@ def vals_builder(row, cols, maps):
         if maps[key] in cols:
             i = cols.index(maps[key])
             vals.update({key: row[i].value})
-    calc= maps.get('calc')
+    calc = maps.get('calc')
     if calc:
         for key in calc.keys():
             exec(calc[key])
-        
+
     return vals
 
 
