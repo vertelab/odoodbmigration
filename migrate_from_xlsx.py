@@ -42,7 +42,8 @@ def migrate_from_sheet(model, cols, ws, **kwargs):
                     pp(f"{xml_id}, {vals}")
                     input()
                     count += 1
-            except:
+            except Exception as e:
+                print(e)
                 input('Continue? Press enter')
             else:
                 break
