@@ -11,6 +11,6 @@ MAPS = {'res.partner': {
     'is_company': 'kundgrupp',
     'calc': {
         'is_company': """
-vals.update({'is_company': vals['is_company'] not in ['Privatperson ej skogsägare (60)']})
+vals.update({'is_company': vals['is_company'] not in ['Privat skogsägare (61)','Privatperson ej skogsägare (60)']})
 """}
 }}
