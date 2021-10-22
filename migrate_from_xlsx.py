@@ -3,68 +3,60 @@ import odoorpc
 import openpyxl
 from pathlib import Path
 from mapping import MAPS
-
+from pprint import pprint as pp
 
 IMPORT = '__import__'
 
 
-def main(model, file_path):
-    mode = input('Mode? C=Create, W=Write')
-    if mode.lower() in ['c','w']:
-        xlsx_file = Path(file_path)
-        wb = openpyxl.load_workbook(xlsx_file)
-        ws = wb.active
+def main(file_path, model):
+    mode = input('Mode? [Create, Write, Debug] ')
+    print('Loading workbook . . . ', end=' ')
+    xlsx_file = Path(file_path)
+    wb = openpyxl.load_workbook(xlsx_file)
+    print('Ok!\nLoading worksheet . . .', end=' ')
+    ws = wb.active
+    run = input('Ok!\nRun script? [yN] ').lower()
+    if run == 'y':
         cols = [col.value for col in ws[1]]
-        if mode.lower() == 'c':
-            create_from_sheet(model, cols, ws)
-        elif mode.lower() == 'w':
-            write_from_sheet(model, cols, ws)
-        wb.close()
-    else:
-        print('Terminating program. . .')
+        migrate_from_sheet(model, cols, ws, mode=mode)
+    print('Terminating program. . .')
 
-def create_from_sheet(model, cols, ws):
-    """Create records from xlsx file"""
+
+def migrate_from_sheet(model, cols, ws, **kwargs):
+    """Create/update records from xlsx sheet"""
+    mode = kwargs.get('mode', 'debug')
     maps = MAPS.get(model)
-    print(cols)
-    my_list = []
     count = 0
     for row in ws.iter_rows(min_row=2):
-        vals = {}
-        my_list.append(row[27].value)
-        for key in maps:
-            if maps[key] in cols:
-                i = cols.index(maps[key])
-                vals.update({key: row[i].value})
-        #create_record_and_xmlid(model, vals, vals.pop('ext_id'))
-        # if count == 2000:
-        #     break
-        # count += 1
-    print(set(my_list))
-    
-def write_from_sheet(model, cols, ws):
-    """Write records from xlsx file"""
-    m = map.get(model)
-    print(cols)
-    my_list = []
-    count = 0
-    for row in ws.iter_rows(min_row=2):
-        vals = {}
-        my_list.append(row[27].value)
-        for key in m:
-            if m[key] in cols:
-                i = cols.index(m[key])
-                vals.update({key: row[i].value})
-        #create_record_and_xmlid(model, vals, vals.pop('ext_id'))
-        # if count == 2000:
-        #     break
-        # count += 1
-    print(set(my_list))
+        vals = vals_builder(row, cols, maps)
+        xml_id = set_xml_id(model, vals.pop('ext_id'))
+        if mode == 'create':
+            create_record_and_xmlid(model, vals, xml_id)
+        elif mode == 'write':
+            write_record(model, vals, xml_id)
+        elif mode == 'debug':
+            if count == 0:
+                pp(cols)
+            pp(f"{xml_id}, {vals}")
+            input()
+            count += 1
+
+def vals_builder(row, cols, maps):
+    vals = {}
+    for key in maps:
+        if maps[key] in cols:
+            i = cols.index(maps[key])
+            vals.update({key: row[i].value})
+    calc= maps.get('calc')
+    if calc:
+        for key in calc.keys():
+            exec(calc[key])
+        
+    return vals
 
 
-def create_record_and_xmlid(model, vals, ext_id):
+def create_record_and_xmlid(model, vals, xml_id):
     """Create record if it doesn't exist, return res_id."""
-    xml_id = set_xml_id(model, ext_id)
     res_id = get_res_id_from_xml_id(xml_id)
     if res_id:
         print(f"Skipping creation {xml_id} already exist")
@@ -79,11 +71,12 @@ def create_record_and_xmlid(model, vals, ext_id):
             return res_id
 
 
-def write_record(model, vals, ext_id):
+def write_record(model, vals, xml_id):
     """Create record if it doesn't exist, return res_id."""
-    xml_id = set_xml_id(model, ext_id)
     res_id = get_res_id_from_xml_id(xml_id)
-    if res_id:
+    if not res_id:
+        print(f"Skipping write {xml_id} does not exist")
+    else:
         try:
             target.env[model].write(res_id, vals)
         except Exception as e:
