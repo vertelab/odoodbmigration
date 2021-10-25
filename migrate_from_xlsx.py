@@ -30,10 +30,10 @@ def main(file_path, model):
 
 def migrate_from_sheet(model, cols, ws, **kwargs):
     """Create/update records from xlsx sheet"""
-    mode = kwargs.get('mode')
-    maps = MAPS.get(model)
     count = 0
     errors = []
+    maps = MAPS.get(model)
+    mode = kwargs.get('mode')
     for row in ws.iter_rows(min_row=2):
         vals = vals_builder(row, cols, maps, mode)
         xml_id = set_xml_id(model, vals.pop('ext_id'))
@@ -45,8 +45,7 @@ def migrate_from_sheet(model, cols, ws, **kwargs):
                     write_record(model, vals, xml_id)
                 elif mode == 'debug':
                     if count == 0:
-                        print(f"{cols=}", end='')
-                        pp(f"{cols}")
+                        pp(cols)
                     count += 1
             except Exception as e:
                 errors.append(
@@ -100,7 +99,7 @@ def write_record(model, vals, xml_id):
         except Exception as e:
             print('WRITE_RECORD: FAIL! Read the log...', e, res_id, vals)
         else:
-            print('WRITE_RECORD: SUCCESS!')
+            print('WRITE_RECORD: SUCCESS!', res_id, xml_id)
             return res_id
 
 

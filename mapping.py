@@ -15,7 +15,7 @@ elif len(ssn) == 10:
     vals.update({'partner_ssn': f"{ssn[:6]}-{ssn[6:]}"})
 else:
     vals.update({'partner_ssn': str(vals[key])})
-    # print(vals['ext_id'], vals[key])
+    print(vals['ext_id'], vals[key])
             """,
         },
         'create': {
