@@ -50,7 +50,6 @@ def migrate_from_sheet(model, cols, ws, **kwargs):
             except Exception as e:
                 errors.append(
                     {'e': e, 'row': row, 'vals': vals, 'xml_id': xml_id})
-                message = input('Continue? Press enter')
             else:
                 break
     print(errors)
