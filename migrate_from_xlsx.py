@@ -9,7 +9,13 @@ IMPORT = '__import__'
 
 
 def main(file_path, model):
-    mode = input('Mode? [Create, Write, Debug] ')
+    modes = ['create', 'debug', 'write']
+    while True:
+        mode = input(f"Mode? {modes} ").lower()
+        if mode in modes:
+            break
+        else:
+            print('Wrong mode')
     print('\nLoading workbook . . . ', end=' ')
     xlsx_file = Path(file_path)
     wb = openpyxl.load_workbook(xlsx_file)
@@ -24,12 +30,12 @@ def main(file_path, model):
 
 def migrate_from_sheet(model, cols, ws, **kwargs):
     """Create/update records from xlsx sheet"""
-    mode = kwargs.get('mode', 'debug')
+    mode = kwargs.get('mode')
     maps = MAPS.get(model)
     count = 0
     errors = []
     for row in ws.iter_rows(min_row=2):
-        vals = vals_builder(row, cols, maps)
+        vals = vals_builder(row, cols, maps, mode)
         xml_id = set_xml_id(model, vals.pop('ext_id'))
         while True:
             try:
@@ -39,9 +45,8 @@ def migrate_from_sheet(model, cols, ws, **kwargs):
                     write_record(model, vals, xml_id)
                 elif mode == 'debug':
                     if count == 0:
-                        pp(cols)
-                    pp(f"{xml_id}, {vals}")
-                    input()
+                        print(f"{cols=}", end='')
+                        pp(f"{cols}")
                     count += 1
             except Exception as e:
                 errors.append(
@@ -52,16 +57,18 @@ def migrate_from_sheet(model, cols, ws, **kwargs):
     print(errors)
 
 
-def vals_builder(row, cols, maps):
+def vals_builder(row, cols, maps, mode):
+    calc = maps.get('calc')
+    maps = maps.get(mode)
     vals = {}
     for key in maps:
         if maps[key] in cols:
             i = cols.index(maps[key])
             vals.update({key: row[i].value})
-    calc = maps.get('calc')
     if calc:
         for key in calc.keys():
-            exec(calc[key])
+            if vals.get(key):
+                exec(calc[key])
 
     return vals
 
@@ -78,7 +85,7 @@ def create_record_and_xmlid(model, vals, xml_id):
         except Exception as e:
             print('CREATE_RECORD: FAIL! Read the log...', e, vals)
         else:
-            print("CREATE_RECORD: SUCCESS!")
+            print("CREATE_RECORD: SUCCESS!", res_id, xml_id)
             return res_id
 
 
