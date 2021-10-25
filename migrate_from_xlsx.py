@@ -77,14 +77,10 @@ def create_record_and_xmlid(model, vals, xml_id):
     if res_id:
         print(f"Skipping creation {xml_id} already exist")
     else:
-        try:
-            res_id = target.env[model].create(vals)
-            create_xml_id(model, res_id, xml_id)
-        except Exception as e:
-            print('CREATE_RECORD: FAIL! Read the log...', e, vals)
-        else:
-            print("CREATE_RECORD: SUCCESS!", res_id, xml_id)
-            return res_id
+        res_id = target.env[model].create(vals)
+        create_xml_id(model, res_id, xml_id)
+        print("CREATE_RECORD: SUCCESS!", res_id, xml_id)
+        return res_id
 
 
 def write_record(model, vals, xml_id):
@@ -93,13 +89,9 @@ def write_record(model, vals, xml_id):
     if not res_id:
         print(f"Skipping write {xml_id} does not exist")
     else:
-        try:
-            target.env[model].write(res_id, vals)
-        except Exception as e:
-            print('WRITE_RECORD: FAIL! Read the log...', e, res_id, vals)
-        else:
-            print('WRITE_RECORD: SUCCESS!', res_id, xml_id)
-            return res_id
+        target.env[model].write(res_id, vals)
+        print('WRITE_RECORD: SUCCESS!', res_id, xml_id)
+        return res_id
 
 
 def set_xml_id(model, ext_id):
