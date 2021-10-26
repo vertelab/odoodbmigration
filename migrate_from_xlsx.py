@@ -52,8 +52,8 @@ def migrate_from_sheet(**kwargs):
                 elif mode == 'debug':
                     if count == 0:
                         pp(cols)
-                    pp(vals)
-                    pp(xml_id)
+                    # pp(vals)
+                    # pp(xml_id)
                     input()
                     count += 1
             except Exception as e:
