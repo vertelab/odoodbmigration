@@ -46,11 +46,6 @@ vals[key] = get_res_id_from_xml_id(xml_id)
 if not xml_id:
     vals['category_id'] = 1
 """,
-            'category_id': """
-xml_id = get_xml_id('idkund', vals[key])
-vals[key] = get_res_id_from_xml_id(xml_id)
-""",
-
         },
         'create': {
             'name': 'namn',
@@ -107,6 +102,7 @@ vals[key] = get_res_id_from_xml_id(xml_id)
             'phone': 'telnr',
         },
         'write': {
+            'parent_id': 'kund.idkund',
         },
     },
     # endregion

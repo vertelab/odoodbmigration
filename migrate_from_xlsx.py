@@ -71,7 +71,7 @@ def vals_builder(row, cols, maps, mode):
     for key in maps:
         if maps[key] in cols:
             i = cols.index(maps[key])
-            vals.update({key: row[i].value})
+            vals.update({key: str(row[i].value)})
     if calc:
         for key in calc.keys():
             if vals.get(key):
@@ -97,7 +97,8 @@ def write_record(model, vals, xml_id):
     res_id = get_res_id_from_xml_id(xml_id)
     if not res_id:
         print(f"Skipping write {xml_id} does not exist")
-    else:
+    elif vals.get('write'):
+        vals.pop('write')
         target.env[model].write(res_id, vals)
         print('WRITE_RECORD: SUCCESS!', res_id, xml_id)
         return res_id
