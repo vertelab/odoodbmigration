@@ -1,10 +1,9 @@
 MAPS = {
-    'res.partner': {
+    'idkund': {
+        'model': 'res.partner',
         'calc': {
             'is_company': """
-vals.update({'is_company': vals['is_company'] not in [
-            'Privat skogsägare (61)','Privatperson ej skogsägare (60)']})
-            """,
+vals.update({'is_company': vals['is_company'] not in ['Privat skogsägare (61)','Privatperson ej skogsägare (60)']})""",
             'partner_ssn': """
 ssn = str(vals[key]).replace(' ','').replace('–','-').replace('_','-')
 if len(ssn) == 12 and ssn.startswith('19') or ssn.startswith('SE'):
@@ -16,10 +15,9 @@ elif len(ssn) == 10:
 else:
     vals.update({'partner_ssn': str(vals[key])})
     print(vals['ext_id'], vals[key])
-            """,
+    """,
         },
         'create': {
-            'ext_id': 'idkund',
             'city': 'ort',
             'comment': 'annan_info',
             'email': 'epost',
@@ -32,12 +30,45 @@ else:
             'zip': 'postnr',
         },
         'debug': {
-            'ext_id': 'idkund',
             'partner_ssn': 'pnrchar',
         },
         'write': {
-            'ext_id': 'idkund',
             'partner_ssn': 'pnrchar',
+        },
+    },
+    'idpepers': {
+        'model': 'res.partner',
+        'calc': {
+            'phone': """
+if not str(vals[key]).startswith('0'):
+    vals[key] = '0' + str(vals[key])
+""",
+            'mobile': """
+if not str(vals[key]).startswith('0'):
+    vals[key] = '0' + str(vals[key])
+    """,
+            'parent_id': """
+xml_id = get_xml_id('idkund', vals[key])
+vals[key] = get_res_id_from_xml_id(xml_id)
+""",
+        },
+        'create': {
+            'name': 'namn',
+            'comment': 'info',
+            'email': 'epost',
+            'mobile': 'mobnr',
+            'parent_id': 'kund.idkund',
+            'phone': 'telnr',
+        },
+        'debug': {
+            'name': 'namn',
+            'comment': 'info',
+            'email': 'epost',
+            'mobile': 'mobnr',
+            'parent_id': 'kund.idkund',
+            'phone': 'telnr',
+        },
+        'write': {
         },
     },
 }

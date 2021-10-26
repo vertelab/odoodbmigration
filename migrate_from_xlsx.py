@@ -8,7 +8,7 @@ from pprint import pprint as pp
 IMPORT = '__import__'
 
 
-def main(file_path, model):
+def main(file_path):
     modes = ['create', 'debug', 'write']
     while True:
         mode = input(f"Mode? {modes} ").lower()
@@ -24,19 +24,25 @@ def main(file_path, model):
     run = input('Ok!\nRun script? [yN] ').lower()
     if run == 'y':
         cols = [col.value for col in ws[1]]
-        migrate_from_sheet(model, cols, ws, mode=mode)
+        migrate_from_sheet(cols=cols, sheet=ws, mode=mode)
     print('Terminating program. . .')
 
 
-def migrate_from_sheet(model, cols, ws, **kwargs):
+def migrate_from_sheet(**kwargs):
     """Create/update records from xlsx sheet"""
     count = 0
     errors = []
-    maps = MAPS.get(model)
+    cols = kwargs.get('cols')
     mode = kwargs.get('mode')
-    for row in ws.iter_rows(min_row=2):
+    sheet = kwargs.get('sheet')
+
+    ext_model = cols[0]
+    maps = MAPS.get(cols[0])
+    model = maps.get('model')
+
+    for row in sheet.iter_rows(min_row=2):
         vals = vals_builder(row, cols, maps, mode)
-        xml_id = set_xml_id(model, vals.pop('ext_id'))
+        xml_id = get_xml_id(ext_model, row[0].value)
         while True:
             try:
                 if mode == 'create':
@@ -46,6 +52,9 @@ def migrate_from_sheet(model, cols, ws, **kwargs):
                 elif mode == 'debug':
                     if count == 0:
                         pp(cols)
+                    pp(vals)
+                    pp(xml_id)
+                    input()
                     count += 1
             except Exception as e:
                 errors.append(
@@ -94,7 +103,7 @@ def write_record(model, vals, xml_id):
         return res_id
 
 
-def set_xml_id(model, ext_id):
+def get_xml_id(model, ext_id):
     """Return xml_id from model and ext_id."""
     return f"{IMPORT}.{model.replace('.', '_')}_{ext_id}"
 
@@ -115,9 +124,9 @@ def create_xml_id(model, res_id, xml_id):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
+    if len(sys.argv) != 2:
         print(
-            f"\nUsage: python3 {sys.argv[0]} /path/of/file.xslx res.partner\n")
+            f"\nUsage: python3 {sys.argv[0]} /path/of/file.xslx\n")
         raise SyntaxError("Wrong number of argument.")
 
     try:
@@ -126,4 +135,4 @@ if __name__ == "__main__":
         print(e)
 
     print(target.env)
-    main(sys.argv[1], sys.argv[2])
+    main(sys.argv[1])
