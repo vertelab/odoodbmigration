@@ -58,7 +58,7 @@ def migrate_from_sheet(**kwargs):
                     count += 1
             except Exception as e:
                 errors.append(
-                    {'e': e, 'row': row, 'vals': vals, 'xml_id': xml_id})
+                    {'e': e, 'row': [r.value for r in row], 'vals': vals, 'xml_id': xml_id})
             else:
                 break
     print(errors)
@@ -71,7 +71,7 @@ def vals_builder(row, cols, maps, mode):
     for key in maps:
         if maps[key] in cols:
             i = cols.index(maps[key])
-            vals.update({key: str(row[i].value)})
+            vals[key] = row[i].value
     if calc:
         for key in calc.keys():
             if vals.get(key):

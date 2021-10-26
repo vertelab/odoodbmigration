@@ -6,36 +6,28 @@ MAPS = {
             'is_company': """
 vals.update({'is_company': vals['is_company'] not in ['Privat skogsägare (61)','Privatperson ej skogsägare (60)']})
 """,
+            'name': """
+if type(vals[key]) == int:
+    vals[key] = str(vals[key])
+""",
             'partner_ssn': """
 ssn = str(vals[key]).replace(' ','').replace('–','-').replace('_','-')
 if len(ssn) == 12:
     vals['partner_ssn'] = f"{ssn[:8]}-{ssn[8:]}"
 elif len(ssn) == 11 and ssn[6] == '-':
-    try:
-        if int(ssn[2:4])>12:
-            vals['partner_ssn'] = '00'
-            vals['is_company'] = True
-        else:
-            vals['partner_ssn']='19'
-    except (TypeError, ValueError) as e:
-        print(e)
+    if int(ssn[2:4])>12:
+        vals['partner_ssn'] = '00'
+        vals['is_company'] = True
     else:
-        vals['partner_ssn'] += ssn
+        vals['partner_ssn']='19'
+    vals['partner_ssn'] += ssn
 elif len(ssn) == 10:
-    try:
-        if int(ssn[2:4])>12:
-            vals['partner_ssn'] = '00'
-            vals['is_company'] = True
-        else:
-            vals['partner_ssn']='19'
-    except (TypeError, ValueError) as e:
-        print(e)
+    if int(ssn[2:4])>12:
+        vals['partner_ssn'] = '00'
+        vals['is_company'] = True
     else:
-        vals['partner_ssn'] += f"{ssn[:6]}-{ssn[6:]}"
-elif vals[key]:
-    vals['partner_ssn'] = str(vals[key])
-elif vals[key] == 'None':
-    vals['partner_ssn'] = False
+        vals['partner_ssn']='19'
+    vals['partner_ssn'] += f"{ssn[:6]}-{ssn[6:]}"
     """,
         },
         'create': {
@@ -70,6 +62,10 @@ if not str(vals[key]).startswith('0'):
 if not str(vals[key]).startswith('0'):
     vals[key] = '0' + str(vals[key])
     """,
+            'name': """
+if type(vals[key]) == int:
+    vals[key] = str(vals[key])
+""",
             'parent_id': """
 xml_id = get_xml_id('idkund', vals[key])
 vals[key] = get_res_id_from_xml_id(xml_id)
@@ -110,6 +106,10 @@ if not str(vals[key]).startswith('0'):
 if not str(vals[key]).startswith('0'):
     vals[key] = '0' + str(vals[key])
     """,
+            'name': """
+if type(vals[key]) == int:
+    vals[key] = str(vals[key])
+""",
             'parent_id': """
 xml_id = get_xml_id('idkund', vals[key])
 vals[key] = get_res_id_from_xml_id(xml_id)
