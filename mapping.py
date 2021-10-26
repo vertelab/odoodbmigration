@@ -1,32 +1,60 @@
 MAPS = {
     # region idkund
-    'idkund': {'model': 'res.partner',        'calc': {'is_company': """
-vals.update({'is_company': vals['is_company'] not in ['Privat skogsägare (61)','Privatperson ej skogsägare (60)']})""",
-                                                       'partner_ssn': """
+    'idkund': {
+        'model': 'res.partner',
+        'calc': {
+            'is_company': """
+vals.update({'is_company': vals['is_company'] not in ['Privat skogsägare (61)','Privatperson ej skogsägare (60)']})
+""",
+            'partner_ssn': """
 ssn = str(vals[key]).replace(' ','').replace('–','-').replace('_','-')
-if len(ssn) == 12 and ssn.startswith('19') or ssn.startswith('SE'):
-    vals.update({'partner_ssn': f"{ssn[2:8]}-{ssn[8:]}"})
+if len(ssn) == 12:
+    vals['partner_ssn'] = f"{ssn[:8]}-{ssn[8:]}"
 elif len(ssn) == 11 and ssn[6] == '-':
-    vals.update({'partner_ssn': ssn})
+    try:
+        if int(ssn[2:4])>12:
+            vals['partner_ssn'] = '00'
+            vals['is_company'] = True
+        else:
+            vals['partner_ssn']='19'
+    except (TypeError, ValueError) as e:
+        print(e)
+    else:
+        vals['partner_ssn'] += ssn
 elif len(ssn) == 10:
-    vals.update({'partner_ssn': f"{ssn[:6]}-{ssn[6:]}"})
-else:
-    vals.update({'partner_ssn': str(vals[key])})
-    print(vals['ext_id'], vals[key])
-    """, },
-               'create': {'city': 'ort',
-                          'comment': 'annan_info',
-                          'email': 'epost',
-                          'is_company': 'kundgrupp',
-                          'name': 'namn',
-                          'partner_ssn': 'pnrchar',
-                          'phone': 'telefon',
-                          'street': 'adress',
-                          'vat': 'vatnr',
-                          'zip': 'postnr', },
-               'debug': {'partner_ssn': 'pnrchar', },
-               'write': {'partner_ssn': 'pnrchar', },
-               },
+    try:
+        if int(ssn[2:4])>12:
+            vals['partner_ssn'] = '00'
+            vals['is_company'] = True
+        else:
+            vals['partner_ssn']='19'
+    except (TypeError, ValueError) as e:
+        print(e)
+    else:
+        vals['partner_ssn'] += f"{ssn[:6]}-{ssn[6:]}"
+elif vals[key]:
+    vals['partner_ssn'] = str(vals[key])
+    """,
+        },
+        'create': {
+            'city': 'ort',
+            'comment': 'annan_info',
+            'email': 'epost',
+            'is_company': 'kundgrupp',
+            'name': 'namn',
+            'partner_ssn': 'pnrchar',
+            'phone': 'telefon',
+            'street': 'adress',
+            'vat': 'vatnr',
+                   'zip': 'postnr',
+        },
+        'debug': {
+            'partner_ssn': 'pnrchar',
+        },
+        'write': {
+            'partner_ssn': 'pnrchar',
+        },
+    },
     # endregion
     # region idpepers
     'idpepers': {
@@ -86,7 +114,15 @@ vals[key] = get_res_id_from_xml_id(xml_id)
 """,
         },
         'create': {
+            # 'deltagarstatus':'deltagarstatus',
+            # 'kurs':'kurs.idkurs',
+            'city': 'ort',
+            'email': 'epost',
             'name': 'namn',
+            'phone': 'telnr',
+            'street': 'adress',
+            'zip': 'postnr',
+
             'comment': 'info',
             'email': 'epost',
             'mobile': 'mobnr',
