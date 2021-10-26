@@ -97,8 +97,7 @@ def write_record(model, vals, xml_id):
     res_id = get_res_id_from_xml_id(xml_id)
     if not res_id:
         print(f"Skipping write {xml_id} does not exist")
-    elif vals.get('write'):
-        vals.pop('write')
+    else:
         target.env[model].write(res_id, vals)
         print('WRITE_RECORD: SUCCESS!', res_id, xml_id)
         return res_id
