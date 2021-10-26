@@ -34,6 +34,8 @@ elif len(ssn) == 10:
         vals['partner_ssn'] += f"{ssn[:6]}-{ssn[6:]}"
 elif vals[key]:
     vals['partner_ssn'] = str(vals[key])
+elif vals[key] == 'None':
+    vals['partner_ssn'] = False
     """,
         },
         'create': {
