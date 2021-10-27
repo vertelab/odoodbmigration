@@ -46,9 +46,9 @@ def migrate_from_sheet(**kwargs):
         xml_id = get_xml_id(ext_model, row[0].value)
         while True:
             try:
-                if vals.get('break'):
-                    break
-                if mode == 'create':
+                if vals.pop('break'):
+                    pass
+                elif mode == 'create':
                     create_record_and_xmlid(model, vals, xml_id)
                 elif mode == 'write':
                     write_record(model, vals, xml_id)
@@ -70,7 +70,7 @@ def migrate_from_sheet(**kwargs):
 def vals_builder(row, cols, maps, mode):
     calc = maps.get('calc')
     maps = maps.get(mode)
-    vals = {}
+    vals = {'break': True}
     for key in maps:
         if maps[key] in cols:
             i = cols.index(maps[key])

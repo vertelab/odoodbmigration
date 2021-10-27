@@ -13,7 +13,7 @@ if len(ssn) == 12:
     vals['partner_ssn'] = f"{ssn[:8]}-{ssn[8:]}"
     if int(ssn[4:6]) > 12:
         vals['is_company'] = True
-    else:    
+    else:
         vals['is_company'] = False
 elif len(ssn) == 11 and ssn[6] == '-':
     if int(ssn[2:4]) > 12:
@@ -155,18 +155,14 @@ if not str(vals[key]).startswith('0'):
         'model': 'property.stakeholder',
         'calc': {
             'partner_id': """
-if vals[key]:
-    xml_id = get_xml_id('idkund', vals[key])
-    vals[key] = get_res_id_from_xml_id(xml_id)
-else:
-    vals['break'] = True
+xml_id = get_xml_id('idkund', vals[key])
+vals[key] = get_res_id_from_xml_id(xml_id)
+if type(vals[key]) is int:
+    vals['break'] = False
 """,
             'property_id': """
-if vals[key]:
-    xml_id = get_xml_id('idfafast', vals[key])
-    vals[key] = get_res_id_from_xml_id(xml_id)
-else:
-    vals[key] = False
+xml_id = get_xml_id('idfafast', vals[key])
+vals[key] = get_res_id_from_xml_id(xml_id)
 """,
         },
         'create': {
