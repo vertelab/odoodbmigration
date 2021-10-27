@@ -3,10 +3,6 @@ MAPS = {
     'idkund': {
         'model': 'res.partner',
         'calc': {
-            'is_company': """
-vals.update({'is_company': vals['is_company'] not in [
-            'Privat skogsägare (61)','Privatperson ej skogsägare (60)']})
-""",
             'name': """
 if type(vals[key]) == int:
     vals[key] = str(vals[key])
@@ -15,12 +11,17 @@ if type(vals[key]) == int:
 ssn = str(vals[key]).replace(' ', '').replace('–', '-').replace('_', '-')
 if len(ssn) == 12:
     vals['partner_ssn'] = f"{ssn[:8]}-{ssn[8:]}"
+    if int(ssn[4:6]) > 12:
+        vals['is_company'] = True
+    else:    
+        vals['is_company'] = False
 elif len(ssn) == 11 and ssn[6] == '-':
     if int(ssn[2:4]) > 12:
         vals['partner_ssn'] = '00'
         vals['is_company'] = True
     else:
         vals['partner_ssn'] = '19'
+        vals['is_company'] = False
     vals['partner_ssn'] += ssn
 elif len(ssn) == 10:
     if int(ssn[2:4]) > 12:
@@ -28,6 +29,7 @@ elif len(ssn) == 10:
         vals['is_company'] = True
     else:
         vals['partner_ssn'] = '19'
+        vals['is_company'] = False
     vals['partner_ssn'] += f"{ssn[:6]}-{ssn[6:]}"
 vals['category_id'] = [(4, 3, 0)]
     """,
