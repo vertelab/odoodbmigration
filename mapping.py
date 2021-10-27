@@ -90,9 +90,13 @@ vals['break'] = False
             'parent_id': 'kund.idkund',
         },
         'debug': {
+            'phone': 'telnr',
+            'mobile': 'mobnr',
             'parent_id': 'kund.idkund',
         },
         'write': {
+            'phone': 'telnr',
+            'mobile': 'mobnr',
             'parent_id': 'kund.idkund',
         },
     },
