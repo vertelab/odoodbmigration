@@ -32,7 +32,7 @@ elif len(ssn) == 10:
         vals['is_company'] = False
     vals['partner_ssn'] += f"{ssn[:6]}-{ssn[6:]}"
 vals['category_id'] = [(4, 3, 0)]
-    """,
+""",
         },
         'create': {
             'vat': 'vatnr',
@@ -43,7 +43,6 @@ vals['category_id'] = [(4, 3, 0)]
             'phone': 'telefon',
             'street': 'adress',
             'comment': 'annan_info',
-            'is_company': 'kundgrupp',
             'partner_ssn': 'pnrchar',
         },
         'debug': {
@@ -98,10 +97,6 @@ if not xml_id:
     'idkursdeltagare': {
         'model': 'res.partner',
         'calc': {
-            'phone': """
-if not str(vals[key]).startswith('0'):
-    vals[key] = '0' + str(vals[key])
-""",
             'name': """
 if type(vals[key]) == int:
     vals[key] = str(vals[key])
@@ -110,6 +105,10 @@ if type(vals[key]) == int:
 xml_id = get_xml_id('idkund', vals[key])
 vals[key] = get_res_id_from_xml_id(xml_id)
 vals['category_id'] = [(4, 5, 0)]
+""",
+            'phone': """
+if not str(vals[key]).startswith('0'):
+    vals[key] = '0' + str(vals[key])
 """,
         },
         'create': {
@@ -156,12 +155,14 @@ vals['category_id'] = [(4, 5, 0)]
         'model': 'property.stakeholder',
         'calc': {
             'partner_id': """
-xml_id = get_xml_id('idkund', vals[key])
-vals[key] = get_res_id_from_xml_id(xml_id)
+if vals[key]:
+    xml_id = get_xml_id('idkund', vals[key])
+    vals[key] = get_res_id_from_xml_id(xml_id)
 """,
             'property_id': """
-xml_id = get_xml_id('idfafast', vals[key])
-vals[key] = get_res_id_from_xml_id(xml_id)
+if vals[key]:
+    xml_id = get_xml_id('idfafast', vals[key])
+    vals[key] = get_res_id_from_xml_id(xml_id)
 """,
         },
         'create': {
