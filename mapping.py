@@ -6,7 +6,8 @@ MAPS = {
             'name': """
 if type(vals[key]) == int:
     vals[key] = str(vals[key])
-    """,
+vals['break'] = False
+""",
             'partner_ssn': """
 ssn = str(vals[key]).replace(' ', '').replace('–', '-').replace('_', '-')
 if len(ssn) == 12:
@@ -68,6 +69,7 @@ if not str(vals[key]).startswith('0'):
             'name': """
 if type(vals[key]) == int:
     vals[key] = str(vals[key])
+vals['break'] = False
 """,
             'parent_id': """
 xml_id = get_xml_id('idkund', vals[key])
@@ -100,6 +102,7 @@ if not xml_id:
             'name': """
 if type(vals[key]) == int:
     vals[key] = str(vals[key])
+vals['break'] = False
 """,
             'parent_id': """
 xml_id = get_xml_id('idkund', vals[key])
@@ -134,10 +137,13 @@ if not str(vals[key]).startswith('0'):
         },
     },
     # endregion
-    # region fafast.xlsx 0
+    # region fafast.xlsx
     'idfafast': {
         'model': 'property.property',
         'calc': {
+            'name': """
+vals['break'] = False
+""",
         },
         'create': {
             'name': 'namnfast',
