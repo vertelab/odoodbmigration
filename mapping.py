@@ -102,9 +102,9 @@ if not xml_id:
             'name': """
 if type(vals[key]) == int:
     vals[key] = str(vals[key])
-vals['break'] = False
 """,
             'parent_id': """
+vals['break'] = False
 vals['category_id'] = [(4, 5, 0)]
 xml_id = get_xml_id('idkund', vals[key])
 vals[key] = get_res_id_from_xml_id(xml_id)
