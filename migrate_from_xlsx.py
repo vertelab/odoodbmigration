@@ -46,6 +46,8 @@ def migrate_from_sheet(**kwargs):
         xml_id = get_xml_id(ext_model, row[0].value)
         while True:
             try:
+                if vals.get('break'):
+                    break
                 if mode == 'create':
                     create_record_and_xmlid(model, vals, xml_id)
                 elif mode == 'write':
