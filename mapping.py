@@ -159,7 +159,7 @@ if vals[key]:
     xml_id = get_xml_id('idkund', vals[key])
     vals[key] = get_res_id_from_xml_id(xml_id)
 else:
-    break
+    vals['break'] = True
 """,
             'property_id': """
 if vals[key]:
