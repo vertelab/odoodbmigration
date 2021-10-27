@@ -10,6 +10,7 @@ vals.update({'is_company': vals['is_company'] not in [
             'name': """
 if type(vals[key]) == int:
     vals[key] = str(vals[key])
+vals['category_id'] = [(4, 3, 0)]
     """,
             'partner_ssn': """
 ssn = str(vals[key]).replace(' ', '').replace('–', '-').replace('_', '-')
@@ -71,7 +72,7 @@ if type(vals[key]) == int:
 xml_id = get_xml_id('idkund', vals[key])
 vals[key] = get_res_id_from_xml_id(xml_id)
 if not xml_id:
-    vals['category_id'] = 1
+    vals['category_id'] = [(4, 1, 0)]
 """,
         },
         'create': {
@@ -105,6 +106,7 @@ if type(vals[key]) == int:
             'parent_id': """
 xml_id = get_xml_id('idkund', vals[key])
 vals[key] = get_res_id_from_xml_id(xml_id)
+vals['category_id'] = [(4, 5, 0)]
 """,
         },
         'create': {
