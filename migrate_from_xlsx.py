@@ -1,8 +1,8 @@
-import sys
 import odoorpc
 import openpyxl
-from pathlib import Path
+import sys
 from mapping import MAPS
+from pathlib import Path
 from pprint import pprint as pp
 
 IMPORT = '__import__'
@@ -52,8 +52,8 @@ def migrate_from_sheet(**kwargs):
                 elif mode == 'debug':
                     if count == 0:
                         pp(cols)
-                    # pp(vals)
-                    # pp(xml_id)
+                    pp(vals)
+                    pp(xml_id)
                     input()
                     count += 1
             except Exception as e:

@@ -4,43 +4,44 @@ MAPS = {
         'model': 'res.partner',
         'calc': {
             'is_company': """
-vals.update({'is_company': vals['is_company'] not in ['Privat skogsägare (61)','Privatperson ej skogsägare (60)']})
+vals.update({'is_company': vals['is_company'] not in [
+            'Privat skogsägare (61)','Privatperson ej skogsägare (60)']})
 """,
             'name': """
 if type(vals[key]) == int:
     vals[key] = str(vals[key])
-""",
+    """,
             'partner_ssn': """
-ssn = str(vals[key]).replace(' ','').replace('–','-').replace('_','-')
+ssn = str(vals[key]).replace(' ', '').replace('–', '-').replace('_', '-')
 if len(ssn) == 12:
     vals['partner_ssn'] = f"{ssn[:8]}-{ssn[8:]}"
 elif len(ssn) == 11 and ssn[6] == '-':
-    if int(ssn[2:4])>12:
+    if int(ssn[2:4]) > 12:
         vals['partner_ssn'] = '00'
         vals['is_company'] = True
     else:
-        vals['partner_ssn']='19'
+        vals['partner_ssn'] = '19'
     vals['partner_ssn'] += ssn
 elif len(ssn) == 10:
-    if int(ssn[2:4])>12:
+    if int(ssn[2:4]) > 12:
         vals['partner_ssn'] = '00'
         vals['is_company'] = True
     else:
-        vals['partner_ssn']='19'
+        vals['partner_ssn'] = '19'
     vals['partner_ssn'] += f"{ssn[:6]}-{ssn[6:]}"
     """,
         },
         'create': {
+            'vat': 'vatnr',
+            'zip': 'postnr',
             'city': 'ort',
-            'comment': 'annan_info',
-            'email': 'epost',
-            'is_company': 'kundgrupp',
             'name': 'namn',
-            'partner_ssn': 'pnrchar',
+            'email': 'epost',
             'phone': 'telefon',
             'street': 'adress',
-            'vat': 'vatnr',
-                   'zip': 'postnr',
+            'comment': 'annan_info',
+            'is_company': 'kundgrupp',
+            'partner_ssn': 'pnrchar',
         },
         'debug': {
             'partner_ssn': 'pnrchar',
@@ -75,19 +76,14 @@ if not xml_id:
         },
         'create': {
             'name': 'namn',
-            'comment': 'info',
             'email': 'epost',
-            'mobile': 'mobnr',
-            'parent_id': 'kund.idkund',
             'phone': 'telnr',
+            'mobile': 'mobnr',
+            'comment': 'info',
+            'parent_id': 'kund.idkund',
         },
         'debug': {
-            'name': 'namn',
-            'comment': 'info',
-            'email': 'epost',
-            'mobile': 'mobnr',
             'parent_id': 'kund.idkund',
-            'phone': 'telnr',
         },
         'write': {
             'parent_id': 'kund.idkund',
@@ -102,10 +98,6 @@ if not xml_id:
 if not str(vals[key]).startswith('0'):
     vals[key] = '0' + str(vals[key])
 """,
-            'mobile': """
-if not str(vals[key]).startswith('0'):
-    vals[key] = '0' + str(vals[key])
-    """,
             'name': """
 if type(vals[key]) == int:
     vals[key] = str(vals[key])
@@ -116,28 +108,22 @@ vals[key] = get_res_id_from_xml_id(xml_id)
 """,
         },
         'create': {
-            # 'deltagarstatus':'deltagarstatus',
-            # 'kurs':'kurs.idkurs',
+            'zip': 'postnr',
             'city': 'ort',
-            'email': 'epost',
             'name': 'namn',
+            'email': 'epost',
             'phone': 'telnr',
             'street': 'adress',
-            'zip': 'postnr',
-
-            'comment': 'info',
-            'email': 'epost',
-            'mobile': 'mobnr',
             'parent_id': 'kund.idkund',
-            'phone': 'telnr',
         },
         'debug': {
+            'zip': 'postnr',
+            'city': 'ort',
             'name': 'namn',
-            'comment': 'info',
             'email': 'epost',
-            'mobile': 'mobnr',
-            'parent_id': 'kund.idkund',
             'phone': 'telnr',
+            'street': 'adress',
+            'parent_id': 'kund.idkund',
         },
         'write': {
             'parent_id': 'kund.idkund',
