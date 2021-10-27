@@ -71,8 +71,9 @@ if type(vals[key]) == int:
             'parent_id': """
 xml_id = get_xml_id('idkund', vals[key])
 vals[key] = get_res_id_from_xml_id(xml_id)
+vals['category_id'] = [(4, 4, 0)]
 if not xml_id:
-    vals['category_id'] = [(4, 1, 0)]
+    vals['category_id'].append((4, 1, 0))
 """,
         },
         'create': {
@@ -129,6 +130,49 @@ vals['category_id'] = [(4, 5, 0)]
         },
         'write': {
             'parent_id': 'kund.idkund',
+        },
+    },
+    # endregion
+    # region fafast.xlsx 0
+    'idfafast': {
+        'model': 'property.property',
+        'calc': {
+        },
+        'create': {
+            'name': 'namnfast',
+        },
+        'debug': {
+            'name': 'namnfast',
+        },
+        'write': {
+            'name': 'namnfast',
+        },
+    },
+    # endregion
+    # region fafast.xlsx 9
+    'agare_idagare': {
+        'model': 'property.stakeholder',
+        'calc': {
+            'partner_id': """
+xml_id = get_xml_id('idkund', vals[key])
+vals[key] = get_res_id_from_xml_id(xml_id)
+""",
+            'property_id': """
+xml_id = get_xml_id('idfafast', vals[key])
+vals[key] = get_res_id_from_xml_id(xml_id)
+""",
+        },
+        'create': {
+            'partner_id': 'agare.idagare',
+            'property_id': 'idfafast',
+        },
+        'debug': {
+            'partner_id': 'agare.idagare',
+            'property_id': 'idfafast',
+        },
+        'write': {
+            'partner_id': 'agare.idagare',
+            'property_id': 'idfafast',
         },
     },
     # endregion

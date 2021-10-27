@@ -8,7 +8,7 @@ from pprint import pprint as pp
 IMPORT = '__import__'
 
 
-def main(file_path):
+def main(file_path, col):
     modes = ['create', 'debug', 'write']
     while True:
         mode = input(f"Mode? {modes} ").lower()
@@ -24,7 +24,7 @@ def main(file_path):
     run = input('Ok!\nRun script? [yN] ').lower()
     if run == 'y':
         cols = [col.value for col in ws[1]]
-        migrate_from_sheet(cols=cols, sheet=ws, mode=mode)
+        migrate_from_sheet(col=col, cols=cols, sheet=ws, mode=mode)
     print('Terminating program. . .')
 
 
@@ -32,12 +32,13 @@ def migrate_from_sheet(**kwargs):
     """Create/update records from xlsx sheet"""
     count = 0
     errors = []
+    col = kwargs.get('col')
     cols = kwargs.get('cols')
     mode = kwargs.get('mode')
     sheet = kwargs.get('sheet')
 
-    ext_model = cols[0]
-    maps = MAPS.get(cols[0])
+    ext_model = cols[int(col) if col else 0].replace('.', '_')
+    maps = MAPS.get(ext_model)
     model = maps.get('model')
 
     for row in sheet.iter_rows(min_row=2):
@@ -124,15 +125,10 @@ def create_xml_id(model, res_id, xml_id):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print(
-            f"\nUsage: python3 {sys.argv[0]} /path/of/file.xslx\n")
-        raise SyntaxError("Wrong number of argument.")
-
     try:
         target = odoorpc.ODOO().load('target')
     except Exception as e:
         print(e)
 
     print(target.env)
-    main(sys.argv[1])
+    main(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else 0)
