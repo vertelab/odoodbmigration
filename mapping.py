@@ -6,9 +6,9 @@ MAPS = {
             'name': """
 if type(vals[key]) == int:
     vals[key] = str(vals[key])
-vals['break'] = False
 """,
             'partner_ssn': """
+vals['category_id'] = [(4, 3, 0)]
 ssn = str(vals[key]).replace(' ', '').replace('–', '-').replace('_', '-')
 if len(ssn) == 12:
     vals['partner_ssn'] = f"{ssn[:8]}-{ssn[8:]}"
@@ -32,7 +32,7 @@ elif len(ssn) == 10:
         vals['partner_ssn'] = '19'
         vals['is_company'] = False
     vals['partner_ssn'] += f"{ssn[:6]}-{ssn[6:]}"
-vals['category_id'] = [(4, 3, 0)]
+vals['break'] = False
 """,
         },
         'create': {
@@ -69,14 +69,14 @@ if not str(vals[key]).startswith('0'):
             'name': """
 if type(vals[key]) == int:
     vals[key] = str(vals[key])
-vals['break'] = False
 """,
             'parent_id': """
+vals['category_id'] = [(4, 4, 0)]
 xml_id = get_xml_id('idkund', vals[key])
 vals[key] = get_res_id_from_xml_id(xml_id)
-vals['category_id'] = [(4, 4, 0)]
-if not xml_id:
+if type(vals[key]) is not int:
     vals['category_id'].append((4, 1, 0))
+vals['break'] = False
 """,
         },
         'create': {
@@ -104,10 +104,12 @@ if type(vals[key]) == int:
     vals[key] = str(vals[key])
 """,
             'parent_id': """
-vals['break'] = False
 vals['category_id'] = [(4, 5, 0)]
 xml_id = get_xml_id('idkund', vals[key])
 vals[key] = get_res_id_from_xml_id(xml_id)
+if type(vals[key]) is not int:
+    vals['category_id'].append((4, 1, 0))
+vals['break'] = False
 """,
             'phone': """
 if not str(vals[key]).startswith('0'):
