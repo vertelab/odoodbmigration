@@ -4,7 +4,7 @@ MAPS = {
         'model': 'res.partner',
         'calc': {
             'name': """
-if type(vals[key]) == int:
+if type(vals[key]) is int:
     vals[key] = str(vals[key])
 """,
             'partner_ssn': """
@@ -59,12 +59,14 @@ vals['break'] = False
         'model': 'res.partner',
         'calc': {
             'phone': """
-if not str(vals[key]).startswith('0'):
-    vals[key] = '0' + str(vals[key])
+if type(vals[key]) is str:
+    if not str(vals[key]).startswith('0'):
+        vals[key] = '0' + str(vals[key])
     """,
             'mobile': """
-if not str(vals[key]).startswith('0'):
-    vals[key] = '0' + str(vals[key])
+if type(vals[key]) is str:
+    if not str(vals[key]).startswith('0'):
+        vals[key] = '0' + str(vals[key])
     """,
             'name': """
 if type(vals[key]) == int:
