@@ -105,9 +105,9 @@ if type(vals[key]) == int:
 vals['break'] = False
 """,
             'parent_id': """
+vals['category_id'] = [(4, 5, 0)]
 xml_id = get_xml_id('idkund', vals[key])
 vals[key] = get_res_id_from_xml_id(xml_id)
-vals['category_id'] = [(4, 5, 0)]
 """,
             'phone': """
 if not str(vals[key]).startswith('0'):
@@ -124,12 +124,6 @@ if not str(vals[key]).startswith('0'):
             'parent_id': 'kund.idkund',
         },
         'debug': {
-            'zip': 'postnr',
-            'city': 'ort',
-            'name': 'namn',
-            'email': 'epost',
-            'phone': 'telnr',
-            'street': 'adress',
             'parent_id': 'kund.idkund',
         },
         'write': {
