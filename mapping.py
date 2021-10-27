@@ -59,12 +59,12 @@ vals['break'] = False
         'model': 'res.partner',
         'calc': {
             'phone': """
-if type(vals[key]) is str:
+if type(vals[key]) is int:
     if not str(vals[key]).startswith('0'):
         vals[key] = '0' + str(vals[key])
     """,
             'mobile': """
-if type(vals[key]) is str:
+if type(vals[key]) is int:
     if not str(vals[key]).startswith('0'):
         vals[key] = '0' + str(vals[key])
     """,
@@ -118,8 +118,9 @@ if type(vals[key]) is not int:
 vals['break'] = False
 """,
             'phone': """
-if not str(vals[key]).startswith('0'):
-    vals[key] = '0' + str(vals[key])
+if type(vals[key]) is int:
+    if not str(vals[key]).startswith('0'):
+        vals[key] = '0' + str(vals[key])
 """,
         },
         'create': {
