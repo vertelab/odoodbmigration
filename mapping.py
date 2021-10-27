@@ -10,7 +10,6 @@ vals.update({'is_company': vals['is_company'] not in [
             'name': """
 if type(vals[key]) == int:
     vals[key] = str(vals[key])
-vals['category_id'] = [(4, 3, 0)]
     """,
             'partner_ssn': """
 ssn = str(vals[key]).replace(' ', '').replace('–', '-').replace('_', '-')
@@ -30,6 +29,7 @@ elif len(ssn) == 10:
     else:
         vals['partner_ssn'] = '19'
     vals['partner_ssn'] += f"{ssn[:6]}-{ssn[6:]}"
+vals['category_id'] = [(4, 3, 0)]
     """,
         },
         'create': {
