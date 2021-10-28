@@ -4,6 +4,9 @@ import sys
 from mapping import MAPS
 from pathlib import Path
 from pprint import pprint as pp
+from datetime import datetime
+from datetime import timedelta
+import pytz
 
 IMPORT = '__import__'
 
@@ -92,7 +95,7 @@ def create_record_and_xmlid(model, vals, xml_id):
     else:
         res_id = target.env[model].create(vals)
         create_xml_id(model, res_id, xml_id)
-        print("CREATE_RECORD: SUCCESS!", res_id, xml_id)
+        print("CREATE_RECORD: SUCCESS!", res_id, xml_id, vals)
         return res_id
 
 
@@ -102,9 +105,8 @@ def write_record(model, vals, xml_id):
     if not res_id:
         print(f"Skipping write {xml_id} does not exist")
     else:
-        for k, v in vals.items():
-            print(target.env[model].write(res_id, {k: v}))
-            print('WRITE_RECORD: SUCCESS!', res_id, xml_id, {k: v})
+        target.env[model].write(res_id, vals)
+        print('WRITE_RECORD: SUCCESS!', res_id, xml_id, vals)
         return res_id
 
 
@@ -133,6 +135,6 @@ if __name__ == "__main__":
         target = odoorpc.ODOO().load('target')
     except Exception as e:
         print(e)
-
+    target.env.context.update({'tz':'UTC'})
     print(target.env)
     main(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else 0)

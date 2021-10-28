@@ -3,6 +3,10 @@ MAPS = {
     'idkund': {
         'model': 'res.partner',
         'calc': {
+            'email': """
+if not vals[key]:
+    vals[key] = ''
+""",
             'name': """
 if type(vals[key]) is int:
     vals[key] = str(vals[key])
@@ -49,10 +53,10 @@ else:
             'partner_ssn': 'pnrchar',
         },
         'debug': {
-            'partner_ssn': 'pnrchar',
+            'email': 'epost',
         },
         'write': {
-            'partner_ssn': 'pnrchar',
+            'email': 'epost',
         },
     },
     # endregion
@@ -60,6 +64,10 @@ else:
     'idpepers': {
         'model': 'res.partner',
         'calc': {
+            'email': """
+if not vals[key]:
+    vals[key] = ''
+""",
             'mobile': """
 if type(vals[key]) is int:
     if not str(vals[key]).startswith('0'):
@@ -92,14 +100,10 @@ if type(vals[key]) is int:
             'parent_id': 'kund.idkund',
         },
         'debug': {
-            'phone': 'telnr',
-            'mobile': 'mobnr',
-            'parent_id': 'kund.idkund',
+            'email': 'epost',
         },
         'write': {
-            'phone': 'telnr',
-            'mobile': 'mobnr',
-            'parent_id': 'kund.idkund',
+            'email': 'epost',
         },
     },
     # endregion
@@ -191,6 +195,50 @@ vals[key] = get_res_id_from_xml_id(xml_id)
         'write': {
             'partner_id': 'agare.idagare',
             'property_id': 'idfafast',
+        },
+    },
+    # endregion
+    # region kurs.xlsx
+    'idkurs': {
+        'model': 'event.event',
+        'calc': {
+            'date_begin': """
+if not vals['date_begin']:
+    vals['skip'] = True
+else:
+    date_begin_time = vals.pop('date_begin_time')
+    if not date_begin_time:
+        date_begin_time = '00:00'
+    fmt = '%Y-%m-%d %H:%M'
+    tz = pytz.timezone('Europe/Stockholm')
+    naive = datetime.strptime(f"{vals[key]} {date_begin_time}", fmt)
+    local = tz.localize(naive, is_dst=True)
+    date_begin = local.astimezone(pytz.utc)
+    vals['date_begin'] = datetime.strftime(date_begin, fmt)
+    if vals['date_end']:
+        date_end = date_begin + timedelta(days=vals['date_end'])
+        vals['date_end'] = datetime.strftime(date_end, fmt)
+    else:
+        vals['date_end'] = vals['date_begin']
+""",
+        },
+        'create': {
+            'name': 'kursbenamning',
+            'date_begin': 'startdat',
+            'date_begin_time': 'starttidpunkt',
+            'date_end': 'antaldagar',
+        },
+        'debug': {
+            'name': 'kursbenamning',
+            'date_begin': 'startdat',
+            'date_begin_time': 'starttidpunkt',
+            'date_end': 'antaldagar',
+        },
+        'write': {
+            'name': 'kursbenamning',
+            'date_begin': 'startdat',
+            'date_begin_time': 'starttidpunkt',
+            'date_end': 'antaldagar',
         },
     },
     # endregion
