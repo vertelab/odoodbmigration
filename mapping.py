@@ -47,9 +47,11 @@ vals['break'] = False
             'partner_ssn': 'pnrchar',
         },
         'debug': {
+            'name': 'namn',
             'partner_ssn': 'pnrchar',
         },
         'write': {
+            'name': 'namn',
             'partner_ssn': 'pnrchar',
         },
     },
@@ -150,12 +152,15 @@ vals['break'] = False
         },
         'create': {
             'name': 'namnfast',
+            'property_key': 'fastnr',
         },
         'debug': {
             'name': 'namnfast',
-        },
+            'property_key': 'fastnr',
+	},
         'write': {
             'name': 'namnfast',
+            'property_key': 'fastnr',
         },
     },
     # endregion
