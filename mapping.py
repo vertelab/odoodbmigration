@@ -9,30 +9,32 @@ if type(vals[key]) is int:
 """,
             'partner_ssn': """
 vals['category_id'] = [(4, 3, 0)]
-ssn = str(vals[key]).replace(' ', '').replace('–', '-').replace('_', '-')
-if len(ssn) == 12:
-    vals['partner_ssn'] = f"{ssn[:8]}-{ssn[8:]}"
-    if int(ssn[4:6]) > 12:
-        vals['is_company'] = True
-    else:
-        vals['is_company'] = False
-elif len(ssn) == 11 and ssn[6] == '-':
-    if int(ssn[2:4]) > 12:
-        vals['partner_ssn'] = '00'
-        vals['is_company'] = True
-    else:
-        vals['partner_ssn'] = '19'
-        vals['is_company'] = False
-    vals['partner_ssn'] += ssn
-elif len(ssn) == 10:
-    if int(ssn[2:4]) > 12:
-        vals['partner_ssn'] = '00'
-        vals['is_company'] = True
-    else:
-        vals['partner_ssn'] = '19'
-        vals['is_company'] = False
-    vals['partner_ssn'] += f"{ssn[:6]}-{ssn[6:]}"
-vals['break'] = False
+if not vals[key]:
+    vals[key] = False
+else:
+    ssn = str(vals[key]).replace(' ', '').replace('–', '-').replace('_', '-')
+    if len(ssn) == 12:
+        vals['partner_ssn'] = f"{ssn[:8]}-{ssn[8:]}"
+        if int(ssn[4:6]) > 12:
+            vals['is_company'] = True
+        else:
+            vals['is_company'] = False
+    elif len(ssn) == 11 and ssn[6] == '-':
+        if int(ssn[2:4]) > 12:
+            vals['partner_ssn'] = '00'
+            vals['is_company'] = True
+        else:
+            vals['partner_ssn'] = '19'
+            vals['is_company'] = False
+        vals['partner_ssn'] += ssn
+    elif len(ssn) == 10:
+        if int(ssn[2:4]) > 12:
+            vals['partner_ssn'] = '00'
+            vals['is_company'] = True
+        else:
+            vals['partner_ssn'] = '19'
+            vals['is_company'] = False
+        vals['partner_ssn'] += f"{ssn[:6]}-{ssn[6:]}"
 """,
         },
         'create': {
@@ -47,11 +49,9 @@ vals['break'] = False
             'partner_ssn': 'pnrchar',
         },
         'debug': {
-            'name': 'namn',
             'partner_ssn': 'pnrchar',
         },
         'write': {
-            'name': 'namn',
             'partner_ssn': 'pnrchar',
         },
     },
@@ -60,16 +60,11 @@ vals['break'] = False
     'idpepers': {
         'model': 'res.partner',
         'calc': {
-            'phone': """
-if type(vals[key]) is int:
-    if not str(vals[key]).startswith('0'):
-        vals[key] = '0' + str(vals[key])
-    """,
             'mobile': """
 if type(vals[key]) is int:
     if not str(vals[key]).startswith('0'):
         vals[key] = '0' + str(vals[key])
-    """,
+""",
             'name': """
 if type(vals[key]) is int:
     vals[key] = str(vals[key])
@@ -78,9 +73,14 @@ if type(vals[key]) is int:
 vals['category_id'] = [(4, 4, 0)]
 xml_id = get_xml_id('idkund', vals[key])
 vals[key] = get_res_id_from_xml_id(xml_id)
-if type(vals[key]) is not int:
+if not vals[key]:
+    vals[key] = False
     vals['category_id'].append((4, 1, 0))
-vals['break'] = False
+""",
+            'phone': """
+if type(vals[key]) is int:
+    if not str(vals[key]).startswith('0'):
+        vals[key] = '0' + str(vals[key])
 """,
         },
         'create': {
@@ -115,9 +115,9 @@ if type(vals[key]) is int:
 vals['category_id'] = [(4, 5, 0)]
 xml_id = get_xml_id('idkund', vals[key])
 vals[key] = get_res_id_from_xml_id(xml_id)
-if type(vals[key]) is not int:
+if not vals[key]:
+    vals[key] = False
     vals['category_id'].append((4, 1, 0))
-vals['break'] = False
 """,
             'phone': """
 if type(vals[key]) is int:
@@ -147,7 +147,8 @@ if type(vals[key]) is int:
         'model': 'property.property',
         'calc': {
             'name': """
-vals['break'] = False
+if type(vals[key]) is int:
+    vals[key] = str(vals[key])
 """,
         },
         'create': {
@@ -157,7 +158,7 @@ vals['break'] = False
         'debug': {
             'name': 'namnfast',
             'property_key': 'fastnr',
-	},
+        },
         'write': {
             'name': 'namnfast',
             'property_key': 'fastnr',
@@ -171,8 +172,8 @@ vals['break'] = False
             'partner_id': """
 xml_id = get_xml_id('idkund', vals[key])
 vals[key] = get_res_id_from_xml_id(xml_id)
-if type(vals[key]) is int:
-    vals['break'] = False
+if not vals[key]:
+    vals['skip'] = True
 """,
             'property_id': """
 xml_id = get_xml_id('idfafast', vals[key])

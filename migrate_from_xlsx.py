@@ -46,7 +46,7 @@ def migrate_from_sheet(**kwargs):
         xml_id = get_xml_id(ext_model, row[0].value)
         while True:
             try:
-                if vals.pop('break'):
+                if 'skip' in vals:
                     pass
                 elif mode == 'create':
                     create_record_and_xmlid(model, vals, xml_id)
@@ -55,11 +55,12 @@ def migrate_from_sheet(**kwargs):
                 elif mode == 'debug':
                     if count == 0:
                         pp(cols)
-                    pp(vals)
-                    pp(xml_id)
+                    print(f"{vals=}")
+                    print(f"{xml_id=}")
                     input()
                     count += 1
             except Exception as e:
+                print(e)
                 errors.append(
                     {'e': e, 'row': [r.value for r in row], 'vals': vals, 'xml_id': xml_id})
             else:
@@ -70,14 +71,14 @@ def migrate_from_sheet(**kwargs):
 def vals_builder(row, cols, maps, mode):
     calc = maps.get('calc')
     maps = maps.get(mode)
-    vals = {'break': True}
+    vals = {}
     for key in maps:
         if maps[key] in cols:
             i = cols.index(maps[key])
             vals[key] = row[i].value
     if calc:
         for key in calc.keys():
-            if vals.get(key):
+            if key in vals:
                 exec(calc[key])
 
     return vals
@@ -101,8 +102,9 @@ def write_record(model, vals, xml_id):
     if not res_id:
         print(f"Skipping write {xml_id} does not exist")
     else:
-        target.env[model].write(res_id, vals)
-        print('WRITE_RECORD: SUCCESS!', res_id, xml_id)
+        for k, v in vals.items():
+            print(target.env[model].write(res_id, {k: v}))
+            print('WRITE_RECORD: SUCCESS!', res_id, xml_id, {k: v})
         return res_id
 
 
