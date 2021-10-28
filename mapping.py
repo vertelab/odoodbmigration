@@ -69,7 +69,7 @@ if type(vals[key]) is int:
         vals[key] = '0' + str(vals[key])
     """,
             'name': """
-if type(vals[key]) == int:
+if type(vals[key]) is int:
     vals[key] = str(vals[key])
 """,
             'parent_id': """
@@ -106,7 +106,7 @@ vals['break'] = False
         'model': 'res.partner',
         'calc': {
             'name': """
-if type(vals[key]) == int:
+if type(vals[key]) is int:
     vals[key] = str(vals[key])
 """,
             'parent_id': """
