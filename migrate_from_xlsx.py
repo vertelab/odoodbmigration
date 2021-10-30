@@ -62,7 +62,7 @@ def migrate_from_sheet(**kwargs):
                     input()
                     count += 1
             except Exception as e:
-                print(e)
+                print(e, vals, xmlid)
                 errors.append(
                     {'e': e, 'row': [r.value for r in row], 'vals': vals, 'xmlid': xmlid})
             else:
