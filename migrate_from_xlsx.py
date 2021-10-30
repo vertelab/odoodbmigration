@@ -12,7 +12,7 @@ IMPORT = '__import__'
 
 
 def main(file_path, col):
-    modes = ['create', 'debug', 'write']
+    modes = ['debug', 'sync']
     while True:
         mode = input(f"Mode? {modes} ").lower()
         if mode in modes:
@@ -46,38 +46,37 @@ def migrate_from_sheet(**kwargs):
 
     for row in sheet.iter_rows(min_row=2):
         vals = vals_builder(row, cols, maps, mode)
-        xml_id = get_xml_id(ext_model, row[0].value)
+        xmlid = get_xmlid(ext_model, row[0].value)
         while True:
             try:
                 if 'skip' in vals:
                     pass
-                elif mode == 'create':
-                    create_record_and_xmlid(model, vals, xml_id)
-                elif mode == 'write':
-                    write_record(model, vals, xml_id)
+                elif mode == 'sync':
+                    if not create_record_and_xmlid(model, vals, xmlid):
+                        write_record(model, vals, xmlid)
                 elif mode == 'debug':
                     if count == 0:
                         pp(cols)
                     print(f"{vals=}")
-                    print(f"{xml_id=}")
+                    print(f"{xmlid=}")
                     input()
                     count += 1
             except Exception as e:
                 print(e)
                 errors.append(
-                    {'e': e, 'row': [r.value for r in row], 'vals': vals, 'xml_id': xml_id})
+                    {'e': e, 'row': [r.value for r in row], 'vals': vals, 'xmlid': xmlid})
             else:
                 break
     print(errors)
 
 
-def vals_builder(row, cols, maps, mode):
-    calc = maps.get('calc')
-    maps = maps.get(mode)
+def vals_builder(row, cols, fields, mode):
+    calc = fields.get('calc')
+    fields = fields.get('fields')
     vals = {}
-    for key in maps:
-        if maps[key] in cols:
-            i = cols.index(maps[key])
+    for key in fields:
+        if fields[key] in cols:
+            i = cols.index(fields[key])
             vals[key] = row[i].value
     if calc:
         for key in calc.keys():
@@ -87,44 +86,46 @@ def vals_builder(row, cols, maps, mode):
     return vals
 
 
-def create_record_and_xmlid(model, vals, xml_id):
+def create_record_and_xmlid(model, vals, xmlid):
     """Create record if it doesn't exist, return res_id."""
-    res_id = get_res_id_from_xml_id(xml_id)
+    res_id = get_res_id_from_xmlid(xmlid)
     if res_id:
-        print(f"Skipping creation {xml_id} already exist")
+        print(f"Skipping creation {xmlid} already exist")
+        return 0
     else:
         res_id = target.env[model].create(vals)
-        create_xml_id(model, res_id, xml_id)
-        print("CREATE_RECORD: SUCCESS!", res_id, xml_id, vals)
+        create_xmlid(model, res_id, xmlid)
+        print("CREATE_RECORD: SUCCESS!", res_id, xmlid, vals)
         return res_id
 
 
-def write_record(model, vals, xml_id):
+def write_record(model, vals, xmlid):
     """Write record if it exist, return res_id."""
-    res_id = get_res_id_from_xml_id(xml_id)
+    res_id = get_res_id_from_xmlid(xmlid)
     if not res_id:
-        print(f"Skipping write {xml_id} does not exist")
+        print(f"Skipping write {xmlid} does not exist")
+        return 0
     else:
         target.env[model].write(res_id, vals)
-        print('WRITE_RECORD: SUCCESS!', res_id, xml_id, vals)
+        print('WRITE_RECORD: SUCCESS!', res_id, xmlid, vals)
         return res_id
 
 
-def get_xml_id(model, ext_id):
-    """Return xml_id from model and ext_id."""
+def get_xmlid(model, ext_id):
+    """Return xmlid from model and ext_id."""
     return f"{IMPORT}.{model.replace('.', '_')}_{ext_id}"
 
 
-def get_res_id_from_xml_id(xml_id):
-    """Return res_id from xml_id if found."""
-    return target.env['ir.model.data'].xmlid_to_res_id(xml_id)
+def get_res_id_from_xmlid(xmlid):
+    """Return res_id from xmlid if found."""
+    return target.env['ir.model.data'].xmlid_to_res_id(xmlid)
 
 
-def create_xml_id(model, res_id, xml_id):
-    """Create xml_id for a record."""
+def create_xmlid(model, res_id, xmlid):
+    """Create xmlid for a record."""
     vals = {'model': model,
-            'module': xml_id.split('.')[0],
-            'name': xml_id.split('.')[1],
+            'module': xmlid.split('.')[0],
+            'name': xmlid.split('.')[1],
             'res_id': res_id,
             }
     target.env['ir.model.data'].create(vals)
