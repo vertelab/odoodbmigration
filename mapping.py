@@ -2,21 +2,30 @@ MAPS = {
     # region idkund
     'idkund': {
         'model': 'res.partner',
-        'calc': {
-            'email': """
-if not vals[key]:
-    vals[key] = ''
-""",
-            'name': """
-if type(vals[key]) is int:
-    vals[key] = str(vals[key])
-""",
-            'partner_ssn': """
+        'fields': {
+            'vat': 'vatnr',
+            'zip': 'postnr',
+            'city': 'ort',
+            'name': 'namn',
+            'email': 'epost',
+            'phone': 'telefon',
+            'street': 'adress',
+            'comment': 'annan_info',
+            'partner_ssn': 'pnrchar',
+        },
+        'pre_sync': """
 vals['category_id'] = [(4, 3, 0)]
-if not vals[key]:
-    vals[key] = False
+
+if not vals['email']:
+    vals['email'] = ''
+
+if type(vals['name']) is int:
+    vals['name'] = str(vals['name'])
+
+if not vals['partner_ssn']:
+    vals['partner_ssn'] = False
 else:
-    ssn = str(vals[key]).replace(' ', '').replace('–', '-').replace('_', '-')
+    ssn = str(vals['partner_ssn']).replace(' ', '').replace('–', '-').replace('_', '-')
     if len(ssn) == 12:
         vals['partner_ssn'] = f"{ssn[:8]}-{ssn[8:]}"
         if int(ssn[4:6]) > 12:
@@ -40,51 +49,11 @@ else:
             vals['is_company'] = False
         vals['partner_ssn'] += f"{ssn[:6]}-{ssn[6:]}"
 """,
-        },
-        'fields': {
-            'vat': 'vatnr',
-            'zip': 'postnr',
-            'city': 'ort',
-            'name': 'namn',
-            'email': 'epost',
-            'phone': 'telefon',
-            'street': 'adress',
-            'comment': 'annan_info',
-            'partner_ssn': 'pnrchar',
-        },
     },
     # endregion
     # region idpepers
     'idpepers': {
         'model': 'res.partner',
-        'calc': {
-            'email': """
-if not vals[key]:
-    vals[key] = ''
-""",
-            'mobile': """
-if type(vals[key]) is int:
-    if not str(vals[key]).startswith('0'):
-        vals[key] = '0' + str(vals[key])
-""",
-            'name': """
-if type(vals[key]) is int:
-    vals[key] = str(vals[key])
-""",
-            'parent_id': """
-vals['category_id'] = [(4, 4, 0)]
-xmlid = get_xmlid('idkund', vals[key])
-vals[key] = get_res_id_from_xmlid(xmlid)
-if not vals[key]:
-    vals[key] = False
-    vals['category_id'].append((4, 1, 0))
-""",
-            'phone': """
-if type(vals[key]) is int:
-    if not str(vals[key]).startswith('0'):
-        vals[key] = '0' + str(vals[key])
-""",
-        },
         'fields': {
             'name': 'namn',
             'email': 'epost',
@@ -93,30 +62,34 @@ if type(vals[key]) is int:
             'comment': 'info',
             'parent_id': 'kund.idkund',
         },
+        'pre_sync': """
+vals['category_id'] = [(4, 4, 0)]
+            
+if not vals['email']:
+    vals['email'] = ''
+
+if type(vals['mobile']) is int:
+    if not str(vals['mobile']).startswith('0'):
+        vals['mobile'] = '0' + str(vals['mobile'])
+
+if type(vals['name']) is int:
+    vals['name'] = str(vals['name'])
+
+parent_xmlid = get_xmlid('idkund', vals['parent_id'])
+vals['parent_id'] = get_res_id_from_xmlid(parent_xmlid)
+if not vals['parent_id']:
+    vals['parent_id'] = False
+    vals['category_id'].append((4, 1, 0))
+            
+if type(vals['phone']) is int:
+    if not str(vals['phone']).startswith('0'):
+        vals['phone'] = '0' + str(vals['phone'])
+""",
     },
     # endregion
     # region idkursdeltagare
     'idkursdeltagare': {
         'model': 'res.partner',
-        'calc': {
-            'name': """
-if type(vals[key]) is int:
-    vals[key] = str(vals[key])
-""",
-            'parent_id': """
-vals['category_id'] = [(4, 5, 0)]
-xmlid = get_xmlid('idkund', vals[key])
-vals[key] = get_res_id_from_xmlid(xmlid)
-if not vals[key]:
-    vals[key] = False
-    vals['category_id'].append((4, 1, 0))
-""",
-            'phone': """
-if type(vals[key]) is int:
-    if not str(vals[key]).startswith('0'):
-        vals[key] = '0' + str(vals[key])
-""",
-        },
         'fields': {
             'zip': 'postnr',
             'city': 'ort',
@@ -126,49 +99,65 @@ if type(vals[key]) is int:
             'street': 'adress',
             'parent_id': 'kund.idkund',
         },
+        'pre_sync': """
+vals['category_id'] = [(4, 5, 0)]
+
+if type(vals['name']) is int:
+    vals['name'] = str(vals['name'])
+    
+parent_xmlid = get_xmlid('idkund', vals['parent_id'])
+vals['parent_id'] = get_res_id_from_xmlid(parent_xmlid)
+if not vals['parent_id']:
+    vals['parent_id'] = False
+    vals['category_id'].append((4, 1, 0))
+
+if type(vals['phone']) is int:
+    if not str(vals['phone']).startswith('0'):
+        vals['phone'] = '0' + str(vals['phone'])
+""",
     },
     # endregion
     # region fafast.xlsx
     'idfafast': {
         'model': 'property.property',
-        'calc': {
-            'name': """
-if type(vals[key]) is int:
-    vals[key] = str(vals[key])
-""",
-        },
         'fields': {
             'name': 'namnfast',
             'property_key': 'fastnr',
         },
+        'pre_sync': """
+if type(vals['name']) is int:
+    vals['name'] = str(vals['name'])
+""",
     },
     # endregion
     # region fafast.xlsx 9
     'agare_idagare': {
         'model': 'property.stakeholder',
-        'calc': {
-            'partner_id': """
-xmlid = get_xmlid('idkund', vals[key])
-vals[key] = get_res_id_from_xmlid(xmlid)
-if not vals[key]:
-    vals['skip'] = True
-""",
-            'property_id': """
-xmlid = get_xmlid('idfafast', vals[key])
-vals[key] = get_res_id_from_xmlid(xmlid)
-""",
-        },
         'fields': {
             'partner_id': 'agare.idagare',
             'property_id': 'idfafast',
         },
+        'pre_sync': """
+partner_xmlid = get_xmlid('idkund', vals['partner_id'])
+vals['partner_id'] = get_res_id_from_xmlid(partner_xmlid)
+if not vals['partner_id']:
+    vals['skip'] = True
+
+property_xmlid = get_xmlid('idfafast', vals['property_id'])
+vals['property_id'] = get_res_id_from_xmlid(property_xmlid)
+""",
     },
     # endregion
     # region kurs.xlsx
     'idkurs': {
         'model': 'event.event',
-        'calc': {
-            'date_begin': """
+        'fields': {
+            'name': 'kursbenamning',
+            'date_begin': 'startdat',
+            'date_begin_time': 'starttidpunkt',
+            'date_end': 'antaldagar',
+        },
+        'pre_sync': """
 if not vals['date_begin']:
     vals['skip'] = True
 else:
@@ -177,7 +166,7 @@ else:
         date_begin_time = '00:00'
     fmt = '%Y-%m-%d %H:%M'
     tz = pytz.timezone('Europe/Stockholm')
-    naive = datetime.strptime(f"{vals[key]} {date_begin_time}", fmt)
+    naive = datetime.strptime(f"{vals['date_begin']} {date_begin_time}", fmt)
     local = tz.localize(naive, is_dst=True)
     date_begin = local.astimezone(pytz.utc)
     vals['date_begin'] = datetime.strftime(date_begin, fmt)
@@ -187,13 +176,6 @@ else:
     else:
         vals['date_end'] = vals['date_begin']
 """,
-        },
-        'fields': {
-            'name': 'kursbenamning',
-            'date_begin': 'startdat',
-            'date_begin_time': 'starttidpunkt',
-            'date_end': 'antaldagar',
-        },
     },
     # endregion
     # region artikel.xlsx
@@ -221,6 +203,7 @@ uom_xmlid = f"uom.product_uom_{UOM.get(uom, 'unit')}"
 
 vals['uom_id'] = get_res_id_from_xmlid(uom_xmlid)
 
+### Create in a datafile instead
 if not vals['uom_id'] and uom == 'ha':
     area_id = get_res_id_from_xmlid('uom.uom_categ_area')
     if not area_id:
@@ -293,11 +276,11 @@ if template_id:
     # region prod_reg.xlsx
     'idprod_reg': {
         'model': 'sale.order.template',
-        'calc': {
-        },
         'fields': {
             'name': 'namn',
             'note': 'beskrivning',
+        },
+        'pre_sync': {
         },
     },
     # endregion
