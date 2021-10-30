@@ -45,22 +45,24 @@ def migrate_from_sheet(**kwargs):
     model = maps.get('model')
 
     for row in sheet.iter_rows(min_row=2):
-        vals = vals_builder(row, cols, maps, mode)
+        vals = vals_builder(row, cols, maps.get('fields'))
         xmlid = get_xmlid(ext_model, row[0].value)
+        exec(maps.get('pre_sync', ''))
         while True:
             try:
                 if 'skip' in vals:
                     pass
-                elif mode == 'sync':
-                    if not create_record_and_xmlid(model, vals, xmlid):
-                        write_record(model, vals, xmlid)
                 elif mode == 'debug':
                     if count == 0:
                         pp(cols)
                     print(f"{vals=}")
                     print(f"{xmlid=}")
-                    input()
                     count += 1
+                elif mode == 'sync':
+                    if not create_record_and_xmlid(model, vals, xmlid):
+                        write_record(model, vals, xmlid)
+                exec(maps.get('post_sync', ''))
+                input() if mode == 'debug' else None
             except Exception as e:
                 print(e)
                 errors.append(
@@ -70,19 +72,12 @@ def migrate_from_sheet(**kwargs):
     print(errors)
 
 
-def vals_builder(row, cols, fields, mode):
-    calc = fields.get('calc')
-    fields = fields.get('fields')
+def vals_builder(row, cols, fields):
     vals = {}
     for key in fields:
         if fields[key] in cols:
             i = cols.index(fields[key])
             vals[key] = row[i].value
-    if calc:
-        for key in calc.keys():
-            if key in vals:
-                exec(calc[key])
-
     return vals
 
 
@@ -136,6 +131,6 @@ if __name__ == "__main__":
         target = odoorpc.ODOO().load('target')
     except Exception as e:
         print(e)
-    target.env.context.update({'tz':'UTC'})
+    target.env.context.update({'tz': 'UTC'})
     print(target.env)
     main(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else 0)

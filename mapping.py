@@ -199,91 +199,95 @@ else:
     # region artikel.xlsx
     'idartikel': {
         'model': 'product.template',
-        'calc': {
-            'list_price': """
-vals[key] = float(vals[key].split(',')[0].replace('.',''))
-""",
-            'sale_order_template_id': """
-sot_xmlid = get_xmlid('idprod_reg', vals.pop('sale_order_template_id'))
-sotl_ext_id = vals['ext_id']
-template_xmlid = get_xmlid('idartikel', vals.pop('ext_id'))
-template_id = get_res_id_from_xmlid(template_xmlid)
-if template_id:
-    template = target.env['product.template'].read(template_id)[0]
-    product_id = template.get('product_variant_id')[0]
-    if product_id:
-        so_template_id = get_res_id_from_xmlid(sot_xmlid)
-        
-        UOM = {'dag': 'day', 
-               'ha': 'ha',
-               'km': 'km', 
-               'm3': 'cubic_meter', 
-               'tim': 'hour', }
-        
-        uom = vals['uom_id']
-        uom_xmlid = f"uom.product_uom_{UOM.get(uom, 'unit')}"
-        vals['uom_id'] = target.env.ref(uom_xmlid).id
-        
-        if not vals['uom_id'] and uom == 'ha':
-            area_id = get_res_id_from_xmlid('uom.uom_categ_area')
-            if not area_id:
-                area = target.env['uom.category'].create({'name':'Area'})
-                area_xml = {'model': 'uom.category',
-                            'module': 'uom',
-                            'name': 'uom_categ_area',
-                            'res_id': area_id}
-                target.env['ir.model.data'].create(area_xml)
-            m2_id = get_res_id_from_xmlid('uom.product_uom_square_meter')
-            if not m2_id:
-                m2_id = target.env['uom.uom'].create({
-                        'category_id': area_id,
-                        'name': 'm²',
-                        })
-                target.env['ir.model.data'].create({
-                    'model': 'uom.uom',
-                    'module': 'uom',
-                    'name': 'product_uom_square_meter',
-                    'res_id': m2_id,
-                    })
-            ha_id = target.env['uom.uom'].create({
-                        'category_id': area_id,
-                        'factor': 0.0001,
-                        'name': 'ha',
-                        'uom_type':'bigger',
-                        })               
-            ha_id = target.env['uom.uom'].create({
-                'category_id': area_id, 
-                'factor':0.0001,
-                'name':'ha', 
-                'uom_type':'bigger',
-                })
-            target.env['ir.model.data'].create({
-                'model': 'uom.uom',
-                'module': 'uom',
-                'name': 'product_uom_ha',
-                'res_id': ha_id,
-                })
-            vals['uom_']
-        
-        if so_template_id:
-            sotl_ext_model = 'artikel'
-            xmlid = get_xmlid(sotl_ext_model, sotl_ext_id)
-            sotl_model = 'sale.order.template.line'
-            sotl_vals = {'name': vals['name'], 
-                    'product_id': product_id,
-                    'product_uom_id': vals['uom_id'],
-                    'sale_order_template_id': so_template_id}
-            if not create_record_and_xmlid(sotl_model, sotl_vals, xmlid):
-                write_record(sotl_model, sotl_vals, xmlid)
-""",
-        },
         'fields': {
-            'ext_id': 'idartikel',
             'name': 'benamning',
             'list_price': 'pris',
             'sale_order_template_id': 'produkt.idprodukt',
             'uom_id': 'enhet',
         },
+        'pre_sync': """
+vals['list_price'] = float(vals['list_price'].split(',')[0].replace('.',''))
+
+UOM = {
+    'dag': 'day', 
+    'ha': 'ha',
+    'km': 'km',
+    'm3': 'cubic_meter', 
+    'tim': 'hour',
+    }
+
+uom = vals['uom_id']
+uom_xmlid = f"uom.product_uom_{UOM.get(uom, 'unit')}"
+
+vals['uom_id'] = get_res_id_from_xmlid(uom_xmlid)
+
+if not vals['uom_id'] and uom == 'ha':
+    area_id = get_res_id_from_xmlid('uom.uom_categ_area')
+    if not area_id:
+        area_id = target.env['uom.category'].create({'name':'Area'})
+        area_xmlid = {
+            'model': 'uom.category',
+            'module': 'uom',
+            'name': 'uom_categ_area',
+            'res_id': area_id,
+            }
+        target.env['ir.model.data'].create(area_xmlid)
+        
+    m2_id = get_res_id_from_xmlid('uom.product_uom_square_meter')
+    if not m2_id:
+        m2_id = target.env['uom.uom'].create({
+            'category_id': area_id,
+            'name': 'm²',
+            })
+        target.env['ir.model.data'].create({
+            'model': 'uom.uom',
+            'module': 'uom',
+            'name': 'product_uom_square_meter',
+            'res_id': m2_id,
+            })
+            
+    ha_id = target.env['uom.uom'].create({
+        'category_id': area_id,
+        'factor': 0.0001,
+        'name': 'ha',
+        'uom_type':'bigger',
+        })               
+
+    target.env['ir.model.data'].create({
+        'model': 'uom.uom',
+        'module': 'uom',
+        'name': 'product_uom_ha',
+        'res_id': ha_id,
+        })
+    vals['uom_id'] = ha_id
+
+vals['uom_po_id'] = vals['uom_id']
+sot_xmlid = get_xmlid('idprod_reg', vals.pop('sale_order_template_id'))
+maps['sot_xmlid'] = sot_xmlid
+""",
+        'post_sync': """
+template_id = get_res_id_from_xmlid(xmlid)
+if template_id:
+    template = target.env['product.template'].read(template_id)[0]
+    product_id = template['product_variant_id'][0]
+    if product_id:
+        so_template_id = get_res_id_from_xmlid(maps.get('sot_xmlid'))
+        if so_template_id:
+            sotl_ext_model = 'artikel'
+            sotl_xmlid = get_xmlid(sotl_ext_model, xmlid.split('_')[-1])
+            sotl_model = 'sale.order.template.line'
+            sotl_vals = {
+                'name': template['name'],
+                'product_id': product_id,
+                'product_uom_id': vals['uom_id'],
+                'sale_order_template_id': so_template_id,
+                }
+            if mode == 'debug':
+                print(f"{sotl_vals=}")
+            else:
+                if not create_record_and_xmlid(sotl_model, sotl_vals, sotl_xmlid):
+                    write_record(sotl_model, sotl_vals, sotl_xmlid)
+"""
     },
     # endregion
     # region prod_reg.xlsx
