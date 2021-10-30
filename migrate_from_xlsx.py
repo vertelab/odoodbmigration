@@ -64,7 +64,7 @@ def migrate_from_sheet(**kwargs):
                 exec(maps.get('post_sync', ''))
                 input() if mode == 'debug' else None
             except Exception as e:
-                print(e, vals, xmlid)
+                print({'e': e, 'row': [r.value for r in row], 'vals': vals, 'xmlid': xmlid})
                 errors.append(
                     {'e': e, 'row': [r.value for r in row], 'vals': vals, 'xmlid': xmlid})
             else:
