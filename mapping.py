@@ -296,6 +296,7 @@ if template_id:
     'iduppdrag': {
         'model': 'sale.order',
         'fields': {
+            'summa': 'summa_fakturerat',
             'note':'annan_info',
             'partner_id': 'markning',
             'projekt': 'projekt',
@@ -309,12 +310,46 @@ if not vals['partner_id']:
 
 maps['projekt'] = vals.pop('projekt')
 maps['projektnamn'] = vals.pop('projektnamn')
+maps['summa'] = vals.pop('summa')
 """,
         'post_sync': """
+order_id = get_res_id_from_xmlid(xmlid)
+product_xmlid = get_xmlid('slask', 'produkt')
+product_id = get_res_id_from_xmlid(product_xmlid)
+price_unit = 0
+if maps['summa']:
+    price_unit = float(maps['summa'].split(',')[0].replace('.',''))
+
+if not product_id:
+    template_xmlid = get_xmlid('slask', 'produktmall')
+    template_id = get_res_id_from_xmlid(template_xmlid)
+    if not template_id:
+        template_id = create_record_and_xmlid('product.template', {'name': 'Migreringsprodukt'}, template_xmlid)
+
+    template = target.env['product.template'].read(template_id)[0]
+    product_id = template['product_variant_id'][0]
+    create_xmlid('product.product', product_id, product_xmlid)
+    product_id = get_res_id_from_xmlid(product_xmlid)
+else:
+    line_model = 'sale.order.line'
+    line_vals = {
+        'name': maps['projektnamn'],
+        'order_id': order_id,
+        'product_id': product_id,
+        'price_unit': price_unit
+    }
+    line_xmlid = get_xmlid('migreringsprodukt', xmlid.split('_')[-1])
+    if mode == 'debug':
+        print(f"{line_vals=}")
+        print(f"{line_xmlid=}")
+    else:
+        if not create_record_and_xmlid(line_model, line_vals, line_xmlid):
+            write_record(line_model, line_vals, line_xmlid)
+        
 if maps['projekt']:
     project_vals = {
         'name': maps['projektnamn'],
-        'sale_order_id': get_res_id_from_xmlid(xmlid)
+        'sale_order_id': order_id,
     }
     project_xmlid = get_xmlid('projekt', maps['projekt'])
     if mode == 'debug':
