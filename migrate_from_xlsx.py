@@ -52,17 +52,18 @@ def migrate_from_sheet(**kwargs):
             try:
                 if 'skip' in vals:
                     pass
-                elif mode == 'debug':
-                    if count == 0:
-                        pp(cols)
-                    print(f"{vals=}")
-                    print(f"{xmlid=}")
-                    count += 1
-                elif mode == 'sync':
-                    if not create_record_and_xmlid(model, vals, xmlid):
-                        write_record(model, vals, xmlid)
-                exec(maps.get('post_sync', ''))
-                input() if mode == 'debug' else None
+                else:
+                    if mode == 'debug':
+                        if count == 0:
+                            pp(cols)
+                        print(f"{vals=}")
+                        print(f"{xmlid=}")
+                        count += 1
+                    elif mode == 'sync':
+                        if not create_record_and_xmlid(model, vals, xmlid):
+                            write_record(model, vals, xmlid)
+                    exec(maps.get('post_sync', ''))
+                    input() if mode == 'debug' else None
             except Exception as e:
                 print({'e': e, 'row': [r.value for r in row], 'vals': vals, 'xmlid': xmlid})
                 errors.append(
