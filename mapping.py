@@ -1,5 +1,5 @@
 MAPS = {
-    # region idkund
+    # region kund.xlsx
     'idkund': {
         'model': 'res.partner',
         'fields': {
@@ -18,7 +18,15 @@ vals['category_id'] = [(4, 3, 0)]
 
 if not vals['email']:
     vals['email'] = ''
-
+    
+if not vals['phone']:
+    vals['phone'] = ''
+    
+if not vals['vat']:
+    vals['vat'] = ''
+else:
+    vals['vat'] = str(vals['vat'])
+    
 if type(vals['name']) is int:
     vals['name'] = str(vals['name'])
 
@@ -51,7 +59,7 @@ else:
 """,
     },
     # endregion
-    # region idpepers
+    # region pepers.xlsx
     'idpepers': {
         'model': 'res.partner',
         'fields': {
@@ -87,7 +95,7 @@ if type(vals['phone']) is int:
 """,
     },
     # endregion
-    # region idkursdeltagare
+    # region kursdeltagare.xlsx
     'idkursdeltagare': {
         'model': 'res.partner',
         'fields': {
@@ -282,6 +290,40 @@ if template_id:
         },
         'pre_sync': {
         },
+    },
+    # endregion
+    # region uppdrag.xlsx
+    'iduppdrag': {
+        'model': 'sale.order',
+        'fields': {
+            'note':'annan_info',
+            'partner_id': 'markning',
+            'projekt': 'projekt',
+            'projektnamn': 'uppdragsbenamning',
+            },
+        'pre_sync': """
+partner_xmlid = get_xmlid('idkund', vals['partner_id'])
+vals['partner_id'] = get_res_id_from_xmlid(partner_xmlid)
+if not vals['partner_id']:
+    vals['skip'] = True
+
+maps['projekt'] = vals.pop('projekt')
+maps['projektnamn'] = vals.pop('projektnamn')
+""",
+        'post_sync': """
+if maps['projekt']:
+    project_vals = {
+        'name': maps['projektnamn'],
+        'sale_order_id': get_res_id_from_xmlid(xmlid)
+    }
+    project_xmlid = get_xmlid('projekt', maps['projekt'])
+    if mode == 'debug':
+        print(f"{project_vals=}")
+        print(f"{project_xmlid=}")
+    else:
+        if not create_record_and_xmlid('project.project', project_vals, project_xmlid):
+            write_record('project.project', project_vals, project_xmlid)
+""",
     },
     # endregion
 }
