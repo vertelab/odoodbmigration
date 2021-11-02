@@ -132,6 +132,12 @@ if __name__ == "__main__":
         target = odoorpc.ODOO().load('target')
     except Exception as e:
         print(e)
-    target.env.context.update({'tz': 'UTC'})
+    target.env.context.update({
+        'mail_create_nosubscribe': True,
+        'mail_create_nolog': True,
+        'mail_notrack': True,
+        'tracking_disable': True,
+        'tz': 'UTC',
+        })
     print(target.env)
     main(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else 0)

@@ -366,6 +366,9 @@ if maps['projekt']:
     else:
         if not create_record_and_xmlid('project.project', project_vals, project_xmlid):
             write_record('project.project', project_vals, project_xmlid)
+    project_id = get_res_id_from_xmlid(project_xmlid)
+    if project_id:
+        target.env['sale.order'].write(order_id, {'project_id': project_id})
 """,
     },
     # endregion
