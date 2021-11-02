@@ -156,7 +156,7 @@ vals['property_id'] = get_res_id_from_xmlid(property_xmlid)
 """,
     },
     # endregion
-    # region kurs2.xlsx
+    # region kurs.xlsx
     'idkurs': {
         'model': 'event.event',
         'fields': {
@@ -175,7 +175,7 @@ else:
             ('login', '=', vals['user_id']),
             ])
         if user_id:
-            vals['user_id'] = user_id
+            vals['user_id'] = user_id[0]
     if not vals['user_id']:
         vals.pop('user_id')
     date_begin_time = vals.pop('date_begin_time')
