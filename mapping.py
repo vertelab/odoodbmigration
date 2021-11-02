@@ -318,12 +318,12 @@ if not vals['partner_id']:
     vals['skip'] = True
 
 uid = vals['user_id']
+if uid:
+    uid = target.env['res.users'].search([('login', '=', uid)])
     if uid:
-        uid = target.env['res.users'].search([('login', '=', uid)])
-        if uid:
-            vals['user_id'] = uid[0]
-    if not uid:
-        vals.pop('user_id')
+        vals['user_id'] = uid[0]
+if not uid:
+    vals.pop('user_id')
 
 maps['projekt'] = vals.pop('projekt')
 maps['projektnamn'] = vals.pop('projektnamn')
