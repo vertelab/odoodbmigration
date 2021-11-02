@@ -156,7 +156,7 @@ vals['property_id'] = get_res_id_from_xmlid(property_xmlid)
 """,
     },
     # endregion
-    # region kurs.xlsx
+    # region kurs2.xlsx
     'idkurs': {
         'model': 'event.event',
         'fields': {
@@ -164,11 +164,20 @@ vals['property_id'] = get_res_id_from_xmlid(property_xmlid)
             'date_begin': 'startdat',
             'date_begin_time': 'starttidpunkt',
             'date_end': 'antaldagar',
+            'user_id': 'kursansvarig.anvandare',
         },
         'pre_sync': """
 if not vals['date_begin']:
     vals['skip'] = True
 else:
+    if vals['user_id']:
+        user_id = target.env['res.users'].search([
+            ('login', '=', vals['user_id']),
+            ])
+        if user_id:
+            vals['user_id'] = user_id
+    if not vals['user_id']:
+        vals.pop('user_id')
     date_begin_time = vals.pop('date_begin_time')
     if not date_begin_time:
         date_begin_time = '00:00'

@@ -21,7 +21,7 @@ def main(file_path, col):
             print('Wrong mode')
     print('\nLoading workbook . . . ', end=' ')
     xlsx_file = Path(file_path)
-    wb = openpyxl.load_workbook(xlsx_file)
+    wb = openpyxl.load_workbook(xlsx_file, data_only=True)
     print('Ok!\nLoading worksheet . . .', end=' ')
     ws = wb.active
     run = input('Ok!\nRun script? [yN] ').lower()
