@@ -309,12 +309,21 @@ if template_id:
             'partner_id': 'markning',
             'projekt': 'projekt',
             'projektnamn': 'uppdragsbenamning',
+            'user_id': 'ansvarig_medarbetare.anvandare'
             },
         'pre_sync': """
 partner_xmlid = get_xmlid('idkund', vals['partner_id'])
 vals['partner_id'] = get_res_id_from_xmlid(partner_xmlid)
 if not vals['partner_id']:
     vals['skip'] = True
+
+uid = vals['user_id']
+    if uid:
+        uid = target.env['res.users'].search([('login', '=', uid)])
+        if uid:
+            vals['user_id'] = uid[0]
+    if not uid:
+        vals.pop('user_id')
 
 maps['projekt'] = vals.pop('projekt')
 maps['projektnamn'] = vals.pop('projektnamn')
