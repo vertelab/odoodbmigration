@@ -170,13 +170,12 @@ vals['property_id'] = get_res_id_from_xmlid(property_xmlid)
 if not vals['date_begin']:
     vals['skip'] = True
 else:
-    if vals['user_id']:
-        user_id = target.env['res.users'].search([
-            ('login', '=', vals['user_id']),
-            ])
-        if user_id:
-            vals['user_id'] = user_id[0]
-    if not vals['user_id']:
+    uid = vals['user_id']
+    if uid:
+        uid = target.env['res.users'].search([('login', '=', uid)])
+        if uid:
+            vals['user_id'] = uid[0]
+    if not uid:
         vals.pop('user_id')
     date_begin_time = vals.pop('date_begin_time')
     if not date_begin_time:
