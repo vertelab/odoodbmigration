@@ -200,7 +200,7 @@ else:
         'fields': {
             'name': 'benamning',
             'list_price': 'pris',
-            'sale_order_template_id': 'produkt.idprodukt',
+            'parent_template_id': 'produkt.idprodukt',
             'uom_id': 'enhet',
         },
         'pre_sync': """
@@ -261,8 +261,7 @@ if not vals['uom_id'] and uom == 'ha':
     vals['uom_id'] = ha_id
 
 vals['uom_po_id'] = vals['uom_id']
-sot_xmlid = get_xmlid('idprod_reg', vals.pop('sale_order_template_id'))
-maps['sot_xmlid'] = sot_xmlid
+maps['parent_template_xmlid'] = get_xmlid('idprod_reg', vals.pop('parent_template_id'))
 """,
         'post_sync': """
 template_id = get_res_id_from_xmlid(xmlid)
@@ -270,34 +269,37 @@ if template_id:
     template = target.env['product.template'].read(template_id)[0]
     product_id = template['product_variant_id'][0]
     if product_id:
-        so_template_id = get_res_id_from_xmlid(maps.get('sot_xmlid'))
-        if so_template_id:
-            sotl_ext_model = 'artikel'
-            sotl_xmlid = get_xmlid(sotl_ext_model, xmlid.split('_')[-1])
-            sotl_model = 'sale.order.template.line'
-            sotl_vals = {
-                'name': template['name'],
-                'product_id': product_id,
-                'product_uom_id': vals['uom_id'],
-                'sale_order_template_id': so_template_id,
-                }
+        parent_template_id = get_res_id_from_xmlid(maps.get('parent_template_xmlid'))
+        if parent_template_id:
+            parent_template = target.env['product.template'].read(parent_template_id)[0]
+            parent_product_id = parent_template['product_variant_id'][0]
+            if parent_product_id:
+                pl_xmlid = get_xmlid('artikel', xmlid.split('_')[-1])
+                pl_model = 'product.pack.line'
+                pl_vals = {
+                    'parent_product_id': parent_product_id, 
+                    'product_id': product_id,
+                    }
             if mode == 'debug':
-                print(f"{sotl_vals=}")
+                print(f"{pl_vals=}")
             else:
-                if not create_record_and_xmlid(sotl_model, sotl_vals, sotl_xmlid):
-                    write_record(sotl_model, sotl_vals, sotl_xmlid)
-"""
+                if not create_record_and_xmlid(pl_model, pl_vals, pl_xmlid):
+                    write_record(pl_model, pl_vals, pl_xmlid)
+""",
     },
     # endregion
     # region prod_reg.xlsx
     'idprod_reg': {
-        'model': 'sale.order.template',
+        'model': 'product.template',
         'fields': {
             'name': 'namn',
-            'note': 'beskrivning',
+            'description': 'intern_beskrivning',
+            'description_sale': 'beskrivning',
         },
-        'pre_sync': {
-        },
+        'pre_sync': """
+vals['pack_ok'] = True
+vals['pack_type'] = 'non_detailed'
+""",
     },
     # endregion
     # region uppdrag.xlsx
@@ -306,10 +308,10 @@ if template_id:
         'fields': {
             'summa': 'summa_fakturerat',
             'note':'annan_info',
-            'partner_id': 'markning',
+            'partner_id': 'kund.idkund',
             'projekt': 'projekt',
             'projektnamn': 'uppdragsbenamning',
-            'user_id': 'ansvarig_medarbetare.anvandare'
+            'user_id': 'ansvarig_medarbetare.anvandare',
             },
         'pre_sync': """
 partner_xmlid = get_xmlid('idkund', vals['partner_id'])

@@ -43,7 +43,6 @@ def migrate_from_sheet(**kwargs):
     ext_model = cols[int(col) if col else 0].replace('.', '_')
     maps = MAPS.get(ext_model)
     model = maps.get('model')
-
     for row in sheet.iter_rows(min_row=2):
         vals = vals_builder(row, cols, maps.get('fields'))
         xmlid = get_xmlid(ext_model, row[0].value)
