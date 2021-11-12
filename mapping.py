@@ -131,10 +131,25 @@ if type(vals['phone']) is int:
         'fields': {
             'name': 'namnfast',
             'property_key': 'fastnr',
+            'latitude': 'xkoordinat',
+            'longitude': 'ykoordinat',
         },
         'pre_sync': """
-if type(vals['name']) is int:
-    vals['name'] = str(vals['name'])
+latitude = str(vals.pop('latitude'))
+longitude = str(vals.pop('longitude'))
+name = str(vals['name'])
+
+if name and ',' in name:
+    vals['city'] = name.split(',')[0]
+    
+if latitude and len(latitude) == 7:
+    latitude = f"{latitude[:2]}.{latitude[2:]}"
+    vals['latitude'] = latitude
+
+if longitude and len(longitude) == 7:
+    longitude = f"{longitude[:2]}.{longitude[2:]}"
+    vals['longitude'] = longitude
+    
 """,
     },
     # endregion
@@ -307,12 +322,12 @@ vals['pack_type'] = 'non_detailed'
         'model': 'sale.order',
         'fields': {
             'summa': 'summa_fakturerat',
-            'note':'annan_info',
+            'note': 'annan_info',
             'partner_id': 'kund.idkund',
             'projekt': 'projekt',
             'projektnamn': 'uppdragsbenamning',
             'user_id': 'ansvarig_medarbetare.anvandare',
-            },
+        },
         'pre_sync': """
 partner_xmlid = get_xmlid('idkund', vals['partner_id'])
 vals['partner_id'] = get_res_id_from_xmlid(partner_xmlid)
