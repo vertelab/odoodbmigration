@@ -106,6 +106,7 @@ if type(vals['phone']) is int:
             'phone': 'telnr',
             'street': 'adress',
             'parent_id': 'kund.idkund',
+            'kurs.idkurs': 'kurs.idkurs'
         },
         'pre_sync': """
 vals['category_id'] = [(4, 5, 0)]
@@ -122,6 +123,25 @@ if not vals['parent_id']:
 if type(vals['phone']) is int:
     if not str(vals['phone']).startswith('0'):
         vals['phone'] = '0' + str(vals['phone'])
+
+maps['event_xmlid'] = get_xmlid('idkurs', vals.pop('kurs.idkurs'))
+""",
+        'post_sync': """
+event_id = get_res_id_from_xmlid(maps.get('event_xmlid'))
+partner_id = get_res_id_from_xmlid(xmlid)
+if event_id and partner_id:
+    er_model = 'event.registration'
+    er_vals = {
+        'event_id': event_id,
+        'partner_id': partner_id,
+        }
+    er_xmlid = get_xmlid('kursdeltagare_kurs', xmlid.split('_')[-1])
+    if mode == 'debug':
+        print(f"{er_vals=}")
+        print(f"{er_xmlid=}")
+    else:
+        if not create_record_and_xmlid(er_model, er_vals, er_xmlid):
+            write_record(er_model, er_vals, er_xmlid)
 """,
     },
     # endregion
@@ -205,6 +225,10 @@ else:
         },
         'pre_sync': """
 vals['list_price'] = float(vals['list_price'].split(',')[0].replace('.',''))
+vals['property_account_expense_id'] = get_res_id_from_xmlid('l10n_se.1_chart4001')
+vals['property_account_income_id'] = get_res_id_from_xmlid('l10n_se.1_chart3001')
+vals['service_policy'] = 'delivered_timesheet'
+vals['service_tracking'] = 'task_in_project'
 
 UOM = {
     'dag': 'day', 
@@ -295,10 +319,17 @@ if template_id:
             'name': 'namn',
             'description': 'intern_beskrivning',
             'description_sale': 'beskrivning',
+            'verksamhetsgren': 'verksamhetsgren',
         },
         'pre_sync': """
+categ_xmlid = get_xmlid('product_category', vals.pop('verksamhetsgren'))
+categ_id = get_res_id_from_xmlid(categ_xmlid)
+if categ_id:
+    vals['categ_id'] = categ_id
 vals['pack_ok'] = True
-vals['pack_type'] = 'non_detailed'
+vals['pack_type'] = 'detailed'
+vals['pack_component_price'] = 'detailed'
+vals['pack_modifiable'] = True
 """,
     },
     # endregion
@@ -380,6 +411,17 @@ if maps['projekt']:
     project_id = get_res_id_from_xmlid(project_xmlid)
     if project_id:
         target.env['sale.order'].write(order_id, {'project_id': project_id})
+""",
+    },
+    # endregion
+    # region verksamhetsgrenar.xlsx
+    'product_category': {
+        'model': 'product.category',
+        'fields': {
+            'name': 'Beskrivning',
+            },
+        'pre_sync': """
+vals['parent_id'] = 11
 """,
     },
     # endregion
