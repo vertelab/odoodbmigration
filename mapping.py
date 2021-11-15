@@ -12,6 +12,7 @@ MAPS = {
             'street': 'adress',
             'comment': 'annan_info',
             'partner_ssn': 'pnrchar',
+            'kundgrupp': 'kundgrupp'
         },
         'pre_sync': """
 vals['category_id'] = [(4, 3, 0)]
@@ -56,6 +57,14 @@ else:
             vals['partner_ssn'] = '19'
             vals['is_company'] = False
         vals['partner_ssn'] += f"{ssn[:6]}-{ssn[6:]}"
+
+kundgrupp = vals.pop('kundgrupp')
+if kundgrupp:
+    if '70' in kundgrupp:
+        vals['partner_company_type_id'] = get_res_id_from_xmlid('__import__.res_partner_company_type_1_statliga')
+    for x in ['60', '61', '62']:
+        if x in kundgrupp:
+            vals['partner_company_type_id'] = get_res_id_from_xmlid('__import__.res_partner_company_type_2_privata')
 """,
     },
     # endregion
@@ -155,20 +164,18 @@ if event_id and partner_id:
             'longitude': 'ykoordinat',
         },
         'pre_sync': """
-latitude = str(vals.pop('latitude'))
-longitude = str(vals.pop('longitude'))
+lati = str(vals.pop('latitude'))
+long = str(vals.pop('longitude'))
 name = str(vals['name'])
 
 if name and ',' in name:
     vals['city'] = name.split(',')[0]
     
-if latitude and len(latitude) == 7:
-    latitude = f"{latitude[:2]}.{latitude[2:]}"
-    vals['latitude'] = latitude
+if lati and len(lati) == 7:
+    vals['latitude'] = f"{lati[:2]}{lati[2:]}"
 
-if longitude and len(longitude) == 7:
-    longitude = f"{longitude[:2]}.{longitude[2:]}"
-    vals['longitude'] = longitude
+if long and len(long) == 7:
+    vals['longitude'] = f"{long[:2]}{long[2:]}"
     
 """,
     },
@@ -436,7 +443,49 @@ if maps['projekt']:
             'name': 'Beskrivning',
             },
         'pre_sync': """
-vals['parent_id'] = 11
+parent_xmlid = f"__imp__.prod_PC{xmlid.split('_')[-1][1:3]}"
+parent_id = get_res_id_from_xmlid(parent_xmlid)
+if parent_id:
+    vals['parent_id'] = parent_id
+""",
+    },
+    # endregion
+    # region motpart.xlsx
+    'motpart': {
+        'model': 'account.analytic.account',
+        'fields': {
+            'name': 'Beskrivning',
+            'Kundnr': 'Kundnr',
+            'Kundnr(T)': 'Kundnr(T)',
+            },
+        'pre_sync': """
+maps['Kundnr'] = vals.pop('Kundnr')
+maps['Kundnr(T)'] = vals.pop('Kundnr(T)')
+group_id = get_res_id_from_xmlid('account_sks.N2')
+if group_id:
+    vals['group_id'] = group_id
+""",
+        'post_sync': """
+partner_id = maps.get('Kundnr')
+if partner_id:
+    partner_model = 'res.partner'
+    partner_vals = {
+        'company_type': 'company',
+        'name': maps.get('Kundnr(T)'),
+        'partner_company_type_id': get_res_id_from_xmlid('__import__.res_partner_company_type_1_statliga'),
+        }
+    partner_xmlid = get_xmlid('kundnr', partner_id)
+    if mode == 'debug':
+        print(f"{partner_vals=}")
+        print(f"{partner_xmlid=}")
+    else:
+        if not create_record_and_xmlid(partner_model, partner_vals, partner_xmlid):
+            write_record(partner_model, partner_vals, partner_xmlid)
+        write_record(
+            'account.analytic.account', 
+            {'partner_id': get_res_id_from_xmlid(partner_xmlid),}, 
+
+            xmlid)
 """,
     },
     # endregion
