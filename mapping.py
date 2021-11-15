@@ -61,10 +61,10 @@ else:
 kundgrupp = vals.pop('kundgrupp')
 if kundgrupp:
     if '70' in kundgrupp:
-        vals['partner_company_type_id'] = get_res_id_from_xmlid('__import__.res_partner_company_type_1_statliga')
+        vals['partner_company_type_id'] = get_res_id('__import__.res_partner_company_type_1_statliga')
     for x in ['60', '61', '62']:
         if x in kundgrupp:
-            vals['partner_company_type_id'] = get_res_id_from_xmlid('__import__.res_partner_company_type_2_privata')
+            vals['partner_company_type_id'] = get_res_id('__import__.res_partner_company_type_2_privata')
 """,
     },
     # endregion
@@ -77,7 +77,7 @@ if kundgrupp:
             'phone': 'telnr',
             'mobile': 'mobnr',
             'comment': 'info',
-            'parent_id': 'kund.idkund',
+            'kund': 'kund.idkund',
         },
         'pre_sync': """
 vals['category_id'] = [(4, 4, 0)]
@@ -92,9 +92,11 @@ if type(vals['mobile']) is int:
 if type(vals['name']) is int:
     vals['name'] = str(vals['name'])
 
-parent_xmlid = get_xmlid('idkund', vals['parent_id'])
-vals['parent_id'] = get_res_id_from_xmlid(parent_xmlid)
-if not vals['parent_id']:
+parent_xmlid = get_xmlid('idkund', vals.pop('kund'))
+parent_id = get_res_id(parent_xmlid)
+if parent_id:
+    vals['parent_id'] = parent_id
+else:
     vals['parent_id'] = False
     vals['category_id'].append((4, 1, 0))
             
@@ -114,7 +116,7 @@ if type(vals['phone']) is int:
             'email': 'epost',
             'phone': 'telnr',
             'street': 'adress',
-            'parent_id': 'kund.idkund',
+            'kund.idkund': 'kund.idkund',
             'kurs.idkurs': 'kurs.idkurs'
         },
         'pre_sync': """
@@ -123,9 +125,10 @@ vals['category_id'] = [(4, 5, 0)]
 if type(vals['name']) is int:
     vals['name'] = str(vals['name'])
     
-parent_xmlid = get_xmlid('idkund', vals['parent_id'])
-vals['parent_id'] = get_res_id_from_xmlid(parent_xmlid)
-if not vals['parent_id']:
+parent_id = get_res_id(f"idkund.{vals.pop('kund.idkund')}")
+if parent_id:
+    vals['parent_id'] = parent_id
+else:
     vals['parent_id'] = False
     vals['category_id'].append((4, 1, 0))
 
@@ -136,8 +139,8 @@ if type(vals['phone']) is int:
 maps['event_xmlid'] = get_xmlid('idkurs', vals.pop('kurs.idkurs'))
 """,
         'post_sync': """
-event_id = get_res_id_from_xmlid(maps.get('event_xmlid'))
-partner_id = get_res_id_from_xmlid(xmlid)
+event_id = get_res_id(maps.get('event_xmlid'))
+partner_id = get_res_id(xmlid)
 if event_id and partner_id:
     er_model = 'event.registration'
     er_vals = {
@@ -160,22 +163,23 @@ if event_id and partner_id:
         'fields': {
             'name': 'namnfast',
             'property_key': 'fastnr',
-            'latitude': 'xkoordinat',
-            'longitude': 'ykoordinat',
+            'xkoordinat': 'xkoordinat',
+            'ykoordinat': 'ykoordinat',
         },
         'pre_sync': """
-lati = str(vals.pop('latitude'))
-long = str(vals.pop('longitude'))
+latitude = str(vals.pop('xkoordinat'))
+longitude = str(vals.pop('ykoordinat'))
 name = str(vals['name'])
 
 if name and ',' in name:
     vals['city'] = name.split(',')[0]
     
-if lati and len(lati) == 7:
-    vals['latitude'] = f"{lati[:2]}{lati[2:]}"
-
-if long and len(long) == 7:
-    vals['longitude'] = f"{long[:2]}{long[2:]}"
+if len(latitude) == 7 and len(longitude) == 7:
+    vals['property_lat_rt90'] = latitude
+    vals['property_long_rt90'] = longitude
+elif len(latitude) == 7 and len(longitude) == 6:
+    vals['property_lat_sweref99'] = latitude
+    vals['property_long_sweref99'] = longitude
     
 """,
     },
@@ -184,17 +188,23 @@ if long and len(long) == 7:
     'agare_idagare': {
         'model': 'property.stakeholder',
         'fields': {
-            'partner_id': 'agare.idagare',
-            'property_id': 'idfafast',
+            'agare': 'agare.idagare',
+            'idfafast': 'idfafast',
         },
         'pre_sync': """
-partner_xmlid = get_xmlid('idkund', vals['partner_id'])
-vals['partner_id'] = get_res_id_from_xmlid(partner_xmlid)
-if not vals['partner_id']:
+partner_xmlid = get_xmlid('idkund', vals.pop('agare'))
+partner_id = get_res_id(partner_xmlid)
+if partner_id:
+    vals['partner_id'] = partner_id
+else:
     vals['skip'] = True
 
-property_xmlid = get_xmlid('idfafast', vals['property_id'])
-vals['property_id'] = get_res_id_from_xmlid(property_xmlid)
+property_xmlid = get_xmlid('idfafast', vals.pop('idfafast'))
+property_id = get_res_id(property_xmlid)
+if property_id:
+    vals['property_id'] = property_id
+else:
+    vals['skip'] = True
 """,
     },
     # endregion
@@ -247,8 +257,8 @@ else:
         },
         'pre_sync': """
 vals['list_price'] = float(vals['list_price'].split(',')[0].replace('.',''))
-vals['property_account_expense_id'] = get_res_id_from_xmlid('l10n_se.1_chart4001')
-vals['property_account_income_id'] = get_res_id_from_xmlid('l10n_se.1_chart3001')
+vals['property_account_expense_id'] = get_res_id('l10n_se.1_chart4001')
+vals['property_account_income_id'] = get_res_id('l10n_se.1_chart3001')
 vals['service_policy'] = 'delivered_timesheet'
 vals['service_tracking'] = 'task_in_project'
 
@@ -263,11 +273,11 @@ UOM = {
 uom = vals['uom_id']
 uom_xmlid = f"uom.product_uom_{UOM.get(uom, 'unit')}"
 
-vals['uom_id'] = get_res_id_from_xmlid(uom_xmlid)
+vals['uom_id'] = get_res_id(uom_xmlid)
 
 ### Create in a datafile instead
 if not vals['uom_id'] and uom == 'ha':
-    area_id = get_res_id_from_xmlid('uom.uom_categ_area')
+    area_id = get_res_id('uom.uom_categ_area')
     if not area_id:
         area_id = target.env['uom.category'].create({'name':'Area'})
         area_xmlid = {
@@ -278,7 +288,7 @@ if not vals['uom_id'] and uom == 'ha':
             }
         target.env['ir.model.data'].create(area_xmlid)
         
-    m2_id = get_res_id_from_xmlid('uom.product_uom_square_meter')
+    m2_id = get_res_id('uom.product_uom_square_meter')
     if not m2_id:
         m2_id = target.env['uom.uom'].create({
             'category_id': area_id,
@@ -310,12 +320,12 @@ vals['uom_po_id'] = vals['uom_id']
 maps['parent_template_xmlid'] = get_xmlid('idprod_reg', vals.pop('parent_template_id'))
 """,
         'post_sync': """
-template_id = get_res_id_from_xmlid(xmlid)
+template_id = get_res_id(xmlid)
 if template_id:
     template = target.env['product.template'].read(template_id)[0]
     product_id = template['product_variant_id'][0]
     if product_id:
-        parent_template_id = get_res_id_from_xmlid(maps.get('parent_template_xmlid'))
+        parent_template_id = get_res_id(maps.get('parent_template_xmlid'))
         if parent_template_id:
             parent_template = target.env['product.template'].read(parent_template_id)[0]
             parent_product_id = parent_template['product_variant_id'][0]
@@ -345,7 +355,7 @@ if template_id:
         },
         'pre_sync': """
 categ_xmlid = get_xmlid('product_category', vals.pop('verksamhetsgren'))
-categ_id = get_res_id_from_xmlid(categ_xmlid)
+categ_id = get_res_id(categ_xmlid)
 if categ_id:
     vals['categ_id'] = categ_id
 vals['pack_ok'] = True
@@ -361,15 +371,17 @@ vals['pack_modifiable'] = True
         'fields': {
             'summa': 'summa_fakturerat',
             'note': 'annan_info',
-            'partner_id': 'kund.idkund',
+            'kund': 'kund.idkund',
             'projekt': 'projekt',
             'projektnamn': 'uppdragsbenamning',
             'user_id': 'ansvarig_medarbetare.anvandare',
         },
         'pre_sync': """
-partner_xmlid = get_xmlid('idkund', vals['partner_id'])
-vals['partner_id'] = get_res_id_from_xmlid(partner_xmlid)
-if not vals['partner_id']:
+
+partner_id = get_res_id(get_xmlid('idkund', vals.pop('kund')))
+if partner_id:
+    vals['partner_id'] = partner_id
+else:
     vals['skip'] = True
 
 uid = vals['user_id']
@@ -385,23 +397,23 @@ maps['projektnamn'] = vals.pop('projektnamn')
 maps['summa'] = vals.pop('summa')
 """,
         'post_sync': """
-order_id = get_res_id_from_xmlid(xmlid)
+order_id = get_res_id(xmlid)
 product_xmlid = get_xmlid('slask', 'produkt')
-product_id = get_res_id_from_xmlid(product_xmlid)
+product_id = get_res_id(product_xmlid)
 price_unit = 0
 if maps['summa']:
     price_unit = float(maps['summa'].split(',')[0].replace('.',''))
 
 if not product_id:
     template_xmlid = get_xmlid('slask', 'produktmall')
-    template_id = get_res_id_from_xmlid(template_xmlid)
+    template_id = get_res_id(template_xmlid)
     if not template_id:
         template_id = create_record_and_xmlid('product.template', {'name': 'Migreringsprodukt'}, template_xmlid)
 
     template = target.env['product.template'].read(template_id)[0]
     product_id = template['product_variant_id'][0]
     create_xmlid('product.product', product_id, product_xmlid)
-    product_id = get_res_id_from_xmlid(product_xmlid)
+    product_id = get_res_id(product_xmlid)
 else:
     line_model = 'sale.order.line'
     line_vals = {
@@ -430,7 +442,7 @@ if maps['projekt']:
     else:
         if not create_record_and_xmlid('project.project', project_vals, project_xmlid):
             write_record('project.project', project_vals, project_xmlid)
-    project_id = get_res_id_from_xmlid(project_xmlid)
+    project_id = get_res_id(project_xmlid)
     if project_id:
         target.env['sale.order'].write(order_id, {'project_id': project_id})
 """,
@@ -443,8 +455,8 @@ if maps['projekt']:
             'name': 'Beskrivning',
             },
         'pre_sync': """
-parent_xmlid = f"__imp__.prod_PC{xmlid.split('_')[-1][1:3]}"
-parent_id = get_res_id_from_xmlid(parent_xmlid)
+parent_xmlid = f"__imp__.prod_PC{xmlid.split('_')[-1][1:3]}" # ugly, but works
+parent_id = get_res_id(parent_xmlid)
 if parent_id:
     vals['parent_id'] = parent_id
 """,
@@ -461,7 +473,7 @@ if parent_id:
         'pre_sync': """
 maps['Kundnr'] = vals.pop('Kundnr')
 maps['Kundnr(T)'] = vals.pop('Kundnr(T)')
-group_id = get_res_id_from_xmlid('account_sks.N2')
+group_id = get_res_id('account_sks.N2')
 if group_id:
     vals['group_id'] = group_id
 """,
@@ -472,7 +484,7 @@ if partner_id:
     partner_vals = {
         'company_type': 'company',
         'name': maps.get('Kundnr(T)'),
-        'partner_company_type_id': get_res_id_from_xmlid('__import__.res_partner_company_type_1_statliga'),
+        'partner_company_type_id': get_res_id('__import__.res_partner_company_type_1_statliga'),
         }
     partner_xmlid = get_xmlid('kundnr', partner_id)
     if mode == 'debug':
@@ -481,11 +493,10 @@ if partner_id:
     else:
         if not create_record_and_xmlid(partner_model, partner_vals, partner_xmlid):
             write_record(partner_model, partner_vals, partner_xmlid)
-        write_record(
-            'account.analytic.account', 
-            {'partner_id': get_res_id_from_xmlid(partner_xmlid),}, 
-
-            xmlid)
+        write_record('account.analytic.account', 
+            {'partner_id': get_res_id(partner_xmlid), }, 
+            xmlid,
+            )
 """,
     },
     # endregion

@@ -83,7 +83,7 @@ def vals_builder(row, cols, fields):
 
 def create_record_and_xmlid(model, vals, xmlid):
     """Create record if it doesn't exist, return res_id."""
-    res_id = get_res_id_from_xmlid(xmlid)
+    res_id = get_res_id(xmlid)
     if res_id:
         print(f"Skipping creation {xmlid} already exist")
         return 0
@@ -96,7 +96,7 @@ def create_record_and_xmlid(model, vals, xmlid):
 
 def write_record(model, vals, xmlid):
     """Write record if it exist, return res_id."""
-    res_id = get_res_id_from_xmlid(xmlid)
+    res_id = get_res_id(xmlid)
     if not res_id:
         print(f"Skipping write {xmlid} does not exist")
         return 0
@@ -111,7 +111,7 @@ def get_xmlid(model, ext_id):
     return f"{IMPORT}.{model.replace('.', '_')}_{ext_id}"
 
 
-def get_res_id_from_xmlid(xmlid):
+def get_res_id(xmlid):
     """Return res_id from xmlid if found."""
     return target.env['ir.model.data'].xmlid_to_res_id(xmlid)
 
