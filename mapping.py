@@ -167,19 +167,25 @@ if event_id and partner_id:
             'ykoordinat': 'ykoordinat',
         },
         'pre_sync': """
-latitude = str(vals.pop('xkoordinat'))
-longitude = str(vals.pop('ykoordinat'))
+latitude = str(vals.pop('xkoordinat')).replace('.','')
+longitude = str(vals.pop('ykoordinat')).replace('.','')
 name = str(vals['name'])
 
 if name and ',' in name:
     vals['city'] = name.split(',')[0]
-    
+
 if len(latitude) == 7 and len(longitude) == 7:
     vals['property_lat_rt90'] = latitude
     vals['property_long_rt90'] = longitude
+    vals['latitude'] = False
+    vals['longitude'] = False
+
 elif len(latitude) == 7 and len(longitude) == 6:
     vals['property_lat_sweref99'] = latitude
     vals['property_long_sweref99'] = longitude
+    vals['latitude'] = False
+    vals['longitude'] = False
+
     
 """,
     },
@@ -256,6 +262,7 @@ else:
             'uom_id': 'enhet',
         },
         'pre_sync': """
+
 vals['list_price'] = float(vals['list_price'].split(',')[0].replace('.',''))
 vals['property_account_expense_id'] = get_res_id('l10n_se.1_chart4001')
 vals['property_account_income_id'] = get_res_id('l10n_se.1_chart3001')
@@ -320,14 +327,15 @@ vals['uom_po_id'] = vals['uom_id']
 maps['parent_template_xmlid'] = get_xmlid('idprod_reg', vals.pop('parent_template_id'))
 """,
         'post_sync': """
+Template = target.env['product.template']
 template_id = get_res_id(xmlid)
 if template_id:
-    template = target.env['product.template'].read(template_id)[0]
+    template = Template.read(template_id)[0]
     product_id = template['product_variant_id'][0]
     if product_id:
         parent_template_id = get_res_id(maps.get('parent_template_xmlid'))
         if parent_template_id:
-            parent_template = target.env['product.template'].read(parent_template_id)[0]
+            parent_template = Template.read(parent_template_id)[0]
             parent_product_id = parent_template['product_variant_id'][0]
             if parent_product_id:
                 pl_xmlid = get_xmlid('artikel', xmlid.split('_')[-1])
@@ -336,11 +344,12 @@ if template_id:
                     'parent_product_id': parent_product_id, 
                     'product_id': product_id,
                     }
-            if mode == 'debug':
-                print(f"{pl_vals=}")
-            else:
-                if not create_record_and_xmlid(pl_model, pl_vals, pl_xmlid):
-                    write_record(pl_model, pl_vals, pl_xmlid)
+            if not create_record_and_xmlid(pl_model, pl_vals, pl_xmlid):
+                write_record(pl_model, pl_vals, pl_xmlid)
+       
+            income_id = parent_template['property_account_income_id']
+            if income_id:
+                Template.write(template_id, {'property_account_income_id': income_id[0]})
 """,
     },
     # endregion
@@ -354,7 +363,8 @@ if template_id:
             'verksamhetsgren': 'verksamhetsgren',
         },
         'pre_sync': """
-categ_xmlid = get_xmlid('product_category', vals.pop('verksamhetsgren'))
+verksamhetsgren = vals.pop('verksamhetsgren')
+categ_xmlid = get_xmlid('product_category', verksamhetsgren)
 categ_id = get_res_id(categ_xmlid)
 if categ_id:
     vals['categ_id'] = categ_id
@@ -362,6 +372,17 @@ vals['pack_ok'] = True
 vals['pack_type'] = 'detailed'
 vals['pack_component_price'] = 'detailed'
 vals['pack_modifiable'] = True
+vals['property_account_expense_id'] = get_res_id('l10n_se.1_chart4001')
+vals['property_account_income_id'] = get_res_id('l10n_se.1_chart3001')
+if verksamhetsgren:
+    if verksamhetsgren in ['P1109', 'P1110', 'P1111', 'P1160', 'P1180', 'P1280', 'P1370', 'P1385', 'P1395', 'P1410', 'P1420', 'P1425', 'P1430', 'P1590', 'P1601', 'P1740', 'P1751', 'P1760', 'P1790']:
+        vals['property_account_income_id'] = get_res_id('l10n_se.1_chart3332')
+    elif verksamhetsgren in ['P1210', 'P1215', 'P1230', 'P1232', 'P1233', 
+        'P1234', 'P1235', 'P1236', 'P1237', 'P1238', 'P1239', 'P1241', 
+        'P1242', 'P1243', 'P1244', 'P1245', 'P1246', 'P1247', 'P1248', 
+        'P1249', 'P1260', 'P1261', 'P1262', 'P1263', 'P1264', 'P1265', 
+        'P1266', 'P1267']:
+        vals['property_account_income_id'] = get_res_id('l10n_se.1_chart3322')
 """,
     },
     # endregion
