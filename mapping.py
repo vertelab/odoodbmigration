@@ -388,84 +388,40 @@ if verksamhetsgren:
     # endregion
     # region uppdrag.xlsx
     'iduppdrag': {
-        'model': 'sale.order',
+        'model': 'project.project',
         'fields': {
-            'summa': 'summa_fakturerat',
-            'note': 'annan_info',
+            'annan_info': 'annan_info',
+            'name': 'uppdragsbenamning',
+            'ovrig_information':'ovrig_information',
+            'anvandare': 'ansvarig_medarbetare.anvandare',
             'kund': 'kund.idkund',
-            'projekt': 'projekt',
-            'projektnamn': 'uppdragsbenamning',
-            'user_id': 'ansvarig_medarbetare.anvandare',
         },
         'pre_sync': """
-
-partner_id = get_res_id(get_xmlid('idkund', vals.pop('kund')))
-if partner_id:
-    vals['partner_id'] = partner_id
-else:
-    vals['skip'] = True
-
-uid = vals['user_id']
-if uid:
-    uid = target.env['res.users'].search([('login', '=', uid)])
-    if uid:
-        vals['user_id'] = uid[0]
-if not uid:
-    vals.pop('user_id')
-
-maps['projekt'] = vals.pop('projekt')
-maps['projektnamn'] = vals.pop('projektnamn')
-maps['summa'] = vals.pop('summa')
-""",
-        'post_sync': """
-order_id = get_res_id(xmlid)
-product_xmlid = get_xmlid('slask', 'produkt')
-product_id = get_res_id(product_xmlid)
-price_unit = 0
-if maps['summa']:
-    price_unit = float(maps['summa'].split(',')[0].replace('.',''))
-
-if not product_id:
-    template_xmlid = get_xmlid('slask', 'produktmall')
-    template_id = get_res_id(template_xmlid)
-    if not template_id:
-        template_id = create_record_and_xmlid('product.template', {'name': 'Migreringsprodukt'}, template_xmlid)
-
-    template = target.env['product.template'].read(template_id)[0]
-    product_id = template['product_variant_id'][0]
-    create_xmlid('product.product', product_id, product_xmlid)
-    product_id = get_res_id(product_xmlid)
-else:
-    line_model = 'sale.order.line'
-    line_vals = {
-        'name': maps['projektnamn'],
-        'order_id': order_id,
-        'product_id': product_id,
-        'price_unit': price_unit
-    }
-    line_xmlid = get_xmlid('migreringsprodukt', xmlid.split('_')[-1])
-    if mode == 'debug':
-        print(f"{line_vals=}")
-        print(f"{line_xmlid=}")
-    else:
-        if not create_record_and_xmlid(line_model, line_vals, line_xmlid):
-            write_record(line_model, line_vals, line_xmlid)
+kund = vals.pop('kund')
+if kund:
+    partner_id = get_res_id(get_xmlid('idkund', kund))
+    if partner_id:
+        vals['partner_id'] = partner_id
         
-if maps['projekt']:
-    project_vals = {
-        'name': maps['projektnamn'],
-        'sale_order_id': order_id,
-    }
-    project_xmlid = get_xmlid('projekt', maps['projekt'])
-    if mode == 'debug':
-        print(f"{project_vals=}")
-        print(f"{project_xmlid=}")
-    else:
-        if not create_record_and_xmlid('project.project', project_vals, project_xmlid):
-            write_record('project.project', project_vals, project_xmlid)
-    project_id = get_res_id(project_xmlid)
-    if project_id:
-        target.env['sale.order'].write(order_id, {'project_id': project_id})
+anvandare = vals.pop('anvandare')
+if anvandare:
+    user_id = target.env['res.users'].search([('login', '=', anvandare)])
+    if user_id:
+        vals['user_id'] = user_id[0]
+        
+annan_info = vals.pop('annan_info')
+ovrig_information = vals.pop('ovrig_information')
+description = ''
+vals['description'] = False
+if ovrig_information:
+    description += f"Övrig information: {ovrig_information}\\n"
+
+if annan_info:
+    description += f"Annan info: {annan_info}\\n"
+
+if description:
+    vals['description'] = description
+
 """,
     },
     # endregion
@@ -518,6 +474,61 @@ if partner_id:
             {'partner_id': get_res_id(partner_xmlid), }, 
             xmlid,
             )
+""",
+    },
+    # endregion
+    # region kalkyl.xlsx
+    'idkalkyl': {
+        'model': 'sale.order.line',
+        'fields': {
+            'antal' : 'antal',
+            'artikel': 'artikel.idartikel',
+            'pris': 'pris',
+            'uppdrag':'uppdrag.iduppdrag',
+        },
+        'pre_sync': """
+antal = vals.pop('antal')
+if antal:
+    vals['product_uom_qty'] = antal
+
+artikel = vals.pop('artikel')
+if artikel:
+    template_xmlid = get_xmlid('idartikel', artikel)
+    template_id = get_res_id(template_xmlid)
+    if template_id:
+        template = target.env['product.template'].read(template_id)[0]
+        product = template['product_variant_id']
+        if product:
+            vals['product_id'] = product[0]
+        else:
+            vals['skip'] = True
+
+pris = vals.pop('pris')
+if pris:
+    vals['price_unit'] = float(pris.split(',')[0].replace('.',''))
+
+uppdrag = vals.pop('uppdrag')
+if uppdrag:
+    project_xmlid = get_xmlid('iduppdrag', uppdrag)
+    project_id = get_res_id(project_xmlid)
+    if project_id:
+        project = target.env['project.project'].read(project_id)[0]
+        partner = project['partner_id']
+        if partner:
+            order_vals = {'partner_id': partner[0], 'project_id': project_id}
+            order_xmlid = get_xmlid('kalkyl', uppdrag)
+            order_id = get_res_id(order_xmlid)
+            if not order_id:
+                order_id = create_record_and_xmlid('sale.order', order_vals, order_xmlid)
+            else:
+                order_id = write_record('sale.order', order_vals, order_xmlid)
+            vals['order_id'] = order_id
+        else:
+            vals['skip'] = True
+    else:
+        vals['skip'] = True
+else:
+    vals['skip'] = True
 """,
     },
     # endregion
