@@ -1,6 +1,7 @@
 import odoorpc
 import openpyxl
 import sys
+import getopt
 from mapping import MAPS
 from pathlib import Path
 from pprint import pprint as pp
@@ -11,60 +12,69 @@ import pytz
 IMPORT = '__import__'
 
 
-def main(file_path, col):
-    modes = ['debug', 'sync']
-    while True:
-        mode = input(f"Mode? {modes} ").lower()
-        if mode in modes:
-            break
-        else:
-            print('Wrong mode')
+def main(argv):
+    input_file = ''
+    mode = 'debug'
+    try:
+        opts, args = getopt.getopt(argv, "dhi:s")
+    except getopt.GetoptError:
+        help()
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt == '-d':
+            mode = 'debug'
+        elif opt == '-h':
+            help()
+            sys.exit()
+        elif opt in ("-i"):
+            input_file = arg
+        if opt == '-s':
+            mode = 'sync'
     print('\nLoading workbook . . . ', end=' ')
-    xlsx_file = Path(file_path)
-    wb = openpyxl.load_workbook(xlsx_file, data_only=True)
-    print('Ok!\nLoading worksheet . . .', end=' ')
-    ws = wb.active
-    run = input('Ok!\nRun script? [yN] ').lower()
-    if run == 'y':
-        cols = [col.value for col in ws[1]]
-        migrate_from_sheet(col=col, cols=cols, sheet=ws, mode=mode)
-    print('Terminating program. . .')
+    xlsx_file = Path(input_file)
+    try:
+        wb = openpyxl.load_workbook(xlsx_file, data_only=True)
+    except Exception as e:
+        print(e.message)
+    else:
+        print('Ok!\nLoading worksheet . . .', end=' ')
+        file_name = input_file.split('/')[-1]
+        sheet = wb.active
+        migrate_from_sheet(file_name, sheet, mode)
+    finally:
+        print('Terminating program. . .')
 
 
-def migrate_from_sheet(**kwargs):
-    """Create/update records from xlsx sheet"""
-    count = 0
+def help():
+    print(f"{sys.argv[0].split('/')[-1]} -i <inputfile> -d //for debugging")
+    print(f"{sys.argv[0].split('/')[-1]} -i <inputfile> -s //for syncing")
+
+
+def migrate_from_sheet(file_name, sheet, mode):
     errors = []
-    col = kwargs.get('col')
-    cols = kwargs.get('cols')
-    mode = kwargs.get('mode')
-    sheet = kwargs.get('sheet')
-
-    ext_model = cols[int(col) if col else 0].replace('.', '_')
-    maps = MAPS.get(ext_model)
+    cols = [col.value for col in sheet[1]]
+    maps = MAPS.get(file_name)
+    external_identifier = maps.get('external_identifier')
     model = maps.get('model')
     for row in sheet.iter_rows(min_row=2):
         vals = vals_builder(row, cols, maps.get('fields'))
-        xmlid = get_xmlid(ext_model, row[0].value)
-        exec(maps.get('pre_sync', ''))
+        xmlid = get_xmlid(external_identifier, row[0].value)
+        exec(maps.get('before', ''))
         while True:
             try:
                 if 'skip' in vals:
                     pass
                 else:
                     if mode == 'debug':
-                        if count == 0:
-                            pp(cols)
                         print(f"{vals=}")
                         print(f"{xmlid=}")
-                        count += 1
                     elif mode == 'sync':
-                        if not create_record_and_xmlid(model, vals, xmlid):
-                            write_record(model, vals, xmlid)
-                    exec(maps.get('post_sync', ''))
+                        create_record_and_xmlid_or_update(model, vals, xmlid)
+                    exec(maps.get('after', ''))
                     input() if mode == 'debug' else None
             except Exception as e:
-                print({'e': e, 'row': [r.value for r in row], 'vals': vals, 'xmlid': xmlid})
+                print(
+                    {'e': e, 'row': [r.value for r in row], 'vals': vals, 'xmlid': xmlid})
                 errors.append(
                     {'e': e, 'row': [r.value for r in row], 'vals': vals, 'xmlid': xmlid})
             else:
@@ -81,34 +91,20 @@ def vals_builder(row, cols, fields):
     return vals
 
 
-def create_record_and_xmlid(model, vals, xmlid):
-    """Create record if it doesn't exist, return res_id."""
+def create_record_and_xmlid_or_update(model, vals, xmlid):
     res_id = get_res_id(xmlid)
     if res_id:
-        print(f"Skipping creation {xmlid} already exist")
-        return 0
+        target.env[model].write(res_id, vals)
+        print('WRITE_RECORD: SUCCESS!', res_id, xmlid, vals)
     else:
         res_id = target.env[model].create(vals)
         create_xmlid(model, res_id, xmlid)
         print("CREATE_RECORD: SUCCESS!", res_id, xmlid, vals)
-        return res_id
 
 
-def write_record(model, vals, xmlid):
-    """Write record if it exist, return res_id."""
-    res_id = get_res_id(xmlid)
-    if not res_id:
-        print(f"Skipping write {xmlid} does not exist")
-        return 0
-    else:
-        target.env[model].write(res_id, vals)
-        print('WRITE_RECORD: SUCCESS!', res_id, xmlid, vals)
-        return res_id
-
-
-def get_xmlid(model, ext_id):
+def get_xmlid(identifier, ext_id):
     """Return xmlid from model and ext_id."""
-    return f"{IMPORT}.{model.replace('.', '_')}_{ext_id}"
+    return f"{IMPORT}.{identifier.replace('.', '_')}_{ext_id}"
 
 
 def get_res_id(xmlid):
@@ -137,6 +133,6 @@ if __name__ == "__main__":
         'mail_notrack': True,
         'tracking_disable': True,
         'tz': 'UTC',
-        })
+    })
     print(target.env)
-    main(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else 0)
+    main(sys.argv[1:])

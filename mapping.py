@@ -1,6 +1,7 @@
 MAPS = {
     # region kund.xlsx
-    'idkund': {
+    'kund.xlsx': {
+        'external_identifier' :'kund',
         'model': 'res.partner',
         'fields': {
             'vat': 'vatnr',
@@ -12,9 +13,9 @@ MAPS = {
             'street': 'adress',
             'comment': 'annan_info',
             'partner_ssn': 'pnrchar',
-            'kundgrupp': 'kundgrupp'
+            'kundgrupp': 'kundgrupp',
         },
-        'pre_sync': """
+        'before': """
 vals['category_id'] = [(4, 3, 0)]
 
 if not vals['email']:
@@ -69,7 +70,8 @@ if kundgrupp:
     },
     # endregion
     # region pepers.xlsx
-    'idpepers': {
+    'pepers.xlsx': {
+        'external_identifier' :'pepers',
         'model': 'res.partner',
         'fields': {
             'name': 'namn',
@@ -79,7 +81,7 @@ if kundgrupp:
             'comment': 'info',
             'kund': 'kund.idkund',
         },
-        'pre_sync': """
+        'before': """
 vals['category_id'] = [(4, 4, 0)]
             
 if not vals['email']:
@@ -92,7 +94,7 @@ if type(vals['mobile']) is int:
 if type(vals['name']) is int:
     vals['name'] = str(vals['name'])
 
-parent_xmlid = get_xmlid('idkund', vals.pop('kund'))
+parent_xmlid = get_xmlid('kund', vals.pop('kund'))
 parent_id = get_res_id(parent_xmlid)
 if parent_id:
     vals['parent_id'] = parent_id
@@ -107,7 +109,8 @@ if type(vals['phone']) is int:
     },
     # endregion
     # region kursdeltagare.xlsx
-    'idkursdeltagare': {
+    'kursdeltagare.xlsx': {
+        'external_identifier' :'kursdeltagare',
         'model': 'res.partner',
         'fields': {
             'zip': 'postnr',
@@ -119,13 +122,14 @@ if type(vals['phone']) is int:
             'kund.idkund': 'kund.idkund',
             'kurs.idkurs': 'kurs.idkurs'
         },
-        'pre_sync': """
+        'before': """
 vals['category_id'] = [(4, 5, 0)]
 
 if type(vals['name']) is int:
     vals['name'] = str(vals['name'])
-    
-parent_id = get_res_id(f"idkund.{vals.pop('kund.idkund')}")
+
+parent_xmlid = get_xmlid('kund', vals.pop('kund.idkund'))
+parent_id = get_res_id(parent_xmlid)
 if parent_id:
     vals['parent_id'] = parent_id
 else:
@@ -136,10 +140,11 @@ if type(vals['phone']) is int:
     if not str(vals['phone']).startswith('0'):
         vals['phone'] = '0' + str(vals['phone'])
 
-maps['event_xmlid'] = get_xmlid('idkurs', vals.pop('kurs.idkurs'))
+maps['event_xmlid'] = get_xmlid('kurs', vals.pop('kurs.idkurs'))
 """,
-        'post_sync': """
-event_id = get_res_id(maps.get('event_xmlid'))
+        'after': """
+event_xmlid = maps.get('event_xmlid')
+event_id = get_res_id(evet_xmlid)
 partner_id = get_res_id(xmlid)
 if event_id and partner_id:
     er_model = 'event.registration'
@@ -148,6 +153,7 @@ if event_id and partner_id:
         'partner_id': partner_id,
         }
     er_xmlid = get_xmlid('kursdeltagare_kurs', xmlid.split('_')[-1])
+
     if mode == 'debug':
         print(f"{er_vals=}")
         print(f"{er_xmlid=}")
@@ -158,15 +164,18 @@ if event_id and partner_id:
     },
     # endregion
     # region fafast.xlsx
-    'idfafast': {
+    'fafast.xlsx': {
+        'external_identifier' :'fafast',
         'model': 'property.property',
         'fields': {
+            'agare.idagare': 'agare.idagare',
+            'idfafast': 'idfafast',
             'name': 'namnfast',
             'property_key': 'fastnr',
             'xkoordinat': 'xkoordinat',
             'ykoordinat': 'ykoordinat',
         },
-        'pre_sync': """
+        'before': """
 latitude = str(vals.pop('xkoordinat')).replace('.','')
 longitude = str(vals.pop('ykoordinat')).replace('.','')
 name = str(vals['name'])
@@ -184,38 +193,37 @@ elif len(latitude) == 7 and len(longitude) == 6:
     vals['property_lat_sweref99'] = latitude
     vals['property_long_sweref99'] = longitude
     vals['latitude'] = False
-    vals['longitude'] = False
-
-    
+    vals['longitude'] = False    
 """,
-    },
-    # endregion
-    # region fafast.xlsx 9
-    'agare_idagare': {
-        'model': 'property.stakeholder',
-        'fields': {
-            'agare': 'agare.idagare',
-            'idfafast': 'idfafast',
-        },
-        'pre_sync': """
-partner_xmlid = get_xmlid('idkund', vals.pop('agare'))
+        'after': """
+agare_id = vals.pop('agare.idagare')
+stakeholder = {
+    'model': 'property.stakeholder',
+    'xmlid': get_xmlid('fastighetsagare', agare_id),
+}
+partner_xmlid = get_xmlid('kund', agare_id)
 partner_id = get_res_id(partner_xmlid)
 if partner_id:
-    vals['partner_id'] = partner_id
-else:
-    vals['skip'] = True
+    stakeholder_vals['partner_id'] = partner_id
 
-property_xmlid = get_xmlid('idfafast', vals.pop('idfafast'))
-property_id = get_res_id(property_xmlid)
-if property_id:
-    vals['property_id'] = property_id
-else:
-    vals['skip'] = True
+    fastighet_id = vals.pop('idfafast')
+    property_xmlid = get_xmlid('fafast', fastighet_id)
+    property_id = get_res_id(property_xmlid)
+    if property_id:
+        stakeholder_vals['property_id'] = property_id
+
+        if mode == 'debug':
+            print(f"{stakeholder=}")
+        else:
+            if not create_record_and_xmlid(stakeholder_model, er_vals, stakeholder_xmlid):
+                write_record(stakeholder_model, er_vals, stakeholder_xmlid)
+
 """,
     },
     # endregion
     # region kurs.xlsx
-    'idkurs': {
+    'kurs.xlsx': {
+        'external_identifier' :'idkurs',
         'model': 'event.event',
         'fields': {
             'name': 'kursbenamning',
@@ -224,7 +232,7 @@ else:
             'date_end': 'antaldagar',
             'user_id': 'kursansvarig.anvandare',
         },
-        'pre_sync': """
+        'before': """
 if not vals['date_begin']:
     vals['skip'] = True
 else:
@@ -253,7 +261,8 @@ else:
     },
     # endregion
     # region artikel.xlsx
-    'idartikel': {
+    'artikel.xlsx': {
+        'external_identifier' :'idartikel',
         'model': 'product.template',
         'fields': {
             'name': 'benamning',
@@ -261,7 +270,7 @@ else:
             'parent_template_id': 'produkt.idprodukt',
             'uom_id': 'enhet',
         },
-        'pre_sync': """
+        'before': """
 
 vals['list_price'] = float(vals['list_price'].split(',')[0].replace('.',''))
 vals['property_account_expense_id'] = get_res_id('l10n_se.1_chart4001')
@@ -326,7 +335,7 @@ if not vals['uom_id'] and uom == 'ha':
 vals['uom_po_id'] = vals['uom_id']
 maps['parent_template_xmlid'] = get_xmlid('idprod_reg', vals.pop('parent_template_id'))
 """,
-        'post_sync': """
+        'after': """
 Template = target.env['product.template']
 template_id = get_res_id(xmlid)
 if template_id:
@@ -354,7 +363,8 @@ if template_id:
     },
     # endregion
     # region prod_reg.xlsx
-    'idprod_reg': {
+    'prod_reg.xlsx': {
+        'external_identifier' :'idprod_reg',
         'model': 'product.template',
         'fields': {
             'name': 'namn',
@@ -362,7 +372,7 @@ if template_id:
             'description_sale': 'beskrivning',
             'verksamhetsgren': 'verksamhetsgren',
         },
-        'pre_sync': """
+        'before': """
 verksamhetsgren = vals.pop('verksamhetsgren')
 categ_xmlid = get_xmlid('product_category', verksamhetsgren)
 categ_id = get_res_id(categ_xmlid)
@@ -387,7 +397,8 @@ if verksamhetsgren:
     },
     # endregion
     # region uppdrag.xlsx
-    'iduppdrag': {
+    'uppdrag.xlsx': {
+        'external_identifier' :'iduppdrag',
         'model': 'project.project',
         'fields': {
             'annan_info': 'annan_info',
@@ -396,7 +407,7 @@ if verksamhetsgren:
             'anvandare': 'ansvarig_medarbetare.anvandare',
             'kund': 'kund.idkund',
         },
-        'pre_sync': """
+        'before': """
 kund = vals.pop('kund')
 if kund:
     partner_id = get_res_id(get_xmlid('idkund', kund))
@@ -426,12 +437,13 @@ if description:
     },
     # endregion
     # region verksamhetsgrenar.xlsx
-    'product_category': {
+    'verksamhetsgrenar.xlsx': {
+        'external_identifier' :'product_category',
         'model': 'product.category',
         'fields': {
             'name': 'Beskrivning',
             },
-        'pre_sync': """
+        'before': """
 parent_xmlid = f"__imp__.prod_PC{xmlid.split('_')[-1][1:3]}" # ugly, but works
 parent_id = get_res_id(parent_xmlid)
 if parent_id:
@@ -440,21 +452,22 @@ if parent_id:
     },
     # endregion
     # region motpart.xlsx
-    'motpart': {
+    'motpart.xlsx': {
+        'external_identifier' :'motpart',
         'model': 'account.analytic.account',
         'fields': {
             'name': 'Beskrivning',
             'Kundnr': 'Kundnr',
             'Kundnr(T)': 'Kundnr(T)',
             },
-        'pre_sync': """
+        'before': """
 maps['Kundnr'] = vals.pop('Kundnr')
 maps['Kundnr(T)'] = vals.pop('Kundnr(T)')
 group_id = get_res_id('account_sks.N2')
 if group_id:
     vals['group_id'] = group_id
 """,
-        'post_sync': """
+        'after': """
 partner_id = maps.get('Kundnr')
 if partner_id:
     partner_model = 'res.partner'
@@ -478,7 +491,8 @@ if partner_id:
     },
     # endregion
     # region kalkyl.xlsx
-    'idkalkyl': {
+    'kalkyl.xlsx': {
+        'external_identifier' :'kalkyl',
         'model': 'sale.order.line',
         'fields': {
             'antal' : 'antal',
@@ -486,14 +500,14 @@ if partner_id:
             'pris': 'pris',
             'uppdrag':'uppdrag.iduppdrag',
         },
-        'pre_sync': """
+        'before': """
 antal = vals.pop('antal')
 if antal:
     vals['product_uom_qty'] = antal
 
 artikel = vals.pop('artikel')
 if artikel:
-    template_xmlid = get_xmlid('idartikel', artikel)
+    template_xmlid = get_xmlid('artikel', artikel)
     template_id = get_res_id(template_xmlid)
     if template_id:
         template = target.env['product.template'].read(template_id)[0]
@@ -509,7 +523,7 @@ if pris:
 
 uppdrag = vals.pop('uppdrag')
 if uppdrag:
-    project_xmlid = get_xmlid('iduppdrag', uppdrag)
+    project_xmlid = get_xmlid('uppdrag', uppdrag)
     project_id = get_res_id(project_xmlid)
     if project_id:
         project = target.env['project.project'].read(project_id)[0]
