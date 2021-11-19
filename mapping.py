@@ -258,9 +258,9 @@ else:
     if kursstatus:
         if kursstatus.startswith('1') or kursstatus.startswith('2'):
             vals['stage_id'] = get_res_id('event.event_stage_new')
-        if kursstatus.startswith('3'):
+        elif kursstatus.startswith('3'):
             vals['stage_id'] = get_res_id('event.event_stage_announced')
-        if kursstatus.startswith('4'):
+        elif kursstatus.startswith('4'):
             invited_xmlid = 'event.event_stage_invited'
             invited = get_res_id(invited_xmlid)
             if not invited:
@@ -270,7 +270,7 @@ else:
                     })
                 create_xmlid('event.stage', invited, invited_xmlid)
             vals['stage_id'] = invited
-        if kursstatus.startswith('5'):
+        elif kursstatus.startswith('5'):
             part_invoiced_xmlid = 'event.event_stage_part_invoiced'
             part_invoiced = get_res_id(part_invoiced_xmlid)
             if not part_invoiced:
@@ -280,9 +280,9 @@ else:
                     })
                 create_xmlid('event.stage', part_invoiced, part_invoiced_xmlid)
             vals['stage_id'] = part_invoiced
-        if kursstatus.startswith('6'):
+        elif kursstatus.startswith('6'):
             vals['stage_id'] = get_res_id('event.event_stage_done')
-        if kursstatus.startswith('7'):
+        elif kursstatus.startswith('7'):
             vals['stage_id'] = get_res_id('event.event_stage_cancelled')
 
     uid = vals['user_id']
