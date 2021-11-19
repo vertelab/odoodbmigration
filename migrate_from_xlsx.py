@@ -98,6 +98,7 @@ def create_record_and_xmlid_or_update(model, vals, xmlid):
         res_id = target.env[model].create(vals)
         create_xmlid(model, res_id, xmlid)
         print("CREATE_RECORD: SUCCESS!", res_id, xmlid, vals)
+    return res_id
 
 
 def get_xmlid(identifier, ext_id):
