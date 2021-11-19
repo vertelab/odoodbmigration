@@ -37,9 +37,10 @@ def main(argv):
     except Exception as e:
         print(e.message)
     else:
-        print('Ok!\nLoading worksheet . . .', end=' ')
         file_name = input_file.split('/')[-1]
+        print('Ok!\nLoading worksheet . . .', end=' ')
         sheet = wb.active
+        print('Ok!')
         migrate_from_sheet(file_name, sheet, mode)
     finally:
         print('Terminating program. . .')
@@ -60,25 +61,22 @@ def migrate_from_sheet(file_name, sheet, mode):
         vals = vals_builder(row, cols, maps.get('fields'))
         xmlid = get_xmlid(external_identifier, row[0].value)
         exec(maps.get('before', ''))
-        while True:
-            try:
-                if 'skip' in vals:
-                    pass
-                else:
-                    if mode == 'debug':
-                        print(f"{vals=}")
-                        print(f"{xmlid=}")
-                    elif mode == 'sync':
-                        create_record_and_xmlid_or_update(model, vals, xmlid)
-                    exec(maps.get('after', ''))
-                    input() if mode == 'debug' else None
-            except Exception as e:
-                print(
-                    {'e': e, 'row': [r.value for r in row], 'vals': vals, 'xmlid': xmlid})
-                errors.append(
-                    {'e': e, 'row': [r.value for r in row], 'vals': vals, 'xmlid': xmlid})
+        try:
+            if 'skip' in vals:
+                pass
             else:
-                break
+                if mode == 'debug':
+                    print(f"{vals=}")
+                    print(f"{xmlid=}")
+                elif mode == 'sync':
+                    create_record_and_xmlid_or_update(model, vals, xmlid)
+                exec(maps.get('after', ''))
+                input() if mode == 'debug' else None
+        except Exception as e:
+            print(
+                {'e': e, 'row': [r.value for r in row], 'vals': vals, 'xmlid': xmlid})
+            errors.append(
+                {'e': e, 'row': [r.value for r in row], 'vals': vals, 'xmlid': xmlid})
     print(errors)
 
 

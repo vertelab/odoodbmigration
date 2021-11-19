@@ -16,18 +16,25 @@ MAPS = {
             'kundgrupp': 'kundgrupp',
         },
         'before': """
-vals['category_id'] = [(4, 3, 0)]
+category_xmlid = get_xmlid('kategori', 'kund')
+category_id = get_res_id(category_xmlid)
+if not category_id:
+    category_id = target.env['res.partner.category'].create({'name':'kund'})
+    create_xmlid('res.partner.category', category_id, category_xmlid)
 
+vals['category_id'] = [(4, category_id, 0)]
+vals['country_id'] = get_res_id('base.se')
 if not vals['email']:
-    vals['email'] = ''
+    vals['email'] = False
     
 if not vals['phone']:
-    vals['phone'] = ''
-    
-if not vals['vat']:
-    vals['vat'] = ''
+    vals['phone'] = False
+
+vat = str(vals.pop('vat'))
+if vat and vat.startswith('SE'):
+    vals['vat'] = vat
 else:
-    vals['vat'] = str(vals['vat'])
+    vals['vat'] = False
     
 if type(vals['name']) is int:
     vals['name'] = str(vals['name'])
@@ -62,10 +69,20 @@ else:
 kundgrupp = vals.pop('kundgrupp')
 if kundgrupp:
     if '70' in kundgrupp:
-        vals['partner_company_type_id'] = get_res_id('__import__.res_partner_company_type_1_statliga')
+        company_type_xmlid = get_xmlid('res_partner_company_type', 'statliga')
+        company_type_id = get_res_id(company_type_xmlid)
+        if not company_type_id:
+            company_type_id = target.env['res.partner.company.type'].create({'name':'Statliga', 'shortcut': 'stat'})
+            create_xmlid('res.partner.company.type', company_type_id, company_type_xmlid)
+        vals['partner_company_type_id'] = company_type_id
     for x in ['60', '61', '62']:
         if x in kundgrupp:
-            vals['partner_company_type_id'] = get_res_id('__import__.res_partner_company_type_2_privata')
+            company_type_xmlid = get_xmlid('res_partner_company_type', 'privata')
+            company_type_id = get_res_id(company_type_xmlid)
+            if not company_type_id:
+                company_type_id = target.env['res.partner.company.type'].create({'name':'Privata', 'shortcut': 'priv'})
+                create_xmlid('res.partner.company.type', company_type_id, company_type_xmlid)
+            vals['partner_company_type_id'] = company_type_id
 """,
     },
     # endregion
@@ -82,10 +99,16 @@ if kundgrupp:
             'kund': 'kund.idkund',
         },
         'before': """
-vals['category_id'] = [(4, 4, 0)]
-            
+category_xmlid = get_xmlid('kategori', 'pepers')
+category_id = get_res_id(category_xmlid)
+if not category_id:
+    category_id = target.env['res.partner.category'].create({'name':'pepers'})
+    create_xmlid('res.partner.category', category_id, category_xmlid)
+vals['category_id'] = [(4, category_id, 0)]
+vals['country_id'] = get_res_id('base.se')
+
 if not vals['email']:
-    vals['email'] = ''
+    vals['email'] = False
 
 if type(vals['mobile']) is int:
     if not str(vals['mobile']).startswith('0'):
@@ -95,13 +118,8 @@ if type(vals['name']) is int:
     vals['name'] = str(vals['name'])
 
 parent_xmlid = get_xmlid('kund', vals.pop('kund'))
-parent_id = get_res_id(parent_xmlid)
-if parent_id:
-    vals['parent_id'] = parent_id
-else:
-    vals['parent_id'] = False
-    vals['category_id'].append((4, 1, 0))
-            
+vals['parent_id'] = get_res_id(parent_xmlid)
+
 if type(vals['phone']) is int:
     if not str(vals['phone']).startswith('0'):
         vals['phone'] = '0' + str(vals['phone'])
@@ -123,18 +141,18 @@ if type(vals['phone']) is int:
             'kurs.idkurs': 'kurs.idkurs'
         },
         'before': """
-vals['category_id'] = [(4, 5, 0)]
+category_xmlid = get_xmlid('kategori', 'kursdeltagare')
+category_id = get_res_id(category_xmlid)
+if not category_id:
+    category_id = target.env['res.partner.category'].create({'name':'kursdeltagare'})
+    create_xmlid('res.partner.category', category_id, category_xmlid)
+vals['category_id'] = [(4, category_id, 0)]
 
 if type(vals['name']) is int:
     vals['name'] = str(vals['name'])
 
 parent_xmlid = get_xmlid('kund', vals.pop('kund.idkund'))
-parent_id = get_res_id(parent_xmlid)
-if parent_id:
-    vals['parent_id'] = parent_id
-else:
-    vals['parent_id'] = False
-    vals['category_id'].append((4, 1, 0))
+vals['parent_id'] = get_res_id(parent_xmlid)
 
 if type(vals['phone']) is int:
     if not str(vals['phone']).startswith('0'):
@@ -144,7 +162,7 @@ maps['event_xmlid'] = get_xmlid('kurs', vals.pop('kurs.idkurs'))
 """,
         'after': """
 event_xmlid = maps.get('event_xmlid')
-event_id = get_res_id(evet_xmlid)
+event_id = get_res_id(event_xmlid)
 partner_id = get_res_id(xmlid)
 if event_id and partner_id:
     er_model = 'event.registration'
@@ -152,14 +170,14 @@ if event_id and partner_id:
         'event_id': event_id,
         'partner_id': partner_id,
         }
-    er_xmlid = get_xmlid('kursdeltagare_kurs', xmlid.split('_')[-1])
+    kurs_id = xmlid.split('_')[-1]
+    er_xmlid = get_xmlid('kursdeltagare_kurs', kurs_id)
 
     if mode == 'debug':
         print(f"{er_vals=}")
         print(f"{er_xmlid=}")
     else:
-        if not create_record_and_xmlid(er_model, er_vals, er_xmlid):
-            write_record(er_model, er_vals, er_xmlid)
+        create_record_and_xmlid_or_update(er_model, er_vals, er_xmlid):
 """,
     },
     # endregion
@@ -169,7 +187,6 @@ if event_id and partner_id:
         'model': 'property.property',
         'fields': {
             'agare.idagare': 'agare.idagare',
-            'idfafast': 'idfafast',
             'name': 'namnfast',
             'property_key': 'fastnr',
             'xkoordinat': 'xkoordinat',
@@ -193,49 +210,81 @@ elif len(latitude) == 7 and len(longitude) == 6:
     vals['property_lat_sweref99'] = latitude
     vals['property_long_sweref99'] = longitude
     vals['latitude'] = False
-    vals['longitude'] = False    
+    vals['longitude'] = False
+
+maps['agare_id'] = vals.pop('agare.idagare')
 """,
         'after': """
-agare_id = vals.pop('agare.idagare')
-stakeholder = {
-    'model': 'property.stakeholder',
-    'xmlid': get_xmlid('fastighetsagare', agare_id),
-}
+agare_id = maps.get('agare_id')
+
 partner_xmlid = get_xmlid('kund', agare_id)
 partner_id = get_res_id(partner_xmlid)
 if partner_id:
-    stakeholder_vals['partner_id'] = partner_id
+    stakeholder_vals = {'partner_id': partner_id}
+    stakeholder_model = 'property.stakeholder'
+    stakeholder_xmlid = get_xmlid('fastighetsagare', agare_id)
 
-    fastighet_id = vals.pop('idfafast')
+    fastighet_id = xmlid.split('_')[-1]
     property_xmlid = get_xmlid('fafast', fastighet_id)
     property_id = get_res_id(property_xmlid)
     if property_id:
         stakeholder_vals['property_id'] = property_id
 
         if mode == 'debug':
-            print(f"{stakeholder=}")
+            print(f"{stakeholder_vals=}")
+            print(f"{stakeholder_xmlid=}")
         else:
-            if not create_record_and_xmlid(stakeholder_model, er_vals, stakeholder_xmlid):
-                write_record(stakeholder_model, er_vals, stakeholder_xmlid)
-
+            create_record_and_xmlid_or_update(stakeholder_model, stakeholder_vals, stakeholder_xmlid)
 """,
     },
     # endregion
     # region kurs.xlsx
     'kurs.xlsx': {
-        'external_identifier' :'idkurs',
+        'external_identifier' :'kurs',
         'model': 'event.event',
         'fields': {
             'name': 'kursbenamning',
             'date_begin': 'startdat',
             'date_begin_time': 'starttidpunkt',
             'date_end': 'antaldagar',
+            'kursstatus': 'kursstatus',
             'user_id': 'kursansvarig.anvandare',
         },
         'before': """
 if not vals['date_begin']:
     vals['skip'] = True
 else:
+    kursstatus = vals.pop('kursstatus')
+    if kursstatus:
+        if kursstatus.startswith('1') or kursstatus.startswith('2'):
+            vals['stage_id'] = get_res_id('event.event_stage_new')
+        if kursstatus.startswith('3'):
+            vals['stage_id'] = get_res_id('event.event_stage_announced')
+        if kursstatus.startswith('4'):
+            invited_xmlid = 'event.event_stage_invited'
+            invited = get_res_id(invited_xmlid)
+            if not invited:
+                invited = target.env['event.stage'].create({
+                    'name': 'Inbjudan skickad', 
+                    'description': 'Inbjudan skickad'
+                    })
+                create_xmlid('event.stage', invited, invited_xmlid)
+            vals['stage_id'] = invited
+        if kursstatus.startswith('5'):
+            part_invoiced_xmlid = 'event.event_stage_part_invoiced'
+            part_invoiced = get_res_id(part_invoiced_xmlid)
+            if not part_invoiced:
+                part_invoiced = target.env['event.stage'].create({
+                    'name': 'Delfakturerad', 
+                    'description': 'Delfakturerad'
+                    })
+                create_xmlid('event.stage', part_invoiced, part_invoiced_xmlid)
+            vals['stage_id'] = part_invoiced
+        if kursstatus.startswith('6'):
+            vals['stage_id'] = get_res_id('event.event_stage_done')
+        if kursstatus.startswith('7'):
+            vals['stage_id'] = get_res_id('event.event_stage_cancelled')
+
     uid = vals['user_id']
     if uid:
         uid = target.env['res.users'].search([('login', '=', uid)])
