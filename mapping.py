@@ -545,7 +545,7 @@ if partner_id:
         'name': maps.get('Kundnr(T)'),
         'partner_company_type_id': get_res_id('__import__.res_partner_company_type_statliga'),
         }
-    partner_xmlid = get_xmlid('kundnr', partner_id)
+    partner_xmlid = get_xmlid('motpart_kundnr', partner_id)
     if mode == 'debug':
         print(f"{partner_vals=}")
         print(f"{partner_xmlid=}")
