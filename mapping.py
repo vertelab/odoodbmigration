@@ -1,18 +1,16 @@
 # region kund.xlsx
-kund = {
-    'model': 'res.partner',
-    'fields': {
-        'vat': 'vatnr',
-        'zip': 'postnr',
-        'city': 'ort',
-        'name': 'namn',
-        'email': 'epost',
-        'phone': 'telefon',
-        'street': 'adress',
-        'comment': 'annan_info',
-        'partner_ssn': 'pnrchar',
-        'kundgrupp': 'kundgrupp', },
-    'before': """
+kund = {'model': 'res.partner',
+        'fields': {'city': 'ort',
+                   'comment': 'annan_info',
+                   'email': 'epost',
+                   'kundgrupp': 'kundgrupp',
+                   'name': 'namn',
+                   'partner_ssn': 'pnrchar',
+                   'phone': 'telefon',
+                   'street': 'adress',
+                   'vat': 'vatnr',
+                   'zip': 'postnr'},
+        'before': """
 category_xmlid = get_xmlid('kategori', 'kund')
 category_id = get_res_id(category_xmlid)
 if not category_id:
@@ -86,22 +84,18 @@ if kundgrupp:
                 create_xmlid('res.partner.company.type',
                              company_type_id, company_type_xmlid)
             vals['partner_company_type_id'] = company_type_id
-"""
-}
+"""}
 # endregion kund.xlsx
 
 # region pepers.xlsx
-pepers = {
-    'model': 'res.partner',
-    'fields': {
-        'name': 'namn',
-        'email': 'epost',
-        'phone': 'telnr',
-        'mobile': 'mobnr',
-        'comment': 'info',
-        'kund': 'kund.idkund',
-    },
-    'before': """
+pepers = {'model': 'res.partner',
+          'fields': {'comment': 'info',
+                     'name': 'namn',
+                     'email': 'epost',
+                     'kund': 'kund.idkund',
+                     'mobile': 'mobnr',
+                     'phone': 'telnr'},
+          'before': """
 category_xmlid = get_xmlid('kategori', 'pepers')
 category_id = get_res_id(category_xmlid)
 if not category_id:
@@ -126,24 +120,20 @@ vals['parent_id'] = get_res_id(parent_xmlid)
 if type(vals['phone']) is int:
     if not str(vals['phone']).startswith('0'):
         vals['phone'] = '0' + str(vals['phone'])
-"""
-}
+"""}
 # endregion pepers.xlsx
 
 # region kursdeltagare.xlsx
-kursdeltagare = {
-    'model': 'res.partner',
-    'fields': {
-        'zip': 'postnr',
-        'city': 'ort',
-        'name': 'namn',
-        'email': 'epost',
-        'phone': 'telnr',
-        'street': 'adress',
-        'kund.idkund': 'kund.idkund',
-        'kurs.idkurs': 'kurs.idkurs'
-    },
-    'before': """
+kursdeltagare = {'model': 'res.partner',
+                 'fields': {'city': 'ort',
+                            'email': 'epost',
+                            'kund.idkund': 'kund.idkund',
+                            'kurs.idkurs': 'kurs.idkurs',
+                            'name': 'namn',
+                            'phone': 'telnr',
+                            'street': 'adress',
+                            'zip': 'postnr'},
+                 'before': """
 category_xmlid = get_xmlid('kategori', 'kursdeltagare')
 category_id = get_res_id(category_xmlid)
 if not category_id:
@@ -164,7 +154,7 @@ if type(vals['phone']) is int:
 
 maps['event_xmlid'] = get_xmlid('kurs', vals.pop('kurs.idkurs'))
 """,
-    'after': """
+                 'after': """
 event_xmlid = maps.get('event_xmlid')
 event_id = get_res_id(event_xmlid)
 partner_id = get_res_id(xmlid)
@@ -182,21 +172,17 @@ if event_id and partner_id:
         print(f"{er_xmlid=}")
     else:
         create_record_and_xmlid_or_update(er_model, er_vals, er_xmlid)
-"""
-}
+"""}
 # endregion kursdeltagare.xlsx
 
 # region fafast.xlsx
-fafast = {
-    'model': 'property.property',
-    'fields': {
-        'agare.idagare': 'agare.idagare',
-        'name': 'namnfast',
-        'property_key': 'fastnr',
-        'xkoordinat': 'xkoordinat',
-        'ykoordinat': 'ykoordinat',
-    },
-    'before': """
+fafast = {'model': 'property.property',
+          'fields': {'agare.idagare': 'agare.idagare',
+                     'name': 'namnfast',
+                     'property_key': 'fastnr',
+                     'xkoordinat': 'xkoordinat',
+                     'ykoordinat': 'ykoordinat'},
+          'before': """
 latitude = str(vals.pop('xkoordinat')).replace('.','')
 longitude = str(vals.pop('ykoordinat')).replace('.','')
 name = str(vals['name'])
@@ -218,7 +204,7 @@ elif len(latitude) == 7 and len(longitude) == 6:
 
 maps['agare_id'] = vals.pop('agare.idagare')
 """,
-    'after': """
+          'after': """
 agare_id = maps.get('agare_id')
 
 partner_xmlid = get_xmlid('kund', agare_id)
@@ -240,22 +226,18 @@ if partner_id:
         else:
             create_record_and_xmlid_or_update(
                 stakeholder_model, stakeholder_vals, stakeholder_xmlid)
-"""
-}
+"""}
 # endregion fafast.xlsx
 
 # region kurs.xlsx
-kurs = {
-    'model': 'event.event',
-    'fields': {
-        'name': 'kursbenamning',
-        'date_begin': 'startdat',
-        'date_begin_time': 'starttidpunkt',
-        'date_end': 'antaldagar',
-        'kursstatus': 'kursstatus',
-        'user_id': 'kursansvarig.anvandare',
-    },
-    'before': """
+kurs = {'model': 'event.event',
+        'fields': {'name': 'kursbenamning',
+                   'date_begin': 'startdat',
+                   'date_begin_time': 'starttidpunkt',
+                   'date_end': 'antaldagar',
+                   'kursstatus': 'kursstatus',
+                   'user_id': 'kursansvarig.anvandare'},
+        'before': """
 if not vals['date_begin']:
     vals['skip'] = True
 else:
@@ -321,20 +303,16 @@ else:
         vals['date_end'] = datetime.strftime(date_end, fmt)
     else:
         vals['date_end'] = vals['date_begin']
-"""
-}
+"""}
 # endregion kurs.xlsx
 
 # region artikel.xlsx
-artikel = {
-    'model': 'product.template',
-    'fields': {
-        'name': 'benamning',
-        'list_price': 'pris',
-        'parent_template_id': 'produkt.idprodukt',
-        'uom_id': 'enhet',
-    },
-    'before': """
+artikel = {'model': 'product.template',
+           'fields': {'name': 'benamning',
+                      'list_price': 'pris',
+                      'parent_template_id': 'produkt.idprodukt',
+                      'uom_id': 'enhet'},
+           'before': """
 
 vals['list_price'] = float(vals['list_price'].split(',')[0].replace('.',''))
 vals['property_account_expense_id'] = get_res_id('l10n_se.1_chart4001')
@@ -400,7 +378,7 @@ vals['uom_po_id'] = vals['uom_id']
 maps['parent_template_xmlid'] = get_xmlid(
     'prod_reg', vals.pop('parent_template_id'))
 """,
-    'after': """
+           'after': """
 Template = target.env['product.template']
 template_id = get_res_id(xmlid)
 if template_id:
@@ -424,20 +402,16 @@ if template_id:
             if income_id:
                 Template.write(
                     template_id, {'property_account_income_id': income_id[0]})
-"""
-}
+"""}
 # endregion artikel.xlsx
 
 # region prod_reg.xlsx
-prod_reg = {
-    'model': 'product.template',
-    'fields': {
-        'name': 'namn',
-        'description': 'intern_beskrivning',
-        'description_sale': 'beskrivning',
-        'verksamhetsgren': 'verksamhetsgren',
-    },
-    'before': """
+prod_reg = {'model': 'product.template',
+            'fields': {'name': 'namn',
+                       'description': 'intern_beskrivning',
+                       'description_sale': 'beskrivning',
+                       'verksamhetsgren': 'verksamhetsgren'},
+            'before': """
 verksamhetsgren = vals.pop('verksamhetsgren')
 categ_xmlid = get_xmlid('product_category', verksamhetsgren)
 categ_id = get_res_id(categ_xmlid)
@@ -460,21 +434,17 @@ if verksamhetsgren:
         'P1266', 'P1267']:
         vals['property_account_income_id'] = get_res_id(
             'account_sks.chart3322')
-"""
-}
+"""}
 # endregion prod_reg.xlsx
 
 # region uppdrag.xlsx
-uppdrag = {
-    'model': 'project.project',
-    'fields': {
-        'annan_info': 'annan_info',
-        'name': 'uppdragsbenamning',
-        'ovrig_information': 'ovrig_information',
-        'anvandare': 'ansvarig_medarbetare.anvandare',
-        'kund': 'kund.idkund',
-    },
-    'before': """
+uppdrag = {'model': 'project.project',
+           'fields': {'annan_info': 'annan_info',
+                      'anvandare': 'ansvarig_medarbetare.anvandare',
+                      'name': 'uppdragsbenamning',
+                      'kund': 'kund.idkund',
+                      'ovrig_information': 'ovrig_information'},
+           'before': """
 kund = vals.pop('kund')
 if kund:
     partner_id = get_res_id(get_xmlid('kund', kund))
@@ -500,17 +470,13 @@ if annan_info:
 if description:
     vals['description'] = description
 
-"""
-}
+"""}
 # endregion uppdrag.xlsx
 
 # region verksamhetsgren.xlsx
-verksamhetsgren = {
-    'model': 'product.category',
-    'fields': {
-        'name': 'Beskrivning',
-    },
-    'before': """
+verksamhetsgren = {'model': 'product.category',
+                   'fields': {'name': 'Beskrivning'},
+                   'before': """
 parent_xmlid = 'product.product_category_1'
 ext_id = xmlid.split('_')[-1]
 if len(ext_id) == 5:
@@ -519,25 +485,22 @@ parent_id = get_res_id(parent_xmlid)
 if parent_id:
     vals['parent_id'] = parent_id
 """
-} 
+                   }
 # endregion verksamhetsgren.xlsx
 
 # region motpart.xlsx
-motpart = {
-    'model': 'account.analytic.account',
-    'fields': {
-        'name': 'Beskrivning',
-        'Kundnr': 'Kundnr',
-        'Kundnr(T)': 'Kundnr(T)',
-    },
-    'before': """
+motpart = {'model': 'account.analytic.account',
+           'fields': {'name': 'Beskrivning',
+                      'Kundnr': 'Kundnr',
+                      'Kundnr(T)': 'Kundnr(T)'},
+           'before': """
 maps['Kundnr'] = vals.pop('Kundnr')
 maps['Kundnr(T)'] = vals.pop('Kundnr(T)')
 group_id = get_res_id('account_sks.N2')
 if group_id:
     vals['group_id'] = group_id
 """,
-    'after': """
+           'after': """
 partner_id = maps.get('Kundnr')
 if partner_id:
     partner_vals = {
@@ -554,20 +517,16 @@ if partner_id:
             'res.partner', partner_vals, partner_xmlid)
         create_record_and_xmlid_or_update(
             'account.analytic.account', {'partner_id': get_res_id(partner_xmlid)}, xmlid)
-"""
-}
+"""}
 # endregion motpart.xlsx
 
 # region kalkyl.xlsx
-kalkyl = {
-    'model': 'sale.order.line',
-    'fields': {
-        'antal': 'antal',
-        'artikel': 'artikel.idartikel',
-        'pris': 'pris',
-        'uppdrag': 'uppdrag.iduppdrag',
-    },
-    'before': """
+kalkyl = {'model': 'sale.order.line',
+          'fields': {'antal': 'antal',
+                     'artikel': 'artikel.idartikel',
+                     'pris': 'pris',
+                     'uppdrag': 'uppdrag.iduppdrag'},
+          'before': """
 antal = vals.pop('antal')
 if antal:
     vals['product_uom_qty'] = antal
@@ -622,6 +581,5 @@ if uppdrag:
         vals['skip'] = 'project_id'
 else:
     vals['skip'] = 'uppdrag'
-"""
-}
+"""}
 # endregion kalkyl.xlsx
