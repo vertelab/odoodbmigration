@@ -152,10 +152,10 @@ if type(vals['phone']) is int:
     if not str(vals['phone']).startswith('0'):
         vals['phone'] = '0' + str(vals['phone'])
 
-maps['event_xmlid'] = get_xmlid('kurs', vals.pop('kurs.idkurs'))
+params['event_xmlid'] = get_xmlid('kurs', vals.pop('kurs.idkurs'))
 """,
                  'after': """
-event_xmlid = maps.get('event_xmlid')
+event_xmlid = params.get('event_xmlid')
 event_id = get_res_id(event_xmlid)
 partner_id = get_res_id(xmlid)
 if event_id and partner_id:
@@ -202,10 +202,10 @@ elif len(latitude) == 7 and len(longitude) == 6:
     vals['latitude'] = False
     vals['longitude'] = False
 
-maps['agare_id'] = vals.pop('agare.idagare')
+params['agare_id'] = vals.pop('agare.idagare')
 """,
           'after': """
-agare_id = maps.get('agare_id')
+agare_id = params.get('agare_id')
 
 partner_xmlid = get_xmlid('kund', agare_id)
 partner_id = get_res_id(partner_xmlid)
@@ -375,7 +375,7 @@ if not vals['uom_id'] and uom == 'ha':
     vals['uom_id'] = ha_id
 
 vals['uom_po_id'] = vals['uom_id']
-maps['parent_template_xmlid'] = get_xmlid(
+params['parent_template_xmlid'] = get_xmlid(
     'prod_reg', vals.pop('parent_template_id'))
 """,
            'after': """
@@ -385,7 +385,7 @@ if template_id:
     template = Template.read(template_id)[0]
     product_id = template['product_variant_id'][0]
     if product_id:
-        parent_template_id = get_res_id(maps.get('parent_template_xmlid'))
+        parent_template_id = get_res_id(params.get('parent_template_xmlid'))
         if parent_template_id:
             parent_template = Template.read(parent_template_id)[0]
             parent_product_id = parent_template['product_variant_id'][0]
@@ -494,18 +494,18 @@ motpart = {'model': 'account.analytic.account',
                       'Kundnr': 'Kundnr',
                       'Kundnr(T)': 'Kundnr(T)'},
            'before': """
-maps['Kundnr'] = vals.pop('Kundnr')
-maps['Kundnr(T)'] = vals.pop('Kundnr(T)')
+params['Kundnr'] = vals.pop('Kundnr')
+params['Kundnr(T)'] = vals.pop('Kundnr(T)')
 group_id = get_res_id('account_sks.N2')
 if group_id:
     vals['group_id'] = group_id
 """,
            'after': """
-partner_id = maps.get('Kundnr')
+partner_id = params.get('Kundnr')
 if partner_id:
     partner_vals = {
         'company_type': 'company',
-        'name': maps.get('Kundnr(T)'),
+        'name': params.get('Kundnr(T)'),
         'partner_company_type_id': get_res_id('__import__.res_partner_company_type_statliga'),
         }
     partner_xmlid = get_xmlid('motpart_kundnr', partner_id)
