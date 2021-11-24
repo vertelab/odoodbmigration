@@ -440,10 +440,12 @@ if verksamhetsgren:
 # region uppdrag.xlsx
 uppdrag = {'model': 'project.project',
            'fields': {'annan_info': 'annan_info',
-                      'anvandare': 'ansvarig_medarbetare.anvandare',
+                      'epost': 'ansvarig_medarbetare.epost',
                       'name': 'uppdragsbenamning',
                       'kund': 'kund.idkund',
-                      'ovrig_information': 'ovrig_information'},
+                      'ovrig_information': 'ovrig_information',
+                      'project_no': 'projekt',
+                      'uppdragsstatus': 'uppdragsstatus'},
            'before': """
 kund = vals.pop('kund')
 if kund:
@@ -451,11 +453,14 @@ if kund:
     if partner_id:
         vals['partner_id'] = partner_id
 
-anvandare = vals.pop('anvandare')
-if anvandare:
-    user_id = target.env['res.users'].search([('login', '=', anvandare)])
+epost = vals.pop('epost')
+if epost:
+    user_id = target.env['res.users'].search([('login', '=', epost.lower())])
     if user_id:
         vals['user_id'] = user_id[0]
+
+if not vals['project_no']:
+    vals['project_no'] = 'Saknas'
 
 annan_info = vals.pop('annan_info')
 ovrig_information = vals.pop('ovrig_information')
@@ -470,6 +475,17 @@ if annan_info:
 if description:
     vals['description'] = description
 
+uppdragsstatus = vals.pop('uppdragsstatus')
+#Avtal undertecknat	45	Avtal                           project_uppdragsforfragningar.project_stage_avtal
+#Avbruten		    80	Avtal hävt                      project_uppdragsforfragningar.project_stage_cancelled
+#Delfakturerad		55	Delfaktura/Delrekvisition       project_uppdragsforfragningar.project_stage_partially_invoiced
+#Inkommen		    15	Förfrågan                       project_uppdragsforfragningar.project_stage_incoming
+#Avbruten		    80	Förfrågan - Det blev inget      project_uppdragsforfragningar.project_stage_cancelled
+#Offert			    40	Offert                          project_uppdragsforfragningar.project_stage_offert
+#Avbruten		    80	Offert avbruten                 project_uppdragsforfragningar.project_stage_cancelled
+#Slutfakturerad		60	Slutfaktura/Slutrekvisition     project_uppdragsforfragningar.project_stage_fully_invoiced
+#Pågår		    	50	Uppdragsbekräftelse             project_uppdragsforfragningar.project_stage_in_progress
+#Avbruten   		80	Uppdragsbekräftelse hävd        project_uppdragsforfragningar.project_stage_cancelled
 """}
 # endregion uppdrag.xlsx
 
