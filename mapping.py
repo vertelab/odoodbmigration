@@ -390,14 +390,17 @@ if template_id:
             parent_template = Template.read(parent_template_id)[0]
             parent_product_id = parent_template['product_variant_id'][0]
             if parent_product_id:
-                pl_xmlid = get_xmlid('pack_artikel', xmlid.split('_')[-1])
-                pl_model = 'product.pack.line'
-                pl_vals = {
+                ppl_model = 'product.pack.line'
+                ppl_vals = {
                     'parent_product_id': parent_product_id,
                     'product_id': product_id,
                     }
-            create_record_and_xmlid_or_update(pl_model, pl_vals, pl_xmlid)
-
+                ppl_xmlid = get_xmlid('pack_artikel', xmlid.split('_')[-1])
+                create_record_and_xmlid_or_update(
+                    model=ppl_model, 
+                    vals=ppl_vals, 
+                    xmlid=ppl_xmlid
+                )
             income_id = parent_template['property_account_income_id']
             if income_id:
                 Template.write(
@@ -458,6 +461,8 @@ if epost:
     user_id = target.env['res.users'].search([('login', '=', epost.lower())])
     if user_id:
         vals['user_id'] = user_id[0]
+    else:
+        vals['user_id'] = 2
 
 if not vals['project_no']:
     vals['project_no'] = 'Saknas'
@@ -476,16 +481,40 @@ if description:
     vals['description'] = description
 
 uppdragsstatus = vals.pop('uppdragsstatus')
-#Avtal undertecknat	45	Avtal                           project_uppdragsforfragningar.project_stage_avtal
-#Avbruten		    80	Avtal hävt                      project_uppdragsforfragningar.project_stage_cancelled
-#Delfakturerad		55	Delfaktura/Delrekvisition       project_uppdragsforfragningar.project_stage_partially_invoiced
-#Inkommen		    15	Förfrågan                       project_uppdragsforfragningar.project_stage_incoming
-#Avbruten		    80	Förfrågan - Det blev inget      project_uppdragsforfragningar.project_stage_cancelled
-#Offert			    40	Offert                          project_uppdragsforfragningar.project_stage_offert
-#Avbruten		    80	Offert avbruten                 project_uppdragsforfragningar.project_stage_cancelled
-#Slutfakturerad		60	Slutfaktura/Slutrekvisition     project_uppdragsforfragningar.project_stage_fully_invoiced
-#Pågår		    	50	Uppdragsbekräftelse             project_uppdragsforfragningar.project_stage_in_progress
-#Avbruten   		80	Uppdragsbekräftelse hävd        project_uppdragsforfragningar.project_stage_cancelled
+
+# type_id = 0 FIXAAAAAAAAAAAAAAAAAA
+
+# if uppdragsstatus in ['Förfrågan']:
+#     type_id = get_res_id(
+#         'project_uppdragsforfragningar.project_stage_incoming')
+
+# elif uppdragsstatus in ['Offert']:
+#     type_id = get_res_id('project_uppdragsforfragningar.project_stage_offert')
+
+# elif uppdragsstatus in 'Avtal':
+#     type_id = get_res_id('project_uppdragsforfragningar.project_stage_avtal')
+
+# elif uppdragsstatus in ['Uppdragsbekräftelse']:
+#     type_id = get_res_id(
+#         'project_uppdragsforfragningar.project_stage_in_progress')
+
+# elif uppdragsstatus in ['Delfaktura/Delrekvisition']:
+#     type_id = get_res_id(
+#         'project_uppdragsforfragningar.project_stage_partially_invoiced')
+
+# elif uppdragsstatus in ['Slutfaktura/Slutrekvisition']:
+#     type_id = get_res_id(
+#         'project_uppdragsforfragningar.project_stage_fully_invoiced')
+
+# elif uppdragsstatus in ['Avtal hävt',
+#                         'Förfrågan - Det blev inget',
+#                         'Offert avbruten',
+#                         'Uppdragsbekräftelse hävd']:
+#     type_id = get_res_id(
+#         'project_uppdragsforfragningar.project_stage_cancelled')
+
+# if type_id:
+#     vals['type_ids'] = [(6, 0, [type_id])]
 """}
 # endregion uppdrag.xlsx
 
@@ -517,22 +546,28 @@ if group_id:
     vals['group_id'] = group_id
 """,
            'after': """
-partner_id = params.get('Kundnr')
-if partner_id:
+kundnr = params.get('Kundnr')
+if kundnr:
+    type_id = get_res_id('__import__.res_partner_company_type_statliga')
     partner_vals = {
         'company_type': 'company',
         'name': params.get('Kundnr(T)'),
-        'partner_company_type_id': get_res_id('__import__.res_partner_company_type_statliga'),
-        }
-    partner_xmlid = get_xmlid('motpart_kundnr', partner_id)
+        'partner_company_type_id': type_id
+    }
+    partner_xmlid = get_xmlid('motpart_kundnr', kundnr)
     if mode == 'debug':
         print(f"{partner_vals=}")
         print(f"{partner_xmlid=}")
     else:
+        partner_id = create_record_and_xmlid_or_update(
+            model='res.partner',
+            vals=partner_vals,
+            xmlid=partner_xmlid
+        )
         create_record_and_xmlid_or_update(
-            'res.partner', partner_vals, partner_xmlid)
-        create_record_and_xmlid_or_update(
-            'account.analytic.account', {'partner_id': get_res_id(partner_xmlid)}, xmlid)
+            model='account.analytic.account',
+            vals={'partner_id': partner_id},
+            xmlid=xmlid)
 """}
 # endregion motpart.xlsx
 
@@ -558,12 +593,14 @@ if artikel:
             vals['product_id'] = product[0]
         else:
             vals['skip'] = 'product'
+    else:
+        vals['skip'] = 'template'
 else:
     vals['skip'] = 'artikel'
 
 pris = vals.pop('pris')
 if pris:
-    vals['price_unit'] = float(pris.split(',')[0].replace('.',''))
+    vals['price_unit'] = float(pris.split(',')[0].replace('.', ''))
 
 uppdrag = vals.pop('uppdrag')
 if uppdrag:
@@ -573,23 +610,32 @@ if uppdrag:
         project = target.env['project.project'].read(project_id)[0]
         partner = project['partner_id']
         if partner:
-            order_vals = {'partner_id': partner[0], 'project_id': project_id}
+            order_vals = {
+                'partner_id': partner[0],
+                'project_id': project_id,
+            }
+            user_id = project['user_id']
+            if user_id:
+                if user_id[0] == 16:
+                    order_vals['user_id'] = 2    
+                else:
+                    order_vals['user_id'] = user_id[0]
             order_xmlid = get_xmlid('order', uppdrag)
             if mode == 'debug':
                 print(f"{order_vals=}")
                 print(f"{order_xmlid=}")
             else:
                 order_id = create_record_and_xmlid_or_update(
-                    'sale.order',
-                    order_vals,
-                    order_xmlid
+                    model='sale.order',
+                    vals=order_vals,
+                    xmlid=order_xmlid
                 )
                 vals['order_id'] = order_id
                 project_vals = {'sale_order_id': order_id}
                 create_record_and_xmlid_or_update(
-                    'project.project',
-                    project_vals,
-                    project_xmlid
+                    model='project.project',
+                    vals=project_vals,
+                    xmlid=project_xmlid
                 )
         else:
             vals['skip'] = 'partner_id'
