@@ -1,42 +1,111 @@
+# region dokument.xlsx
+dokument = {'model': 'ir.attachment',
+            'path': '/mnt/woodoo_prod/Lime migration/211128/ESSexport/FileExport',
+            'fields': {'dokumentmall': 'dokumentmall',
+                     'fafast': 'fafast.idfafast',
+                     'file_extension': 'dokument__fileextension',
+                     'kund': 'kund.idkund',
+                     'kurs': 'kurs.idkurs',
+                     'kursdeltagare':'kursdeltagare.idkursdeltagare',
+                     'produkt': 'produkt.idprodukt',
+                     'uppdrag': 'uppdrag.iduppdrag',
+                     },
+          'before': """
+fafast = vals.pop('fafast')
+file_extension = vals.pop('file_extension')
+kund = vals.pop('kund')
+kurs = vals.pop('kurs')
+kursdeltagare = vals.pop('kursdeltagare')
+produkt = vals.pop('produkt')
+
+name = vals.pop('dokumentmall')
+if name:
+    name = name.split(' ')
+    name = ' '.join(name[:len(name)-2])
+    if file_extension:
+        file_extension = '.' + file_extension
+        if file_extension not in name:
+            name = name + file_extension
+        vals['name'] = name
+else:
+    vals['skip'] = True
+
+uppdrag = vals.pop('uppdrag')
+if uppdrag:
+    project_xmlid = get_xmlid('uppdrag', uppdrag)
+    project_id = get_res_id(project_xmlid)
+    vals['res_id'] = project_id
+    vals['res_model'] = 'project.project'
+
+files = sorted(Path(params['path']).glob(str(row[0].value) + '*'))
+
+if len(files) == 1:
+    with files[0].open('rb') as datas:
+        vals['datas'] = str(base64.b64encode(datas.read()))
+
+
+"""}
+# endregion dokument.xlsx
+
 # region kund.xlsx
-kund = {'model': 'res.partner',
-        'fields': {'city': 'ort',
-                   'comment': 'annan_info',
-                   'email': 'epost',
-                   'kundgrupp': 'kundgrupp',
-                   'name': 'namn',
-                   'partner_ssn': 'pnrchar',
-                   'phone': 'telefon',
-                   'street': 'adress',
-                   'vat': 'vatnr',
-                   'zip': 'postnr'},
-        'before': """
-category_xmlid = get_xmlid('kategori', 'kund')
-category_id = get_res_id(category_xmlid)
-if not category_id:
-    category_id = target.env['res.partner.category'].create({'name':'kund'})
-    create_xmlid('res.partner.category', category_id, category_xmlid)
+kund = {
+    'model': 'res.partner',
+    'fields': {
+        'city': 'ort',
+        'comment': 'annan_info',
+        'email': 'epost',
+        'kundgrupp': 'kundgrupp',
+        'name': 'namn',
+        'partner_ssn': 'pnrchar',
+        'phone': 'telefon',
+        'street': 'adress',
+        'vat': 'vatnr',
+        'zip': 'postnr'
+        },
+    '__import__.kategori_kund': {
+        'model': 'res.partner.category',
+        'vals': {'name': 'kund'}
+        },
+    '__import__.res_partner_company_type_1_statliga': {
+        'model': 'res.partner.company.type',
+        'vals': {
+            'name': 'Statliga',
+            'shortcut': 'stat'
+            },
+        },
+    '__import__.res_partner_company_type_2_privata': {
+        'model': 'res.partner.company.type',
+        'vals': {
+            'name': 'Privata',
+            'shortcut': 'priv'
+            },
+        },
+    'before': """
+category_id = get_res_id_from_params(
+    params, '__import__.kategori_kund')
 
 vals['category_id'] = [(4, category_id, 0)]
 vals['country_id'] = get_res_id('base.se')
-if not vals['email']:
-    vals['email'] = False
+vals['is_company'] = False
 
-if not vals['phone']:
-    vals['phone'] = False
+for key in ['city', 'comment', 'email', 'mobile', 'partner_ssn', 'phone', 'street', 'vat', 'zip']:
+    if key in vals and not vals[key]:
+        vals[key] = False
 
-vat = str(vals.pop('vat'))
-if vat and vat.startswith('SE'):
-    vals['vat'] = vat
-else:
+for key in ['city', 'comment', 'mobile', 'name', 'partner_ssn', 'phone', 'street', 'vat', 'zip']:
+    if key in vals and type(vals[key]) is int:
+        if key in ['mobile', 'phone']:
+            vals[key] = '0' + str(vals[key])
+        else:
+            vals[key] = str(vals[key])
+
+for key in ['name']:
+    vals[key] = " ".join(vals[key].split())
+
+if vals['vat'] and not vals['vat'].startswith('SE'):
     vals['vat'] = False
 
-if type(vals['name']) is int:
-    vals['name'] = str(vals['name'])
-
-if not vals['partner_ssn']:
-    vals['partner_ssn'] = False
-else:
+if vals['partner_ssn']:
     ssn = str(vals['partner_ssn']).replace(
         ' ', '').replace('–', '-').replace('_', '-')
     if len(ssn) == 12:
@@ -64,26 +133,31 @@ else:
 
 kundgrupp = vals.pop('kundgrupp')
 if kundgrupp:
-    if '70' in kundgrupp:
-        company_type_xmlid = get_xmlid('res_partner_company_type', 'statliga')
-        company_type_id = get_res_id(company_type_xmlid)
-        if not company_type_id:
-            company_type_id = target.env['res.partner.company.type'].create(
-                {'name':'Statliga', 'shortcut': 'stat'})
-            create_xmlid('res.partner.company.type',
-                         company_type_id, company_type_xmlid)
-        vals['partner_company_type_id'] = company_type_id
+    for x in ['70']:
+        if x in kundgrupp:
+            vals['partner_company_type_id'] = get_res_id_from_params(
+                params, '__import__.res_partner_company_type_1_statliga')
     for x in ['60', '61', '62']:
         if x in kundgrupp:
-            company_type_xmlid = get_xmlid(
-                'res_partner_company_type', 'privata')
-            company_type_id = get_res_id(company_type_xmlid)
-            if not company_type_id:
-                company_type_id = target.env['res.partner.company.type'].create(
-                    {'name':'Privata', 'shortcut': 'priv'})
-                create_xmlid('res.partner.company.type',
-                             company_type_id, company_type_xmlid)
-            vals['partner_company_type_id'] = company_type_id
+            vals['partner_company_type_id'] = get_res_id_from_params(
+                params, '__import__.res_partner_company_type_2_privata')
+    if kundgrupp in [
+        'Kommun (60)',
+        'Statligt affärsdrivande verk (60)', 
+        'Statligt bolag (60)',
+        'Utbildningsinst. ej statlig (60)',
+        'Övrigt privat företag/bolag (60)',
+        'Skogsföretag (62)',
+        'Statlig myndighet (70)',
+        'Utbildningsinst. statlig (70)',
+        ]:
+        vals['is_company'] = True
+
+'Privatperson ej skogsägare (60)'
+'Övrig (60)'
+'Privat skogsägare (61)'
+'Utrikes EU (80)'
+'Utrikes ej EU (90)'
 """}
 # endregion kund.xlsx
 
