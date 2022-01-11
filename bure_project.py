@@ -1,6 +1,6 @@
 from configuration import *
 
-IMPORT_MODULE_STRING = '__import_bure__'
+IMPORT = '__import_bure__'
 MA_IMPORT = '__import__'
 
 k = 'allowed_internal_user_ids'
@@ -8,7 +8,7 @@ ids = sorted(source.env['project.project'].read(42, [k])[0][k])
 model = source.env['project.project'].fields_get(k)[k]['relation']
 
 map_ids_from_module_1to2(model=model, ids=ids,
-                         module=MA_IMPORT, module2=IMPORT_MODULE_STRING)
+                         module=MA_IMPORT, module2=IMPORT)
 
 k = 'sprint_ids'
 ids = sorted(source.env['project.project'].read(42, [k])[0][k])

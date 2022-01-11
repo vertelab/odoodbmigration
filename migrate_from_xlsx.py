@@ -34,7 +34,8 @@ def migrate_from_sheet(self, path, mode, count=0, start=0, end=0):
         self.env['ir.config_parameter'].get_param('/migration/count', '0'))
     start = start or int(self.env['ir.config_parameter'].get_param(path, '0'))
     start = 2 if start == 1 else start
-    print(f"Initializing migration: {path=}, {mode=}, {count=}, {start=}, {end=}")
+    print(
+        f"Initializing migration: {path=}, {mode=}, {count=}, {start=}, {end=}")
     if start < 0:
         return
 
@@ -57,15 +58,15 @@ def migrate_from_sheet(self, path, mode, count=0, start=0, end=0):
         return vals
 
     def create_record_and_xmlid_or_update(model, params, vals, xmlid):
-        model_ids = get_model_ids(model, params)
-        model_fields = get_model_fields(model, params)
+        model_ids = get_ids(model)
+        model_fields = get_fields(model, params)
         if 'skip' in vals:
             print(f"skip {vals=}, {xmlid=}")
             return 0
         res_id = model_ids.get(xmlid, get_res_id(xmlid))
         Model = self.env[model]
         if res_id:
-            model_reads = get_model_reads(model, params, vals)
+            model_reads = get_reads(model, vals)
             record = model_reads.get(res_id)
             vals = compare_values(record, model_fields, vals)
             if vals:
@@ -92,27 +93,30 @@ def migrate_from_sheet(self, path, mode, count=0, start=0, end=0):
             vals['noupdate'] = True
         self.env['ir.model.data'].create(vals)
 
-    def get_model_fields(model, params):
+    def get_fields(model):
         model_fields = f"{model.replace('.', '_')}_fields_get"
         if model_fields not in params:
             params[model_fields] = self.env[model].fields_get()
+            print(f"Added '{model_fields}'")
         return params[model_fields]
 
-    def get_model_ids(model, params):
+    def get_ids(model):
         model_ids = f"{model.replace('.', '_')}_ids"
         if model_ids not in params:
             params[model_ids] = {x['complete_name']: x['res_id'] for x in self.env['ir.model.data'].search_read(
-                [('model', '=', 'res.partner'), ('module', '=', '__import__')])}
+                [('model', '=', model)])}
+            print(f"Added '{model_ids}'")
         return params[model_ids]
 
-    def get_model_reads(model, params, vals):
+    def get_reads(model, vals):
         model_reads = f"{model.replace('.', '_')}_reads"
         if model_reads not in params:
-            model_ids = get_model_ids(model, params)
+            model_ids = get_ids(model)
             params[model_reads] = {rec['id']: {key: rec[key] for key in list(
                 vals)} for rec in self.env[model].read([model_ids[id] for id in model_ids], list(vals))}
+            print(f"Added '{model_reads}'")
         return params[model_reads]
-    
+
     def get_res_id(xmlid):
         return self.env['ir.model.data'].xmlid_to_res_id(xmlid)
 
@@ -126,6 +130,14 @@ def migrate_from_sheet(self, path, mode, count=0, start=0, end=0):
                 res_id = params[xmlid]['res_id'] = create_record_and_xmlid_or_update(
                     model, params, vals, xmlid)
         return res_id
+
+    def get_search_read(model, key, domain=[]):
+        search_read = f"{model.replace('.', '_')}_search_read"
+        if search_read not in params:
+            params[search_read] = {x[key]: x['id']
+                                   for x in self.env[model].search_read(domain, [key])}
+            print(f"Added '{search_read}'")
+        return params[search_read]
 
     def get_xmlid(name, ext_id):
         return f"{IMPORT}.{name.replace('.', '_')}_{ext_id}"
@@ -156,7 +168,7 @@ def migrate_from_sheet(self, path, mode, count=0, start=0, end=0):
             print(f"{row_number=}")
         try:
             exec(before)
-            create_record_and_xmlid_or_update(model, params, vals, xmlid)
+            create_record_and_xmlid_or_update(model, vals, xmlid)
             exec(after)
 
         except Exception as e:
@@ -171,9 +183,9 @@ def migrate_from_sheet(self, path, mode, count=0, start=0, end=0):
             if count and params['_counter'] >= count:
                 break
 
-        input() if mode == 'debug' else None
+        input() if 'debug' in mode and 'sync' not in mode else None
 
-    print(f"{file_name=}, {row_number=}, {params['_counter']=}")
+    print(f"{path=}, {row_number=}, {params['counter']=}")
     self.env['ir.config_parameter'].set_param(
         path, str(row_number) if params['_counter'] else '-1')
 
