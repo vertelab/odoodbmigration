@@ -25,15 +25,20 @@ source.env.context.update({'active_test': False})
 print(f"{I} source.env\n{source.env}\n")
 
 target = odoorpc.ODOO.load('target')
-target.env.context.update({'active_test': False,
-                           'mail_create_nolog': True,
+target.env.context.update({'mail_create_nolog': True,
                            'mail_create_nosubscribe': True,
                            'mail_notrack': True,
                            'tracking_disable': True,
                            'tz': 'UTC',
                            })
+
 print(f"{I} target.env\n{target.env}\n")
 
+for server in ['ir.mail_server', 'fetchmail.server']:
+    if target.env[server].search([]):
+        raise Warning(f"Active {server}")
+
+target.env.context.update({'active_test': False})
 
 """ Glossary
 domain = list of search criterias as triplets ('id', '=', 2)
@@ -196,7 +201,7 @@ def migrate_model(model, **vars):
             value = record[key]
             field_type = model_fields.get(key).get('type')
             if field_type in ['many2one']:
-                if len(value) == 2:
+                if type(value) is list and len(value) == 2:
                     value = value[0]
             elif field_type in ['one2many', 'many2many']:
                 if type(vals[key]) is list:
@@ -218,40 +223,60 @@ def migrate_model(model, **vars):
         return vals
 
     def create_record_and_xmlid_or_update(model, vals, xmlid):
+
+        def print_info(msg):
+            print(f"{vars.keys()=}")
+            input(f"{msg}: {model=}, {vals=}, {xmlid=}")
+
+        model_fields = get_fields(model)
         model_ids = get_ids(model)
-        model_fields = get_model_fields(model)
+        model_reads = get_reads(model, vals)
 
         if 'skip' in vals:
-            print(f"skip {vals=}, {xmlid=}")
+            if sync and debug:
+                print_info('skip')
             return 0
 
-        res_id = model_ids.get(xmlid, get_res_id(xmlid))
-        Model = target.env[model]
+        res_id = model_ids.get(xmlid)
+
+        if not res_id:
+            model_ids[xmlid] = {}
+            res_id = get_res_id_from_xmlid(xmlid)
+
         if res_id:
-            model_reads = get_reads(model, vals)
             record = model_reads.get(res_id)
             vals = compare_values(record, model_fields, vals)
-            if vals:
-                Model.write(res_id, vals)
+
+            if vals and not debug:
+                target.env[model].write(res_id, vals)
                 print(f"write: {model=}, {vals=}, {res_id=}, {xmlid=})")
-        else:
-            res_id = Model.create(vals)
+
+        elif sync and not debug:
+            res_id = target.env[model].create(vals)
             create_xmlid(model, res_id, xmlid)
+            model_ids[xmlid] = res_id
             print(f"create: {model=}, {vals=}, {res_id=}, {xmlid=})")
 
+        if vals:
+            vars['counter'] += 1
+
+        print_info('debug') if debug else None
         return res_id
 
-    def get_model_fields(model):
+    def get_fields(model):
         model_fields = f"{model.replace('.', '_')}_fields_get"
         if model_fields not in vars:
             vars[model_fields] = target.env[model].fields_get()
+            print(f"Added '{model_fields}'")
         return vars[model_fields]
 
     def get_ids(model):
         model_ids = f"{model.replace('.', '_')}_ids"
         if model_ids not in vars:
-            vars[model_ids] = {x['complete_name']: x['res_id'] for x in target.env['ir.model.data'].search_read(
-                [('model', '=', model)])}
+            vars[model_ids] = {
+                x['complete_name']: x['res_id']
+                for x in target.env['ir.model.data'].search_read(
+                    [('model', '=', model)])}
             print(f"Added '{model_ids}'")
         return vars[model_ids]
 
@@ -259,10 +284,40 @@ def migrate_model(model, **vars):
         model_reads = f"{model.replace('.', '_')}_reads"
         if model_reads not in vars:
             model_ids = get_ids(model)
-            vars[model_reads] = {rec['id']: {key: rec[key] for key in list(
-                vals)} for rec in target.env[model].read([model_ids[id] for id in model_ids], list(vals))}
+            vars[model_reads] = {rec['id']: {key: rec[key] for key in vals}
+                                 for rec in target.env[model].read([model_ids[id] for id in model_ids], vals)}
             print(f"Added '{model_reads}'")
         return vars[model_reads]
+
+    def get_res_id(xmlid):
+        if xmlid not in vars:
+            vars[xmlid] = {}
+        res_id = vars[xmlid].get('res_id')
+        if not res_id:
+            res_id = get_res_id_from_xmlid(xmlid)
+            if not res_id and 'model' in vars[xmlid]:
+                model = vars[xmlid]['model']
+                vals = vars[xmlid]['vals']
+                res_id = create_record_and_xmlid_or_update(
+                    model, vals, xmlid)
+            else:
+                vars[xmlid]['res_id'] = res_id
+                print(f"Added '{xmlid}' = {res_id}")
+        return res_id
+
+    def get_res_ids(model):
+        model_res_ids = f"{model.replace('.', '_')}_res_ids"
+        if model_res_ids not in vars:
+            ids = source.env[model].search([], order='id')
+            search_reads = source.env['ir.model.data'].search_read(
+                [('model', '=', model),
+                 ('res_id', 'in', ids)])
+            vars[model_res_ids] = {x['res_id']: x['complete_name'] for x in search_reads}
+            print(f"Added '{model_res_ids}'")
+        return vars[model_res_ids]
+
+    def get_res_id_from_xmlid(xmlid):
+        return target.env['ir.model.data'].xmlid_to_res_id(xmlid)
 
     def get_search_read(model, key, domain=[]):
         search_read = f"{model.replace('.', '_')}_search_read"
@@ -278,63 +333,61 @@ def migrate_model(model, **vars):
         for key in fields:
             value = source_read[key]
             field_type = source_fields[key]['type']
-            input(f"{key=}, {field_type=}") if debug else None
-            if field_type in ['many2one']:
-                if type(value) is list and len(value) == 2:
-                    vals[key] = value[0]
-            elif field_type in ['one2many', 'many2many'] and value:
+            input(f"{key=}, {field_type=}, {value=}") if debug else None
+            if 'relation' in source_fields[key]:
                 relation = source_fields[key]['relation']
-                value_list = []
-                for _id in value:
-                    value_xmlid = get_xmlid(relation, _id)
-                    value_id = get_res_id(value_xmlid)
-                    if not value_id:
-                        meta_xmlid = (
-                            source.env[relation].get_metadata(_id)[0]['xmlid'])
-                        if meta_xmlid:
-                            value_id = get_res_id(meta_xmlid)
-                    if value_id:
-                        value_list.append(value_id)
-                if value_list:
-                    vals[key] = [(6, 0, value_list)]
-                pass
-                if type(vals[key]) is list:
-                    for command in vals[key]:
-                        if type(command) is list or tuple:
-                            if command[0] == 4 and command[1] in value:
-                                vals.pop(key)
-                    continue
+                input(f"{relation=}") if debug else None
+                if field_type in ['many2one']:
+                    if type(value) is list and len(value) == 2:
+                        val = value[0]
+                        value_xmlid = get_xmlid(relation, val)
+                        value = get_ids(relation).get(value_xmlid)
+                        if not value:
+                            value_xmlid = get_res_ids(relation).get(val)
+                            value = get_ids(relation).get(value_xmlid)
+                            
+                elif field_type in ['one2many', 'many2many'] and value:
+                    value_list = []
+                    for val in value:
+                        value_xmlid = get_xmlid(relation, val)
+                        value_id = get_ids(relation).get(value_xmlid)
+                        if not value_id:
+                            meta_id = source.env[relation].get_metadata(val)
+                            if meta_id:
+                                meta_xmlid = meta_id[0]['xmlid']
+                                if meta_xmlid:
+                                    value_id = get_res_id(meta_xmlid)
+
+                        if value_id:
+                            value_list.append(value_id)
+                    if value_list:
+                        value = [(6, 0, value_list)]
+
             elif field_type in ['binary']:
                 vals[key] = value
                 binary = vals[key]
                 if binary and '\n' in binary:
                     vals[key] = binary.replace('\n', '')
-            else:
-                vals[key] = value
+
+            vals[key] = value
             input(f"{value=}") if debug else None
         input(f"{vals=}") if debug else None
         return vals
 
-    bypass_date = vars.get('bypass_date', False)
-    calc = vars.get('calc', {})
-    command = vars.get('command', {})
-    create = vars.get('create', True)
-    custom = vars.get('custom', {})
+    after = vars.pop('after', '')
+    before = vars.pop('before', '')
     debug = vars.get('debug', False)
     domain = vars.get('domain', [])
     fields = vars.get('fields', [])
-    force = vars.get('force', [])
-    ids = vars.pop('ids', [])
-    before = vars.pop('before', '')
-    after = vars.pop('after', '')
     model2 = vars.get('model2', model)
-    module = vars.get('module', IMPORT)
+    offset = vars.get('offset', 0)
+    sync = vars.get('sync', True)
 
     source_model = source.env[model]
     target_model = target.env[model2]
 
     source_fields = source_model.fields_get()
-    target_fields = target_model.fields_get()
+    # target_fields = target_model.fields_get()
     # if not fields:
     #     fields = get_common_fields(source_fields, target_fields, **vars)
 
@@ -345,8 +398,10 @@ def migrate_model(model, **vars):
     # if create:
     #     source_ids = find_all_ids_in_target_model(model2, source_ids, module)
     # now = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    vars['counter'] = 0
 # MAIN LOOP
-    source_reads = source_model.search_read(domain, fields, order='id')
+    source_reads = source_model.search_read(
+        domain, fields, offset=offset, order='id')
     # for source_id in source_ids:
     for source_read in source_reads:
         xmlid = get_xmlid(model, source_read['id'])

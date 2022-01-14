@@ -73,11 +73,14 @@ def migrate_from_sheet(self, path, mode, count=0, start=0, end=0):
         model_fields = get_fields(model)
         model_ids = get_ids(model)
         model_reads = get_reads(model, vals)
+
         if 'skip' in vals:
             if sync and debug:
                 print_info('skip')
             return 0
+            
         res_id = model_ids.get(xmlid)
+
         if not res_id:
             model_ids[xmlid] = {}
             res_id = get_res_id_from_xmlid(xmlid)
