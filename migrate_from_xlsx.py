@@ -1,17 +1,16 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-import logging
 import odoorpc
-
-_logger = logging.getLogger(__name__)
-
-IMPORT = '__import__'
 
 
 def main(args, self):
     path = args.input
-    mode = 'sync' if args.sync else 'debug'
+    mode = []
+    if args.debug:
+        mode.append('debug')
+    if args.sync:
+        mode.append('sync')
     count = args.count or 0
     start = args.first_row or 0
     end = args.last_row or 0
@@ -24,9 +23,11 @@ def migrate_from_sheet(self, path, mode, count=0, start=0, end=0):
     from pathlib import Path
 
     import base64
-    import openpyxl
     import mapping
+    import openpyxl
     import pytz
+
+    IMPORT = '__import__'
 
     path_to_file = Path(path)
     file_name = path_to_file.stem
@@ -34,17 +35,23 @@ def migrate_from_sheet(self, path, mode, count=0, start=0, end=0):
         self.env['ir.config_parameter'].get_param('/migration/count', '0'))
     start = start or int(self.env['ir.config_parameter'].get_param(path, '0'))
     start = 2 if start == 1 else start
-    print(
-        f"Initializing migration: {path=}, {mode=}, {count=}, {start=}, {end=}")
-    if start < 0:
+    if start > 0:
+        print(
+            f"Initializing migration: {path=}, {mode=}, {count=}, "
+            f"{start=}, {end=}")
+    else:
         return
 
     def compare_values(record, model_fields, vals):
         for key in list(vals):
-            value = record[key]
             field_type = model_fields.get(key).get('type')
+            if debug:
+                input(f"{key=}, {field_type=}")
+                input(f"{record[key]=}")
+                input(f"  {vals[key]=}")
+            value = record[key]
             if field_type in ['many2one']:
-                if len(value) == 2:
+                if type(value) is list and len(value) == 2:
                     value = value[0]
             elif field_type in ['one2many', 'many2many']:
                 if type(vals[key]) is list:
@@ -57,30 +64,38 @@ def migrate_from_sheet(self, path, mode, count=0, start=0, end=0):
                 vals.pop(key)
         return vals
 
-    def create_record_and_xmlid_or_update(model, params, vals, xmlid):
+    def create_record_and_xmlid_or_update(model, vals, xmlid):
+
+        def print_info(msg):
+            print(f"{params.keys()=}")
+            input(f"{msg}: {model=}, {vals=}, {xmlid=}")
+
+        model_fields = get_fields(model)
         model_ids = get_ids(model)
-        model_fields = get_fields(model, params)
+        model_reads = get_reads(model, vals)
         if 'skip' in vals:
-            print(f"skip {vals=}, {xmlid=}")
+            if sync and debug:
+                print_info('skip')
             return 0
-        res_id = model_ids.get(xmlid, get_res_id(xmlid))
-        Model = self.env[model]
+        res_id = model_ids.get(xmlid)
+        if not res_id:
+            model_ids[xmlid] = {}
+            res_id = get_res_id_from_xmlid(xmlid)
         if res_id:
-            model_reads = get_reads(model, vals)
             record = model_reads.get(res_id)
             vals = compare_values(record, model_fields, vals)
-            if vals:
-                Model.write(res_id, vals)
+            if vals and not debug:
+                self.env[model].write(res_id, vals)
                 print(f"write: {model=}, {vals=}, {res_id=}, {xmlid=})")
-        else:
-            res_id = Model.create(vals)
+        elif sync and not debug:
+            res_id = self.env[model].create(vals)
             create_xmlid(model, res_id, xmlid)
+            model_ids[xmlid] = res_id
             print(f"create: {model=}, {vals=}, {res_id=}, {xmlid=})")
         if vals:
-            if '_counter' in params:
-                params['_counter'] += 1
-            else:
-                params['_counter'] = 1
+            params['counter'] += 1
+
+        print_info('debug') if debug else None
         return res_id
 
     def create_xmlid(model, res_id, xmlid):
@@ -108,28 +123,32 @@ def migrate_from_sheet(self, path, mode, count=0, start=0, end=0):
             print(f"Added '{model_ids}'")
         return params[model_ids]
 
-    def get_reads(model, vals):
+    def get_reads(model, field_list):
         model_reads = f"{model.replace('.', '_')}_reads"
         if model_reads not in params:
             model_ids = get_ids(model)
-            params[model_reads] = {rec['id']: {key: rec[key] for key in list(
-                vals)} for rec in self.env[model].read([model_ids[id] for id in model_ids], list(vals))}
+            params[model_reads] = {rec['id']: {key: rec[key] for key in field_list} for rec in self.env[model].read([model_ids[id] for id in model_ids], field_list)}
             print(f"Added '{model_reads}'")
         return params[model_reads]
 
     def get_res_id(xmlid):
-        return self.env['ir.model.data'].xmlid_to_res_id(xmlid)
-
-    def get_res_id_from_params(params, xmlid):
+        if xmlid not in params:
+            params[xmlid] = {}
         res_id = params[xmlid].get('res_id')
         if not res_id:
-            res_id = get_res_id(xmlid)
-            if not res_id:
+            res_id = get_res_id_from_xmlid(xmlid)
+            if not res_id and 'model' in params[xmlid]:
                 model = params[xmlid]['model']
                 vals = params[xmlid]['vals']
-                res_id = params[xmlid]['res_id'] = create_record_and_xmlid_or_update(
-                    model, params, vals, xmlid)
+                res_id = create_record_and_xmlid_or_update(
+                    model, vals, xmlid)
+            else:
+                params[xmlid]['res_id'] = res_id
+                print(f"Added '{xmlid}' = {res_id}")
         return res_id
+
+    def get_res_id_from_xmlid(xmlid):
+        return self.env['ir.model.data'].xmlid_to_res_id(xmlid)
 
     def get_search_read(model, key, domain=[]):
         search_read = f"{model.replace('.', '_')}_search_read"
@@ -150,6 +169,8 @@ def migrate_from_sheet(self, path, mode, count=0, start=0, end=0):
                 vals[key] = row[i].value
         return vals
 
+    debug = 'debug' in mode
+    sync = 'sync' in mode
     sheet = openpyxl.load_workbook(path_to_file, data_only=True).active
     cols = [col.value for col in sheet[1]]
 
@@ -158,13 +179,12 @@ def migrate_from_sheet(self, path, mode, count=0, start=0, end=0):
     fields = params.get('fields')
     before = params.get('before', '')
     after = params.get('after', '')
-    params['_counter'] = 0
-
+    params['counter'] = 0
     for row in sheet.iter_rows(min_row=start or 2, max_row=end or None):
         vals = vals_builder(row, cols, fields)
         xmlid = get_xmlid(file_name, row[0].value)
         row_number = row[0].row
-        if row_number % 1000 == 0:
+        if row_number % 10000 == 0:
             print(f"{row_number=}")
         try:
             exec(before)
@@ -176,18 +196,18 @@ def migrate_from_sheet(self, path, mode, count=0, start=0, end=0):
             print(f"{[r.value for r in row]=}")
             print(f"{vals=}")
             print(f"{xmlid=}")
-            params['_counter'] = 1
+            params['counter'] = 1
             break
 
         else:
-            if count and params['_counter'] >= count:
+            if count and params['counter'] >= count:
                 break
 
         input() if 'debug' in mode and 'sync' not in mode else None
 
     print(f"{path=}, {row_number=}, {params['counter']=}")
     self.env['ir.config_parameter'].set_param(
-        path, str(row_number) if params['_counter'] else '-1')
+        path, str(row_number) if params['counter'] else '-1')
 
 
 if __name__ == '__main__':
@@ -197,17 +217,26 @@ if __name__ == '__main__':
         print(e)
     else:
         self.env.context.update({
-            'active_test': False,
             'mail_create_nolog': True,
             'mail_create_nosubscribe': True,
             'mail_notrack': True,
             'tracking_disable': True,
             'tz': 'UTC',
         })
-    parser = argparse.ArgumentParser(description="This script will read xlsx-files and create records using odoorpc, "
-                                     "map columns with fields in mapping.py or it won't work")
+
+    for server in ['ir.mail_server', 'fetchmail.server']:
+        if self.env[server].search([]):
+            raise Warning(f"Active {server}")
+
+    self.env.context.update({'active_test': False})
+    parser = argparse.ArgumentParser(
+        description=(
+            "This script will read xlsx-files and create records using "
+            "odoorpc, map columns with fields in mapping.py or it won't work"))
     parser.add_argument(
         '-c', '--count', help='Count', type=int)
+    parser.add_argument(
+        '-d', '--debug', action='store_true', help='debug mode')
     parser.add_argument(
         '-f', '--first_row', help='First row', type=int)
     parser.add_argument(
