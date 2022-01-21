@@ -170,7 +170,7 @@ def create_record_and_xmlid(model, model2, fields, source_id):
     return 0
 
 
-def migrate_model(model, **vars):
+def migrate_model(model, **params):
     """
     Use this method for migrating model from source to target
     - Example: migrate_model('res.partner')
@@ -178,7 +178,7 @@ def migrate_model(model, **vars):
 
     Parameters
         - model (str) - Model to migrate records from source to target
-        - **vars : keyworded arguments
+        - **params : keyworded arguments
             - calc    (dict) - Runs code on specific fields, default {}
             - context (dict) - Sets context to source and target, default {}
             - create  (bool) - Creates records, set to False to update records, default True
@@ -225,7 +225,7 @@ def migrate_model(model, **vars):
     def create_record_and_xmlid_or_update(model, vals, xmlid):
 
         def print_info(msg):
-            print(f"{vars.keys()=}")
+            print(f"{params.keys()=}")
             input(f"{msg}: {model=}, {vals=}, {xmlid=}")
 
         model_fields = get_fields(model)
@@ -258,75 +258,85 @@ def migrate_model(model, **vars):
             print(f"create: {model=}, {vals=}, {res_id=}, {xmlid=})")
 
         if vals:
-            vars['counter'] += 1
+            params['counter'] += 1
 
         print_info('debug') if debug else None
         return res_id
 
     def get_fields(model):
         model_fields = f"{model.replace('.', '_')}_fields_get"
-        if model_fields not in vars:
-            vars[model_fields] = target.env[model].fields_get()
+        if model_fields not in params:
+            params[model_fields] = target.env[model].fields_get()
             print(f"Added '{model_fields}'")
-        return vars[model_fields]
+        return params[model_fields]
 
     def get_ids(model):
         model_ids = f"{model.replace('.', '_')}_ids"
-        if model_ids not in vars:
-            vars[model_ids] = {
+        if model_ids not in params:
+            params[model_ids] = {
                 x['complete_name']: x['res_id']
                 for x in target.env['ir.model.data'].search_read(
                     [('model', '=', model)])}
             print(f"Added '{model_ids}'")
-        return vars[model_ids]
+        return params[model_ids]
 
     def get_reads(model, vals):
         model_reads = f"{model.replace('.', '_')}_reads"
-        if model_reads not in vars:
+        if model_reads not in params:
             model_ids = get_ids(model)
-            vars[model_reads] = {rec['id']: {key: rec[key] for key in vals}
-                                 for rec in target.env[model].read([model_ids[id] for id in model_ids], vals)}
+            params[model_reads] = {rec['id']: {key: rec[key] for key in vals}
+                                   for rec in target.env[model].read([model_ids[id] for id in model_ids], vals)}
             print(f"Added '{model_reads}'")
-        return vars[model_reads]
+        return params[model_reads]
+
+    def get_source_reads(model, fields):
+        source_model_reads = f"source_{model.replace('.', '_')}_reads"
+        if source_model_reads not in params:
+            params[source_model_reads] = (
+                {record['id']: {field: record[field] for field in fields}
+                 for record in source.env[model].search_read([], fields)})
+            print(f"Added '{source_model_reads}'")
+        return params[source_model_reads]
 
     def get_res_id(xmlid):
-        if xmlid not in vars:
-            vars[xmlid] = {}
-        res_id = vars[xmlid].get('res_id')
+        if xmlid not in params:
+            params[xmlid] = {}
+        res_id = params[xmlid].get('res_id')
         if not res_id:
             res_id = get_res_id_from_xmlid(xmlid)
-            if not res_id and 'model' in vars[xmlid]:
-                model = vars[xmlid]['model']
-                vals = vars[xmlid]['vals']
+            if not res_id and 'model' in params[xmlid]:
+                model = params[xmlid]['model']
+                vals = params[xmlid]['vals']
                 res_id = create_record_and_xmlid_or_update(
                     model, vals, xmlid)
             else:
-                vars[xmlid]['res_id'] = res_id
+                params[xmlid]['res_id'] = res_id
                 print(f"Added '{xmlid}' = {res_id}")
         return res_id
 
     def get_res_ids(model):
         model_res_ids = f"{model.replace('.', '_')}_res_ids"
-        if model_res_ids not in vars:
+        if model_res_ids not in params:
             ids = source.env[model].search([], order='id')
             search_reads = source.env['ir.model.data'].search_read(
                 [('model', '=', model),
                  ('res_id', 'in', ids)])
-            vars[model_res_ids] = {x['res_id']: x['complete_name'] for x in search_reads}
+            params[model_res_ids] = {
+                x['res_id']: x['complete_name'] for x in search_reads}
             print(f"Added '{model_res_ids}'")
-        return vars[model_res_ids]
+        return params[model_res_ids]
 
     def get_res_id_from_xmlid(xmlid):
         return target.env['ir.model.data'].xmlid_to_res_id(xmlid)
 
     def get_search_read(model, key, domain=[]):
         search_read = f"{model.replace('.', '_')}_search_read"
-        if search_read not in vars:
-            vars[search_read] = {
+        if search_read not in params:
+            params[search_read] = {
                 x[key]: x['id']
                 for x in target.env[model].search_read(domain, [key])}
             print(f"Added '{search_read}'")
-        return vars[search_read]
+        return params[search_read]
 
     def vals_builder(source_read, fields):
         vals = {}
@@ -345,7 +355,7 @@ def migrate_model(model, **vars):
                         if not value:
                             value_xmlid = get_res_ids(relation).get(val)
                             value = get_ids(relation).get(value_xmlid)
-                            
+
                 elif field_type in ['one2many', 'many2many'] and value:
                     value_list = []
                     for val in value:
@@ -374,14 +384,14 @@ def migrate_model(model, **vars):
         input(f"{vals=}") if debug else None
         return vals
 
-    after = vars.pop('after', '')
-    before = vars.pop('before', '')
-    debug = vars.get('debug', False)
-    domain = vars.get('domain', [])
-    fields = vars.get('fields', [])
-    model2 = vars.get('model2', model)
-    offset = vars.get('offset', 0)
-    sync = vars.get('sync', True)
+    after = params.pop('after', '')
+    before = params.pop('before', '')
+    debug = params.get('debug', False)
+    domain = params.get('domain', [])
+    fields = params.get('fields', [])
+    model2 = params.get('model2', model)
+    offset = params.get('offset', 0)
+    sync = params.get('sync', True)
 
     source_model = source.env[model]
     target_model = target.env[model2]
@@ -389,7 +399,7 @@ def migrate_model(model, **vars):
     source_fields = source_model.fields_get()
     # target_fields = target_model.fields_get()
     # if not fields:
-    #     fields = get_common_fields(source_fields, target_fields, **vars)
+    #     fields = get_common_fields(source_fields, target_fields, **params)
 
     # source_ids = ids if ids else source_model.search(domain, order='id')
     # if not source_ids:
@@ -398,7 +408,7 @@ def migrate_model(model, **vars):
     # if create:
     #     source_ids = find_all_ids_in_target_model(model2, source_ids, module)
     # now = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-    vars['counter'] = 0
+    params['counter'] = 0
 # MAIN LOOP
     source_reads = source_model.search_read(
         domain, fields, offset=offset, order='id')
