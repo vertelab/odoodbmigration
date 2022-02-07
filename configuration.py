@@ -386,6 +386,7 @@ def migrate_model(model, **params):
 
     after = params.pop('after', '')
     before = params.pop('before', '')
+    context = params.pop('context', {})
     debug = params.get('debug', False)
     domain = params.get('domain', [])
     fields = params.get('fields', [])
@@ -409,6 +410,8 @@ def migrate_model(model, **params):
     #     source_ids = find_all_ids_in_target_model(model2, source_ids, module)
     # now = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
     params['counter'] = 0
+    if context:
+        target.env.context.update(context)
 # MAIN LOOP
     source_reads = source_model.search_read(
         domain, fields, offset=offset, order='id')
