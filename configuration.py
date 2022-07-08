@@ -134,7 +134,7 @@ def map_records_manually(source_model, target_model=None, source_field=None, tar
         if get_res_id_from_conn(target, xmlid=xmlid) == target_id['id']:
             print(f"{xmlid} exists already...")
         elif input('Map records?').lower() == 'y':
-            create_xmlid(t._name, t_id, xmlid)
+            create_xmlid(t._name, res_id=t_id, xmlid=xmlid)
 
 
 def map_existing_records(source_model, target_model=None, source_field=None, target_field=None):
@@ -273,12 +273,18 @@ def migrate_model(model, **params):
             return 0
 
         if (res_id := search(model, xmlid=xmlid)):
-            record = read(model, fields=vals, res_id=res_id)
-            vals = compare_values(record, fields_get(model), vals)
-            if vals and not debug:
-                model.write(res_id, vals)
-                print(yb('UPDATE'), yf(
-                    f"{model._name}\nvals={compress_dict(vals)}\n[ID={res_id}, {xmlid=}])"))
+            if (record := read(model, fields=vals, res_id=res_id)):
+                vals = compare_values(record, fields_get(model), vals)
+                if vals and not debug:
+                    model.write(res_id, vals)
+                    print(yb('UPDATE'), yf(
+                        f"{model._name}\n"
+                        f"vals={compress_dict(vals)}\n"
+                        f"[ID={res_id}, {xmlid=}])"))
+            else:
+                print(rb('UPDATE'), rf(
+                    f"Record not found, {record=}, you need to update or "
+                    f"delete {xmlid=} to resolve this!"))
 
         elif sync and not debug:
             res_id = model.create(vals)
@@ -291,7 +297,6 @@ def migrate_model(model, **params):
 
         if vals:
             params['counter'] += 1
-
         print_info('debug') if debug else None
         return res_id
 
@@ -346,9 +351,7 @@ def migrate_model(model, **params):
 
     def search(model, res_id=None, xmlid=None):
         def get(record):
-            if res_id:
-                return record['res_id'] == res_id
-            return record['complete_name'] == xmlid
+            return record['res_id'] == res_id if res_id else record['complete_name'] == xmlid
         key = args2key(model._odoo, model, search)
         if key not in params:
             params[key] = model.env['ir.model.data'].search_read(
@@ -431,7 +434,7 @@ def migrate_model(model, **params):
                     input(
                         f"{source_relation} => {target_relation}") if debug else None
                     if field_type in ['many2one']:
-                        if type(value) is list and len(value) == 2:
+                        if isinstance(value, list) and len(value) == 2:
                             val = value[0]
                             value_xmlid = get_xmlid(s_model, val)
                             if not (value := search(target_relation, xmlid=value_xmlid)):
@@ -502,7 +505,7 @@ def migrate_model(model, **params):
         input(f"{before=}\n{after=}") if debug else None
         try:
             exec(before)
-            migrate_record(target_model, vals, xmlid)
+            res = migrate_record(target_model, vals, xmlid)
             exec(after)
         except Exception as e:
             print(f"{e=}")
@@ -517,60 +520,55 @@ def migrate_model(model, **params):
         #     print(E, f"Unexpected error when migrating {model}!")
         #     return
 
-    print(I, f"Done migrating {model}!")
+    print(gb(f"Done migrating {model}!"))
     return errors if errors else f"No errors ({limit=}, {offset=})"
 
+
+def compare_records(source_model, source_id, target_model=None, target_id=None):
+    s = source.env[source_model]
+    t = target.env[target_model or source_model]
+
+    s_fields = s.fields_get()
+    t_fields = t.fields_get()
+
+    xmlid = get_xmlid(source_model, source_id)
+    target_id = target_id or get_res_id_from_conn(target, xmlid=xmlid)
+
+    s_read = s.read(source_id)
+    t_read = t.read(target_id)
+
+    s_read = s_read[0] if isinstance(s_read, list) else s_read
+    t_read = t_read[0] if isinstance(t_read, list) else t_read
+
+    count = 1
+    for key in sorted(set(list(s_fields)+list(t_fields))):
+        if count % 20 == 1:
+            print(f"{'field name':.<42}{'field type':.<20}{'relation':.<20}")
+        sf_rel = sf_type = sr_val = '.'
+        tf_rel = tf_type = tr_val = '.'
+        if key in s_fields:
+            sf_type = s_fields[key]['type']
+            if sf_type in ['many2many', 'many2one', 'one2many']:
+                sf_rel = s_fields[key]['relation']
+            sr_val = s_read[key]
+        else:
+            sr_val = 'Key not found'
+
+        if key in t_fields:
+            tf_type = t_fields[key]['type']
+            if tf_type in ['many2many', 'many2one', 'one2many']:
+                tf_rel = t_fields[key]['relation']
+            tr_val = t_read[key]
+        else:
+            tr_val = 'Key not found'
+
+        print(key)
+        print(f"S {str(sr_val):.<40}{sf_type:.<20}{sf_rel:.<20}")
+        print(f"T {str(tr_val):.<40}{tf_type:.<20}{tf_rel:.<20}\n")
+        if (count := count + 1) % 10 == 0:
+            input()
+
 # endregion migrate_model
-
-# def get_target_id_from_source_xmlid(model, source_id):
-#     """
-#     Returns id from target using source xmlid
-#     Ex, get_target_id_from_source_xmlid('res.company', 1)
-#     Returns: False if record cannot be found
-#     """
-#     domain = [('model', '=', model), ('res_id', '=', source_id)]
-#     for _id in source.env['ir.model.data'].search(domain, order='id'):
-#         key = 'complete_name'
-#         data = source.env['ir.model.data'].read(_id, [key])
-#         if type(data) is list:
-#             data = data[0]
-#         xmlid = data.get(key)
-#         if xmlid:
-#             target_id = target.env['ir.model.data'].get_res_id(xmlid)
-#             if target_id:
-#                 return target_id
-#     return False
-
-# def create_record_and_xmlid(model, model2, fields, source_id):
-    #     """
-#     Creates record on target if it doesn't exist, using fields as values,
-#     and creates an external id so that the record will not be duplicated if function is called next time
-
-#     Example: create_record_and_xml_id('res.partner', {'name':'MyPartner'}, 2)
-
-#     Returns 0 if function fails
-#     """
-#     xmlid = get_xmlid(model, source_id)
-#     target_id = get_res_id(xmlid)
-#     if target_id:
-#         print(f"{I} External id already exist ({model2} {source_id})")
-#     else:
-#         try:
-#             target_id = target.env[model2].create(fields)
-#         except Exception as e:
-#             print(f"{E} SOURCE: {model} {source_id} | TARGET: {model2} {target_id}"
-#                   " | CREATE: FAIL! Read the log...", e)
-#         else:
-#             print(f"{I} SOURCE: {model} {source_id} | TARGET: {model2} {target_id}"
-#                   " | CREATE: SUCCESS! Creating external id...")
-#         try:
-#             create_xmlid(model2, target_id, xmlid)
-#         except Exception as e:
-#             print("Create xmlid FAILED", e)
-#         else:
-#             return target_id
-
-#     return 0
 
 
 def get_target_id_from_source_id(model, source_id, module=IMPORT):
@@ -713,51 +711,6 @@ def print_list(my_list, rows=40):
         input()
 
 
-def compare_records(source_model, source_id, target_model=None, target_id=None):
-    s = source.env[source_model]
-    t = target.env[target_model or source_model]
-
-    s_fields = s.fields_get()
-    t_fields = t.fields_get()
-
-    xmlid = get_xmlid(source_model, source_id)
-    target_id = target_id or get_res_id_from_conn(target, xmlid=xmlid)
-
-    s_read = s.read(source_id)
-    t_read = t.read(target_id)
-
-    s_read = s_read[0] if isinstance(s_read, list) else s_read
-    t_read = t_read[0] if isinstance(t_read, list) else t_read
-
-    count = 1
-    for key in sorted(set(list(s_fields)+list(t_fields))):
-        if count % 20 == 1:
-            print(f"{'field name':.<42}{'field type':.<20}{'relation':.<20}")
-        sf_rel = sf_type = sr_val = '.'
-        tf_rel = tf_type = tr_val = '.'
-        if key in s_fields:
-            sf_type = s_fields[key]['type']
-            if sf_type in ['many2many', 'many2one', 'one2many']:
-                sf_rel = s_fields[key]['relation']
-            sr_val = s_read[key]
-        else:
-            sr_val = 'Key not found'
-
-        if key in t_fields:
-            tf_type = t_fields[key]['type']
-            if tf_type in ['many2many', 'many2one', 'one2many']:
-                tf_rel = t_fields[key]['relation']
-            tr_val = t_read[key]
-        else:
-            tr_val = 'Key not found'
-
-        print(key)
-        print(f"S {str(sr_val):.<40}{sf_type:.<20}{sf_rel:.<20}")
-        print(f"T {str(tr_val):.<40}{tf_type:.<20}{tf_rel:.<20}\n")
-        if (count := count + 1) % 10 == 0:
-            input()
-
-
 def sync_webpages():
     """
     Syncs website pages on target using source pages' arch
@@ -881,8 +834,8 @@ def sync_webpages():
         if set(old_styles) != set(new_styles):
             new_styles = '; '.join(new_styles)
             print(f"INFO: Replacing style "
-                  f"{tag.attrs[s], 'red')} with "
-                  f"{new_styles, 'green')}")
+                  f"{tag.attrs[s]} with "
+                  f"{new_styles}")
             tag.attrs[s] = new_styles
         else:
             print(f"{old_styles}")
@@ -924,56 +877,6 @@ def sync_webpages():
             input('next')
 
     print(gf(f"DONE!"))
-
-
-# def update_images(arch):
-#     from bs4 import BeautifulSoup
-#     model = 'ir.attachment'
-#     soup = BeautifulSoup(arch, 'html.parser')
-#     tag_list = ['div', 'img', 'span']
-#     tags = soup.find_all(tag_list)
-
-#     for tag in tags:
-#         attr = t = url = ''
-#         at = 'access_token'
-#         if tag.name == 'img' and tag.has_attr('src'):
-#             attr = 'src'
-#         elif tag.name in ['div', 'span'] and tag.has_attr('style'):
-#             attr = 'style'
-#         if attr:
-#             url = tag[attr].split('/')
-#         if attr and url and 'web' in url and 'image' in url:
-#             i = url.index('image')+1
-#             source_id = target_id = 0
-#             t = ''
-#             if url[i].isdigit():
-#                 source_id = int(url[i])
-#             elif at in url[i]:
-#                 url_split = url[i].split('?')
-#                 source_id = url_split[0]
-#                 t = url_split[1]
-#                 if source_id.isdigit():
-#                     source_id = int(source_id)
-#             else:
-#                 pass
-
-#             if source_id:
-#                 target_id = get_target_id_from_source_id(model, source_id)
-#                 # if source_id exists but cannot find in target, try migrating it, doing it manually takes too much time
-#                 if not target_id:
-#                     try:
-#                         migrate_model(model, ids=[source_id])
-#                     except:
-#                         print(f"{E} {source_id}")
-#             if target_id:
-#                 url[i] = str(target_id)
-#                 if t:
-#                     t = target.env[model].read(target_id, [at])[0][at]
-#                     url[i] += f"?{at}={t}"
-
-#             tag[attr] = '/'.join(url)
-
-#     return str(soup)
 
 
 def find_all_ids_in_target_model(target_model, ids=[], module='__import__'):
@@ -1098,3 +1001,209 @@ def map_ids_from_module_1to2(model, ids, module, module2):
 
 print(gf(f"functions loaded"))
 
+# region ACCOUNT PAYMENT depends on
+# account.account
+# account.journal
+# account.payment.term
+# account.tax
+# product.product
+
+# CREATE ACCOUNT PAYMENT ======================================================
+migrate_model(
+    model='account.payment',
+    mapping=dict(
+        amount='',
+        company_id='',
+        currency_id='',
+        date='payment_date',
+        journal_id='',
+        name='',
+        partner_id='',
+        payment_reference='',
+        payment_type='',
+        ref='communication',
+    ),
+)
+# UPDATE ACCOUNT PAYMENT ======================================================
+migrate_model(
+    model='account.payment',
+    mapping=dict(
+        state='',
+    ),
+)
+
+
+# region ACCOUNT ACCOUNT
+
+map_existing_records('account.journal', source_field='code')
+
+# CREATE ======================================================================
+migrate_model(
+    model='account.account',
+    mapping=dict(
+        code='',
+        name='',
+        reconcile='',
+        user_type_id='',
+    ),
+)
+# endregion ACCOUNT ACCOUNT
+
+print_xmlids(source, 'account.account.type')
+print_xmlids(target, 'account.account.type')
+
+
+products = source.env['product.product'].search_read(
+    [('type', '=', 'product')], ['qty_available'], order='id')
+
+for product in products:
+    xmlid = get_xmlid('product.product', product['id'])
+    if (res_id := get_res_id_from_conn(target, xmlid=xmlid)):
+        read = target.env['product.product'].read(res_id, ['product_tmpl_id'])
+        if product['qty_available'] >= 0:
+            change_id = target.env['stock.change.product.qty'].create(dict(
+                new_quantity=round(product['qty_available'], 2),
+                product_id=read[0]['id'],
+                product_tmpl_id=read[0]['product_tmpl_id'][0],
+            ))
+            target.env['stock.change.product.qty'].browse(
+                change_id).change_product_qty()
+        else:
+            print(product)
+    else:
+        raise Exception('target_product not found')
+
+
+# region STOCK QUANT
+# CREATE ======================================================================
+migrate_model(
+    model='stock.quant',
+    mapping=dict(
+        in_date='',
+        location_id='',
+        owner_id='',
+        product_id='',
+        quantity='qty',
+    ),
+)
+# endregion STOCK QUANT
+
+account_types = source.env['account.account.type'].search_read([], ['name'])
+for account_type in account_types:
+    xmlid = source.env['account.account.type'].get_metadata(account_type['id'])[
+        0]['xmlid']
+    user_type_id = account_type['id']
+    print(gf(f"{user_type_id:02} {account_type['name']:30} {xmlid}"))
+    accounts = source.env['account.account'].search_read(
+        [('user_type_id', '=', user_type_id)], ['code', 'name', 'reconcile'], order='id')
+
+    target_user_type_id = get_res_id_from_conn(target, xmlid=xmlid)
+    target_accounts = target.env['account.account'].search_read(
+        [('user_type_id', '=', target_user_type_id)], ['code', 'name', 'reconcile'], order='id')
+
+    for account in accounts:
+        print(
+            yf(f"{account['id']:02} {account['code']} {account['reconcile']} {account['name']}"))
+    for account in target_accounts:
+        print(
+            rf(f"{account['id']:02} {account['code']} {account['reconcile']} {account['name']}"))
+    input('Next')
+
+accounts = source.env['account.account'].search_read([], order='id')
+accounts_map = {}
+for account in accounts:
+    code = account['code']
+    name = account['name']
+    if (accounts_in_target := target.env['account.account'].search_read([('code', '=', code)], ['code', 'name'])):
+        if len(accounts_in_target) == 1:
+            accounts_map.update({account['id']: accounts_in_target[0]['id']})
+        else:
+            print(yb('Too many matches'), yf(
+                f"{code}, {name}, {accounts_in_target}"))
+    else:
+        print(rb('No match found'), rf(f"{code}, {name}"))
+accounts_map
+
+# MAP RECORDS =================================================================
+map_records_manually(
+    source_model='product.uom',
+    target_model='uom.uom',
+    source_field='name',
+    mapping=uom_mapping
+)
+
+# region ACCOUNT ACCOUNT
+# DELETE ACCOUNT ACCOUNT ======================================================
+target.env['account.account'].unlink(target.env['account.account'].search([]))
+
+# CREATE ACCOUNT ACCOUNT ======================================================
+migrate_model(
+    model='account.account',
+    mapping=dict(
+        code='',
+        name='',
+        reconcile='',
+        user_type_id='',
+    ),
+)
+
+# endregion ACCOUNT ACCOUNT
+
+# property_stock_account_output_categ_id
+# account.account,5, '110300 Stock Interim (Delivered)'
+# property_stock_account_input_categ_id
+# account.account,4 '110200 Stock Interim (Received)'
+# account.account,5 '101120 Stock Interim Account (Received)'
+# property_account_receivable_id
+# account.account,6 '121000 Account Receivable'
+# property_account_payable_id
+# account.account,14 '211000 Account Payable'
+# property_account_expense_categ_id
+# account.account,26 '600000 Expenses'
+# property_account_income_categ_id
+# account.account,21 '400000 Product Sales'
+# property_tax_payable_account_id
+# account.account,17 '252000 Tax Payable'
+# property_tax_receivable_account_id
+# account.account,9 '132000 Tax Receivable'
+# property_stock_valuation_account_id
+# account.account,3 '110100 Stock Valuation'
+
+
+target_accounts = target.env['account.account'].search([])
+target_properties = target.env['ir.property'].search_read(
+    [('company_id', '=', 1), ('value_reference', 'like', 'account.account')], ['name', 'value_reference'])
+for target_account in target_accounts:
+    for i, target_property in enumerate(target_properties):
+        if str(target_account) == target_property['value_reference'].split(',')[-1]:
+            print(target_property['name'])
+
+
+source.env['ir.property'].search_read(
+    [('value_reference', 'like', 'account.account')], ['name', 'value_reference'])
+
+target.env['ir.property'].search_read(
+    [('value_reference', 'like', 'account.account')], ['name', 'value_reference'])
+
+target_ir_properties = target.env['ir.property'].search_read(
+    [('value_reference', 'like', 'account.account')], ['name', 'value_reference'])
+for target_ir_property in target_ir_properties:
+    value_reference = int(target_ir_property['value_reference'].split(',')[-1])
+    if value_reference in target_accounts:
+        target_accounts.remove(value_reference)
+print(target_accounts)
+
+
+def account_rel(field):
+    return field[1]['type'] == 'many2one' and field[1]['relation'] == 'account.account'
+
+
+source_journal_fields = source.env['account.journal'].fields_get().items()
+target_journal_fields = target.env['account.journal'].fields_get().items()
+
+source_journals = source.env['account.journal'].search_read(
+    [], ['code'] + sorted(x for x, y in filter(account_rel, source_journal_fields)))
+
+target_journals = target.env['account.journal'].search_read(
+    [], ['code'] + sorted(x for x, y in filter(account_rel, target_journal_fields)))
+# CREATE STOCK LOCATION ROUTE =================================================
