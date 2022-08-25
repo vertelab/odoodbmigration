@@ -185,7 +185,7 @@ def migrate_from_sheet(self, path, mode, count=0, start=0, end=0):
     params['counter'] = 0
     for row in sheet.iter_rows(min_row=start or 2, max_row=end or None):
         vals = vals_builder(row, cols, fields)
-        xmlid = get_xmlid(file_name, row[0].value)
+        xmlid = get_xmlid(cols[0], row[0].value)
         row_number = row[0].row
         if row_number % 10000 == 0:
             print(f"{row_number=}")
