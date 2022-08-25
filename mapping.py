@@ -55,9 +55,10 @@ kund = {
         'comment': 'annan_info',
         'email': 'epost',
         'kundgrupp': 'kundgrupp',
-        'name': 'namn',
-        'partner_ssn': 'pnrchar',
+        'name': 'descriptive',
+        'legacy_no': 'pnrchar',
         'phone': 'telefon',
+        'social_sec_nr': 'pnrchar',
         'street': 'adress',
         'vat': 'vatnr',
         'zip': 'postnr'
@@ -81,18 +82,17 @@ kund = {
             },
         },
     'before': """
-category_id = get_res_id_from_params(
-    params, '__import__.kategori_kund')
+category_id = get_res_id('__import__.kategori_kund')
 
 vals['category_id'] = [(4, category_id, 0)]
 vals['country_id'] = get_res_id('base.se')
 vals['is_company'] = False
 
-for key in ['city', 'comment', 'email', 'mobile', 'partner_ssn', 'phone', 'street', 'vat', 'zip']:
+for key in ['city', 'comment', 'email', 'legacy_no', 'mobile', 'phone', 'street', 'vat', 'zip']:
     if key in vals and not vals[key]:
         vals[key] = False
 
-for key in ['city', 'comment', 'mobile', 'name', 'partner_ssn', 'phone', 'street', 'vat', 'zip']:
+for key in ['city', 'comment', 'legacy_no', 'mobile', 'name', 'phone', 'street', 'vat', 'zip']:
     if key in vals and type(vals[key]) is int:
         if key in ['mobile', 'phone']:
             vals[key] = '0' + str(vals[key])
@@ -105,42 +105,49 @@ for key in ['name']:
 if vals['vat'] and not vals['vat'].startswith('SE'):
     vals['vat'] = False
 
-if vals['partner_ssn']:
-    ssn = str(vals['partner_ssn']).replace(
-        ' ', '').replace('–', '-').replace('_', '-')
+vals['social_sec_nr'] = False
+if (ssn := vals['legacy_no']):
+    ssn = str(vals['legacy_no'])
+    for a, b in [
+        (' ', ''),
+        ('–', '-'),
+        ('_', '-'),
+    ]:
+        ssn = ssn.replace(a, b)
     if len(ssn) == 12:
-        vals['partner_ssn'] = f"{ssn[:8]}-{ssn[8:]}"
         if int(ssn[4:6]) > 12:
             vals['is_company'] = True
         else:
             vals['is_company'] = False
-    elif len(ssn) == 11 and ssn[6] == '-':
-        if int(ssn[2:4]) > 12:
-            vals['partner_ssn'] = '00'
-            vals['is_company'] = True
-        else:
-            vals['partner_ssn'] = '19'
-            vals['is_company'] = False
-        vals['partner_ssn'] += ssn
+        ssn = f"{ssn[:8]}-{ssn[8:]}"
+    elif len(ssn) == 11:
+        if ssn[6] == '-':
+            if int(ssn[2:4]) > 12:
+                vals['is_company'] = True
+            else:
+                vals['is_company'] = False
     elif len(ssn) == 10:
+        ssn = f"{ssn[:6]}-{ssn[6:]}"
         if int(ssn[2:4]) > 12:
-            vals['partner_ssn'] = '00'
             vals['is_company'] = True
         else:
-            vals['partner_ssn'] = '19'
             vals['is_company'] = False
-        vals['partner_ssn'] += f"{ssn[:6]}-{ssn[6:]}"
-
+            if int(ssn[0:2]) > 22:
+                ssn = '19' + ssn
+            else:
+                input(ssn)
+    else:
+        input(ssn)
+    
+    vals['legacy_no'] = ssn
 kundgrupp = vals.pop('kundgrupp')
 if kundgrupp:
     for x in ['70']:
         if x in kundgrupp:
-            vals['partner_company_type_id'] = get_res_id_from_params(
-                params, '__import__.res_partner_company_type_1_statliga')
+            vals['partner_company_type_id'] = get_res_id('__import__.res_partner_company_type_1_statliga')
     for x in ['60', '61', '62']:
         if x in kundgrupp:
-            vals['partner_company_type_id'] = get_res_id_from_params(
-                params, '__import__.res_partner_company_type_2_privata')
+            vals['partner_company_type_id'] = get_res_id('__import__.res_partner_company_type_2_privata')
     if kundgrupp in [
         'Kommun (60)',
         'Statligt affärsdrivande verk (60)', 
@@ -163,12 +170,14 @@ if kundgrupp:
 
 # region pepers.xlsx
 pepers = {'model': 'res.partner',
-          'fields': {'comment': 'info',
-                     'name': 'namn',
-                     'email': 'epost',
-                     'kund': 'kund.idkund',
-                     'mobile': 'mobnr',
-                     'phone': 'telnr'},
+          'fields': {
+            'comment': 'info',
+            'email': 'epost',
+            'kund': 'kund.idkund',
+            'mobile': 'mobnr',
+            'name': 'namn',
+            'phone': 'telnr'
+            },
           'before': """
 category_xmlid = get_xmlid('kategori', 'pepers')
 category_id = get_res_id(category_xmlid)
@@ -178,8 +187,9 @@ if not category_id:
 vals['category_id'] = [(4, category_id, 0)]
 vals['country_id'] = get_res_id('base.se')
 
-if not vals['email']:
-    vals['email'] = False
+for key in ['comment', 'email', 'kund', 'mobile', 'name', 'phone']:
+    if key in vals and not vals[key]:
+        vals[key] = False
 
 if type(vals['mobile']) is int:
     if not str(vals['mobile']).startswith('0'):
@@ -188,7 +198,7 @@ if type(vals['mobile']) is int:
 if type(vals['name']) is int:
     vals['name'] = str(vals['name'])
 
-parent_xmlid = get_xmlid('kund', vals.pop('kund'))
+parent_xmlid = get_xmlid('idkund', vals.pop('kund'))
 vals['parent_id'] = get_res_id(parent_xmlid)
 
 if type(vals['phone']) is int:
@@ -382,10 +392,12 @@ else:
 
 # region artikel.xlsx
 artikel = {'model': 'product.template',
-           'fields': {'name': 'benamning',
-                      'list_price': 'pris',
-                      'parent_template_id': 'produkt.idprodukt',
-                      'uom_id': 'enhet'},
+           'fields': {
+                'name': 'benamning',
+                'list_price': 'pris',
+                'parent_template_id': 'produkt.idprodukt',
+                'uom_id': 'enhet',
+            },
            'before': """
 
 vals['list_price'] = float(vals['list_price'].split(',')[0].replace('.',''))
@@ -409,40 +421,39 @@ vals['uom_id'] = get_res_id(uom_xmlid)
 
 # Create in a datafile instead
 if not vals['uom_id'] and uom == 'ha':
-    area_id = get_res_id('uom.uom_categ_area')
-    if not area_id:
-        area_id = target.env['uom.category'].create({'name':'Area'})
-        area_xmlid = {
+    if not (area_id := get_res_id('__import__.uom_categ_area')):
+        area_id = self.env['uom.category'].create({
+            'name': 'Area'
+        })
+        self.env['ir.model.data'].create({
             'model': 'uom.category',
-            'module': 'uom',
+            'module': '__import__',
             'name': 'uom_categ_area',
             'res_id': area_id,
-            }
-        target.env['ir.model.data'].create(area_xmlid)
+        })
 
-    m2_id = get_res_id('uom.product_uom_square_meter')
-    if not m2_id:
-        m2_id = target.env['uom.uom'].create({
+    if not (m2_id := get_res_id('__import__.product_uom_square_meter')):
+        m2_id = self.env['uom.uom'].create({
             'category_id': area_id,
             'name': 'm²',
-            })
-        target.env['ir.model.data'].create({
+        })
+        self.env['ir.model.data'].create({
             'model': 'uom.uom',
-            'module': 'uom',
+            'module': '__import__',
             'name': 'product_uom_square_meter',
             'res_id': m2_id,
-            })
+        })
 
-    ha_id = target.env['uom.uom'].create({
+    ha_id = self.env['uom.uom'].create({
         'category_id': area_id,
         'factor': 0.0001,
         'name': 'ha',
         'uom_type':'bigger',
         })
 
-    target.env['ir.model.data'].create({
+    self.env['ir.model.data'].create({
         'model': 'uom.uom',
-        'module': 'uom',
+        'module': '__import__',
         'name': 'product_uom_ha',
         'res_id': ha_id,
         })
@@ -453,7 +464,7 @@ params['parent_template_xmlid'] = get_xmlid(
     'prod_reg', vals.pop('parent_template_id'))
 """,
            'after': """
-Template = target.env['product.template']
+Template = self.env['product.template']
 template_id = get_res_id(xmlid)
 if template_id:
     template = Template.read(template_id)[0]
@@ -484,16 +495,20 @@ if template_id:
 
 # region prod_reg.xlsx
 prod_reg = {'model': 'product.template',
-            'fields': {'name': 'namn',
-                       'description': 'intern_beskrivning',
-                       'description_sale': 'beskrivning',
-                       'verksamhetsgren': 'verksamhetsgren'},
+            'fields': {
+                'description': 'intern_beskrivning',
+                'description_sale': 'beskrivning',
+                'name': 'namn',
+                'verksamhetsgren': 'verksamhetsgren',
+            },
             'before': """
+for key in ['description', 'description_sale', 'name', 'verksamhetsgren']:
+    if key in vals and not vals[key]:
+        vals[key] = False
+
 verksamhetsgren = vals.pop('verksamhetsgren')
 categ_xmlid = get_xmlid('product_category', verksamhetsgren)
-categ_id = get_res_id(categ_xmlid)
-if categ_id:
-    vals['categ_id'] = categ_id
+vals['categ_id'] = get_res_id(categ_xmlid) or 1
 vals['pack_ok'] = True
 vals['pack_type'] = 'detailed'
 vals['pack_component_price'] = 'detailed'
