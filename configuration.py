@@ -2,6 +2,8 @@
 
 # region migrate_model
 # import http.client as http
+import json
+import ast
 import datetime
 from webbrowser import get
 from pprint import pprint
@@ -105,6 +107,11 @@ fields = what you get from source.env[model].read(id, [keys])
 source = source database
 target = target database
 """
+
+
+def browse(conn, model, domain):
+    ids = conn.env[model].search(domain)
+    return conn.env[model].browse(ids)
 
 
 def get_res_id_from_conn(conn, domain=None, xmlid=None):
@@ -1000,210 +1007,3 @@ def map_ids_from_module_1to2(model, ids, module, module2):
 
 
 print(gf(f"functions loaded"))
-
-# region ACCOUNT PAYMENT depends on
-# account.account
-# account.journal
-# account.payment.term
-# account.tax
-# product.product
-
-# CREATE ACCOUNT PAYMENT ======================================================
-migrate_model(
-    model='account.payment',
-    mapping=dict(
-        amount='',
-        company_id='',
-        currency_id='',
-        date='payment_date',
-        journal_id='',
-        name='',
-        partner_id='',
-        payment_reference='',
-        payment_type='',
-        ref='communication',
-    ),
-)
-# UPDATE ACCOUNT PAYMENT ======================================================
-migrate_model(
-    model='account.payment',
-    mapping=dict(
-        state='',
-    ),
-)
-
-
-# region ACCOUNT ACCOUNT
-
-map_existing_records('account.journal', source_field='code')
-
-# CREATE ======================================================================
-migrate_model(
-    model='account.account',
-    mapping=dict(
-        code='',
-        name='',
-        reconcile='',
-        user_type_id='',
-    ),
-)
-# endregion ACCOUNT ACCOUNT
-
-print_xmlids(source, 'account.account.type')
-print_xmlids(target, 'account.account.type')
-
-
-products = source.env['product.product'].search_read(
-    [('type', '=', 'product')], ['qty_available'], order='id')
-
-for product in products:
-    xmlid = get_xmlid('product.product', product['id'])
-    if (res_id := get_res_id_from_conn(target, xmlid=xmlid)):
-        read = target.env['product.product'].read(res_id, ['product_tmpl_id'])
-        if product['qty_available'] >= 0:
-            change_id = target.env['stock.change.product.qty'].create(dict(
-                new_quantity=round(product['qty_available'], 2),
-                product_id=read[0]['id'],
-                product_tmpl_id=read[0]['product_tmpl_id'][0],
-            ))
-            target.env['stock.change.product.qty'].browse(
-                change_id).change_product_qty()
-        else:
-            print(product)
-    else:
-        raise Exception('target_product not found')
-
-
-# region STOCK QUANT
-# CREATE ======================================================================
-migrate_model(
-    model='stock.quant',
-    mapping=dict(
-        in_date='',
-        location_id='',
-        owner_id='',
-        product_id='',
-        quantity='qty',
-    ),
-)
-# endregion STOCK QUANT
-
-account_types = source.env['account.account.type'].search_read([], ['name'])
-for account_type in account_types:
-    xmlid = source.env['account.account.type'].get_metadata(account_type['id'])[
-        0]['xmlid']
-    user_type_id = account_type['id']
-    print(gf(f"{user_type_id:02} {account_type['name']:30} {xmlid}"))
-    accounts = source.env['account.account'].search_read(
-        [('user_type_id', '=', user_type_id)], ['code', 'name', 'reconcile'], order='id')
-
-    target_user_type_id = get_res_id_from_conn(target, xmlid=xmlid)
-    target_accounts = target.env['account.account'].search_read(
-        [('user_type_id', '=', target_user_type_id)], ['code', 'name', 'reconcile'], order='id')
-
-    for account in accounts:
-        print(
-            yf(f"{account['id']:02} {account['code']} {account['reconcile']} {account['name']}"))
-    for account in target_accounts:
-        print(
-            rf(f"{account['id']:02} {account['code']} {account['reconcile']} {account['name']}"))
-    input('Next')
-
-accounts = source.env['account.account'].search_read([], order='id')
-accounts_map = {}
-for account in accounts:
-    code = account['code']
-    name = account['name']
-    if (accounts_in_target := target.env['account.account'].search_read([('code', '=', code)], ['code', 'name'])):
-        if len(accounts_in_target) == 1:
-            accounts_map.update({account['id']: accounts_in_target[0]['id']})
-        else:
-            print(yb('Too many matches'), yf(
-                f"{code}, {name}, {accounts_in_target}"))
-    else:
-        print(rb('No match found'), rf(f"{code}, {name}"))
-accounts_map
-
-# MAP RECORDS =================================================================
-map_records_manually(
-    source_model='product.uom',
-    target_model='uom.uom',
-    source_field='name',
-    mapping=uom_mapping
-)
-
-# region ACCOUNT ACCOUNT
-# DELETE ACCOUNT ACCOUNT ======================================================
-target.env['account.account'].unlink(target.env['account.account'].search([]))
-
-# CREATE ACCOUNT ACCOUNT ======================================================
-migrate_model(
-    model='account.account',
-    mapping=dict(
-        code='',
-        name='',
-        reconcile='',
-        user_type_id='',
-    ),
-)
-
-# endregion ACCOUNT ACCOUNT
-
-# property_stock_account_output_categ_id
-# account.account,5, '110300 Stock Interim (Delivered)'
-# property_stock_account_input_categ_id
-# account.account,4 '110200 Stock Interim (Received)'
-# account.account,5 '101120 Stock Interim Account (Received)'
-# property_account_receivable_id
-# account.account,6 '121000 Account Receivable'
-# property_account_payable_id
-# account.account,14 '211000 Account Payable'
-# property_account_expense_categ_id
-# account.account,26 '600000 Expenses'
-# property_account_income_categ_id
-# account.account,21 '400000 Product Sales'
-# property_tax_payable_account_id
-# account.account,17 '252000 Tax Payable'
-# property_tax_receivable_account_id
-# account.account,9 '132000 Tax Receivable'
-# property_stock_valuation_account_id
-# account.account,3 '110100 Stock Valuation'
-
-
-target_accounts = target.env['account.account'].search([])
-target_properties = target.env['ir.property'].search_read(
-    [('company_id', '=', 1), ('value_reference', 'like', 'account.account')], ['name', 'value_reference'])
-for target_account in target_accounts:
-    for i, target_property in enumerate(target_properties):
-        if str(target_account) == target_property['value_reference'].split(',')[-1]:
-            print(target_property['name'])
-
-
-source.env['ir.property'].search_read(
-    [('value_reference', 'like', 'account.account')], ['name', 'value_reference'])
-
-target.env['ir.property'].search_read(
-    [('value_reference', 'like', 'account.account')], ['name', 'value_reference'])
-
-target_ir_properties = target.env['ir.property'].search_read(
-    [('value_reference', 'like', 'account.account')], ['name', 'value_reference'])
-for target_ir_property in target_ir_properties:
-    value_reference = int(target_ir_property['value_reference'].split(',')[-1])
-    if value_reference in target_accounts:
-        target_accounts.remove(value_reference)
-print(target_accounts)
-
-
-def account_rel(field):
-    return field[1]['type'] == 'many2one' and field[1]['relation'] == 'account.account'
-
-
-source_journal_fields = source.env['account.journal'].fields_get().items()
-target_journal_fields = target.env['account.journal'].fields_get().items()
-
-source_journals = source.env['account.journal'].search_read(
-    [], ['code'] + sorted(x for x, y in filter(account_rel, source_journal_fields)))
-
-target_journals = target.env['account.journal'].search_read(
-    [], ['code'] + sorted(x for x, y in filter(account_rel, target_journal_fields)))
-# CREATE STOCK LOCATION ROUTE =================================================
