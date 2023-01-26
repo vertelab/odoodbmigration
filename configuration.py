@@ -1200,28 +1200,37 @@ def bind_source_tmpl_attribute_to_target_tmpl_attribute(model, search_fields):
 
 def bind_target_tmpl_atr_val():
     product_templates = source.env['product.template'].search([])
-    product_templates = [15124]
     for product_template_id in product_templates:
-        source_product_xmlid = get_xmlid('project.template', product_template_id)
-        target_product_id = target.env['ir.model.data'].search([('module', '=', IMPORT), ('name', '=', source_product_xmlid.split('.')[1])])[0].res_id
+        source_product_xmlid = get_xmlid('product.template', product_template_id)
+        print(f"{source_product_xmlid=}")
+        target_product_id = target.env['ir.model.data'].browse(target.env['ir.model.data'].search([('module', '=', IMPORT), ('name', '=', source_product_xmlid.split('.')[1])])[0]).res_id
         source_attr_value = source.env['product.template.attribute.value'].search([('product_tmpl_id', '=', product_template_id)])
         for source_attribute_id in source_attr_value:
             source_attribute = source.env['product.template.attribute.value'].browse(source_attribute_id)
-            product_attribute_xmlid = get_xmlid('product.attribute', source_attribute.attribute_id)
-            target_product_attribute_id = target.env['ir.model.data'].search([('module', '=', IMPORT), ('name', '=', product_attribute_xmlid.split('.')[1])])[0].res_id
+            product_attribute_xmlid = get_xmlid('product.attribute', source_attribute.attribute_id.id)
+            print(f"{product_attribute_xmlid=}")
+            target_product_attribute_id = target.env['ir.model.data'].browse(target.env['ir.model.data'].search([('module', '=', IMPORT), ('name', '=', product_attribute_xmlid.split('.')[1])])[0]).res_id
             
             target_res_id = target.env['product.template.attribute.value'].search([('attribute_id', '=', target_product_attribute_id), 
             ('name', '=', source_attribute.name),
             ('product_tmpl_id', '=', target_product_id)])
+            if target_res_id:
+                target_res_id = target_res_id[0]
+            else:
+                continue
             target_xmlid = get_xmlid('product.template.attribute.value', source_attribute_id)
             if not target.env['ir.model.data'].search([('module', '=', IMPORT), ('name', '=', target_xmlid.split('.')[1])]):
                 xmlid = target.env['ir.model.data'].create({
                     'module': IMPORT,
                     'name': target_xmlid.split('.')[1],
-                    'model': 'product.tempplate.attribute.value',
+                    'model': 'product.template.attribute.value',
                     'res_id': target_res_id
                 })
-                print(f"SUCCESS!, craeted {xmlid=}")
+                target.env['product.template.attribute.value'].browse(target_res_id).price_extra = source_attribute.price_extra
+                print(f"SUCCESS!, created xmlid with id: {xmlid} for target attribute: {target_res_id} corresponding to source attribute: {source_attribute_id} and set price extra to {source_attribute.price_extra}")
+            else:
+                target.env['product.template.attribute.value'].browse(target_res_id).price_extra = source_attribute.price_extra
+                print(f"Set price extra to: {source_attribute.price_extra}")
 
 def get_xmlid(name, ext_id, module=IMPORT):
     return f"{module}.{name.replace('.', '_')}_{ext_id}"
