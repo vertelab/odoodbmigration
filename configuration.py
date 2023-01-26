@@ -14,7 +14,7 @@ try:
 except ImportError:
     raise Warning(
         'odoorpc library missing. Please install the library. Eg: pip3 install odoorpc')
-
+t2s_attr_values = {}
 
 class Colorcodes(object):
     Green = '\033[92m'
@@ -210,6 +210,23 @@ def create_xmlid(model, xmlid, res_id):
 def get_xmlid(name, ext_id, module=IMPORT):
     return f"{module}.{name.replace('.', '_')}_{ext_id}"
 
+def create_xml_id(model, target_record_id, source_record_id):
+        ''' Creates an external id for a model
+        example: create_xml_id('product.template', 89122, 5021)
+        '''
+        xml_id = f"{IMPORT}.{model.replace('.', '_')}_{source_record_id}"
+        values = {
+            'module': xml_id.split('.')[0],
+            'name': xml_id.split('.')[1],
+            'model': model,
+            'res_id': target_record_id,
+        }
+        try:
+            print(values)
+            target.env['ir.model.data'].create(values)
+            return f"xml_id = {xml_id} created"
+        except Exception:
+            return f"ERROR: create_xml_id('{model}', {target_record_id}, {source_record_id}) failed. Does the id already exist?"
 
 def migrate_model(model, **params):
     """
@@ -262,6 +279,154 @@ def migrate_model(model, **params):
                 if value == vals.get(key):
                     vals.pop(key)
         return vals
+
+
+    #LEGACY PRODUCT VARIANT MIGRATION:
+
+    
+
+    def get_target_record_from_id(model, source_record_id):
+        ''' gets record from target database using record.id from source database
+        example: get_target_record_from_id('product.attribute', 3422)
+        returns: 0 if record cannot be found
+        '''
+        try:
+            # ~ r = target.env.ref(f"{IMPORT_MODULE_STRING}.{model.replace('.', '_')}_{source_record_id}", raise_if_not_found=False)
+            r = target.env['ir.model.data'].xmlid_to_res_model_res_id(f"{IMPORT}.{model.replace('.', '_')}_{source_record_id}", raise_if_not_found=False)
+            if r != [False, False]:
+                r = target.env[r[0]].browse(r[1])
+                return r
+            else:
+                print(f"couldnt find external id: {IMPORT}.{model.replace('.', '_')}_{source_record_id}")
+                return False
+        except Exception:
+            print(f"couldnt find external id: {IMPORT}.{model.replace('.', '_')}_{source_record_id}")
+            return False
+
+
+
+
+    def get_t2s_attr_values():
+        global t2s_attr_values
+        if not t2s_attr_values:
+            for data in target.env['ir.model.data'].search_read([
+                    ('model', '=', 'product.attribute.value'),
+                    ('name', '=like', 'product_attribute_value_%'),
+                    ('module', '=', IMPORT)], ['res_id', 'name']):
+                t2s_attr_values[data['res_id']] = int(data['name'].replace('product_attribute_value_', ''))
+        return t2s_attr_values
+
+    # Migrate templates
+    def product_tmpl_set_attributes(source_template_id, target_template_id, create=False):
+        print(f"product_tmpl_set_attributes: {source_template_id} {target_template_id}")
+        target_lines = target.env['product.template.attribute.line'].search_read([('product_tmpl_id', '=', target_template_id)], ['attribute_id', 'value_ids'])
+        attribute_line_ids = []
+        updated_attr_line_ids = []
+        values = {}
+        for line in source.env['product.template.attribute.line'].search_read([('product_tmpl_id', '=', source_template_id)], ['attribute_id', 'value_ids']):
+            target_attr_id = get_target_record_from_id('product.attribute', line['attribute_id'][0]).id
+            target_val_ids = []
+            for id in line['value_ids']:
+                target_val_ids.append(get_target_record_from_id('product.attribute.value', id).id)
+            target_line = [l for l in filter(lambda r: r['attribute_id'][0] == target_attr_id, target_lines)]
+            target_line = target_line and target_line[0] or None
+            if target_line and target_val_ids:
+                target_lines.remove(target_line)
+                if set(target_val_ids) == set(target_line['value_ids']):
+                    # Source and target lines are identical
+                    continue
+                # This will create/delete/archive product variants
+                attribute_line_ids.append((1, target_line['id'], {'value_ids': [(6, 0, target_val_ids)]}))
+                #target.env['product.template.attribute.line'].write(target_line['id'], {'value_ids': [(6, 0, target_val_ids)]})
+            elif target_val_ids:
+                # This will create/delete/archive product variants
+                attribute_line_ids.append((0, 0, {
+                    'product_tmpl_id': target_template_id,
+                    'attribute_id': target_attr_id,
+                    'value_ids': [(6, 0, target_val_ids)],
+                }))
+        # Check for removed attribute lines.
+        for line in target_lines:
+            attribute_line_ids.append((2, line['id']))
+        if attribute_line_ids:
+            values['attribute_line_ids'] = attribute_line_ids
+        
+        # Optional and Alternative products
+        optional_product_ids = set()
+        alternative_product_ids = set()
+        for variant in source.env['product.product'].search_read([
+                ('product_tmpl_id', '=', source_template_id)],
+                ['id', 'optional_product_ids', 'alternative_product_ids']):
+            # Not getting any optional products for some reason
+            # ~ for tmpl_id in variant['optional_product_ids']:
+                # ~ optional_product_ids.add(tmpl_id)
+            for tmpl_id in variant['alternative_product_ids']:
+                alternative_product_ids.add(tmpl_id)
+        optional_product_ids = [get_target_record_from_id('product.template', tmpl_id) for tmpl_id in optional_product_ids]
+        optional_product_ids = [r.id for r in optional_product_ids if r]
+        alternative_product_ids = [get_target_record_from_id('product.template', tmpl_id) for tmpl_id in alternative_product_ids]
+        alternative_product_ids = [r.id for r in alternative_product_ids if r]
+        if optional_product_ids:
+            values['optional_product_ids'] = optional_product_ids
+        if alternative_product_ids:
+            values['alternative_product_ids'] = alternative_product_ids
+        
+        # Write to template
+        print(f"values: {values}")
+        if values:
+            target.env['product.template'].write(target_template_id, values)
+        
+        # Migrate Variant data
+        for variant in target.env['product.product'].search_read([('product_tmpl_id', '=', target_template_id)], ['active']):
+            # Match variants through attribute values
+            'product_template_attribute_value_ids'
+            # Translate target attribute value ids to source
+            value_ids = []
+            for vline in target.env['product.template.attribute.value'].search_read(
+                    [('ptav_product_variant_ids', '=', variant['id'])],
+                    ['product_attribute_value_id']):
+                value_ids.append(get_t2s_attr_values()[vline['product_attribute_value_id'][0]])
+            domain = [('attribute_value_ids', '=', id) for id in value_ids]
+            domain.append(('product_tmpl_id', '=', source_template_id))
+            
+            source_variant = source.env['product.product'].search_read(domain, ['active'])
+            source_variant = source_variant and source_variant[0] or None
+            print(domain)
+            print(source_variant)
+            if source_variant:
+                create_xml_id('product.product', variant['id'], source_variant['id'])
+                if not source_variant['active'] and variant['active']:
+                    target.env['product.product'].write(variant['id'], {'active': False})
+                elif source_variant['active'] and not variant['active']:
+                    target.env['product.product'].write(variant['id'], {'active': True})
+            else:
+                # Variant is auto-created, but doesn't exist in source. Make inactive.
+                target.env['product.product'].write(variant['id'], {'active': False})
+        if create:
+            # Check for templates that use this template in Alternative or Optional products
+            # Optional
+            # ~ domain = [('module', '=', IMPORT_MODULE_STRING)]
+            # ~ for id in source.env['product.template'].search([
+                    # ~ ('product_variant_ids.optional_product_ids', '=', source_template_id)]):
+                # ~ domain.append(('name', '=', f"product_template_{id}"))
+            # ~ if len(domain) > 1:
+                # ~ target_tmpl_ids = [r['res_id'] for r in target.env['ir.model.data'].search_read(domain, ['res_id'])]
+                # ~ if target_tmpl_ids:
+                    # ~ target.env['product.template'].write(
+                        # ~ target_tmpl_ids,
+                        # ~ {'optional_product_ids': [(4, target_template_id)]})
+            # Alternative
+            domain = [('module', '=', IMPORT)]
+            for id in source.env['product.template'].search([
+                    ('alternative_product_ids', '=', source_template_id)]):
+                domain.append(('name', '=', f"product_template_{id}"))
+            if len(domain) > 1:
+                target_tmpl_ids = [r['res_id'] for r in target.env['ir.model.data'].search_read(domain, ['res_id'])]
+                if target_tmpl_ids:
+                    target.env['product.template'].write(
+                        target_tmpl_ids,
+                        {'alternative_product_ids': [(4, target_template_id)]})
+    # END LEGACY FUNCTIONS
 
     def compress_dict(dictionary, sep="\n"):
         if isinstance(dictionary, dict):
@@ -517,6 +682,10 @@ def migrate_model(model, **params):
         except Exception as e:
             print(f"{e=}")
             errors.append(f"vals={compress_dict(vals)}, {xmlid=}")
+            if str(e) == 'You cannot create two values with the same name for the same attribute.':
+                print("Linking duplicate value to external id")
+                target_value_id = target.env['product.attribute.value'].search([('attribute_id', '=', vals['attribute_id']), ('name', '=', vals['name'])])
+                print(create_xml_id('product.attribute.value', target_value_id[0], data['id']))
         #     _source_read = {k: str(v)[0:50]+'...' if len(str(v)) >
         #                     50 else v for k, v in data.items()}
         #     print(f"{_source_read=}")
@@ -697,6 +866,7 @@ def print_relation_fields(model, model2=''):
             print(text.format(relation, key_type, key))
     input(gf("Press ENTER key to continue"))
     print('target')
+    
     for key in sorted(target_fields):
         if target_fields[key].get('relation', None):
             relation = target_fields[key]['relation']
@@ -1006,4 +1176,53 @@ def map_ids_from_module_1to2(model, ids, module, module2):
         print({tid: sid})
 
 
+def bind_source_tmpl_attribute_to_target_tmpl_attribute(model, search_fields):
+    source_ids = source.env[model].search([])
+    source_records = source.env[model].browse(source_ids)
+    for source_record in source_records:
+        domain = []
+        for search_field in search_fields:
+            split_search_field = search_field.split('.')
+            if len(split_search_field) == 2 and split_search_field[1] == 'name':
+                domain.append((split_search_field[0], '=', source_record[split_search_field[0]].name))
+            else:
+                domain.append((search_field, '=', source_record[search_field]))
+        print(f"{model}, {domain}")
+        target_record = target.env[model].search(domain, limit=1)
+        if not target_record:
+            print(f"Could not find target record. {model} {domain}")
+            continue
+        else:
+            print(f"{target_record=}, {source_record=}")
+            print(create_xml_id(model, target_record[0], source_record.id))
+
+
+
+def bind_target_tmpl_atr_val():
+    product_templates = source.env['product.template'].search([])
+    product_templates = [15124]
+    for product_template_id in product_templates:
+        source_product_xmlid = get_xmlid('project.template', product_template_id)
+        target_product_id = target.env['ir.model.data'].search([('module', '=', IMPORT), ('name', '=', source_product_xmlid.split('.')[1])])[0].res_id
+        source_attr_value = source.env['product.template.attribute.value'].search([('product_tmpl_id', '=', product_template_id)])
+        for source_attribute_id in source_attr_value:
+            source_attribute = source.env['product.template.attribute.value'].browse(source_attribute_id)
+            product_attribute_xmlid = get_xmlid('product.attribute', source_attribute.attribute_id)
+            target_product_attribute_id = target.env['ir.model.data'].search([('module', '=', IMPORT), ('name', '=', product_attribute_xmlid.split('.')[1])])[0].res_id
+            
+            target_res_id = target.env['product.template.attribute.value'].search([('attribute_id', '=', target_product_attribute_id), 
+            ('name', '=', source_attribute.name),
+            ('product_tmpl_id', '=', target_product_id)])
+            target_xmlid = get_xmlid('product.template.attribute.value', source_attribute_id)
+            if not target.env['ir.model.data'].search([('module', '=', IMPORT), ('name', '=', target_xmlid.split('.')[1])]):
+                xmlid = target.env['ir.model.data'].create({
+                    'module': IMPORT,
+                    'name': target_xmlid.split('.')[1],
+                    'model': 'product.tempplate.attribute.value',
+                    'res_id': target_res_id
+                })
+                print(f"SUCCESS!, craeted {xmlid=}")
+
+def get_xmlid(name, ext_id, module=IMPORT):
+    return f"{module}.{name.replace('.', '_')}_{ext_id}"
 print(gf(f"functions loaded"))
