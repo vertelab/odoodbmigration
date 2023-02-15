@@ -1203,7 +1203,11 @@ def bind_target_tmpl_atr_val():
     for product_template_id in product_templates:
         source_product_xmlid = get_xmlid('product.template', product_template_id)
         print(f"{source_product_xmlid=}")
-        target_product_id = target.env['ir.model.data'].browse(target.env['ir.model.data'].search([('module', '=', IMPORT), ('name', '=', source_product_xmlid.split('.')[1])])[0]).res_id
+        target_product_search = target.env['ir.model.data'].search([('module', '=', IMPORT), ('name', '=', source_product_xmlid.split('.')[1])])
+        if target_product_search:
+            target_product_id = target.env['ir.model.data'].browse(target_product_search[0]).res_id
+        else:
+            continue
         source_attr_value = source.env['product.template.attribute.value'].search([('product_tmpl_id', '=', product_template_id)])
         for source_attribute_id in source_attr_value:
             source_attribute = source.env['product.template.attribute.value'].browse(source_attribute_id)
@@ -1235,3 +1239,122 @@ def bind_target_tmpl_atr_val():
 def get_xmlid(name, ext_id, module=IMPORT):
     return f"{module}.{name.replace('.', '_')}_{ext_id}"
 print(gf(f"functions loaded"))
+
+def get_source_ids_from_target_xmlids(model):
+    target_ids = target.env[model].search(['|' ,('active', '=', False), ('active', '=', True)])
+    print(f"{target_ids=}")
+    target_xmlid_ids = [x['name'] for x in target.env['ir.model.data'].search_read([('res_id', 'in', target_ids), ('model', '=', model), ('module', '=', IMPORT)], ['name'])]
+    print(f"{target_xmlid_ids=}")
+    source_ids = [x.split('_')[-1] for x in target_xmlid_ids]
+    print(f"{source_ids=}")
+    return source_ids
+
+def fix_product_stock():
+    products = source.env['product.product'].search_read(
+    [('type','=','product')], ['qty_available'], order='id')
+
+    for product in products:
+        xmlid = get_xmlid('product.product', product['id'])
+        if (res_id := get_res_id_from_conn(target, xmlid=xmlid)):
+            read = target.env['product.product'].read(res_id, ['product_tmpl_id'])
+            if product['qty_available'] >= 0:
+                change_id = target.env['stock.change.product.qty'].create(dict(
+                    new_quantity=product['qty_available'],
+                    product_id=read[0]['id'],
+                    product_tmpl_id=read[0]['product_tmpl_id'][0],
+                ))
+                target.env['stock.change.product.qty'].browse(change_id).change_product_qty()
+            else:
+                print(product, 'amount is negative')
+        else:
+            print('target_product not found')
+            continue
+            #raise Exception('target_product not found')
+
+def do_it_all_solann_products():
+    migrate_model(
+    model='product.template',
+    mapping=dict(
+        name='',
+    ),
+    after="""
+target_xml_id = get_xmlid('product.template', data['id'])
+target_id = get_res_id(target_xml_id)
+product_tmpl_set_attributes(data['id'], target_id)
+    """
+    )
+    variant_ids = get_source_ids_from_target_xmlids('product.product')
+    template_ids = get_source_ids_from_target_xmlids('product.template')
+
+    migrate_model(
+    model='product.product',
+    mapping=dict(
+        qty_available='',
+        HS_code='',
+        Origin_country='',
+        weight='',
+        volume='',
+        active='',
+        barcode='',
+        categ_id='',
+        currency_id='',
+        default_code='',
+        description='',
+        description_picking='',
+        description_purchase='',
+        description_sale='',
+        lst_price='',
+        name='',
+        purchase_method='',
+        purchase_ok='',
+        sale_ok='',
+        sequence='',
+        supplier_taxes_id='',
+        taxes_id='',
+        type='',
+    ),
+    create=False,
+    domain=[('id', 'in', variant_ids)],
+    )
+
+    migrate_model(
+    model='product.template',
+    mapping=dict(
+        HS_code='',
+        Origin_country='',
+        weight='',
+        volume='',
+        active='',
+        barcode='',
+        categ_id='',
+        currency_id='',
+        default_code='',
+        description='',
+        description_picking='',
+        description_purchase='',
+        description_sale='',
+        list_price='',
+        name='',
+        purchase_method='',
+        purchase_ok='',
+        sale_ok='',
+        sequence='',
+        standard_price='',
+        supplier_taxes_id='',
+        taxes_id='',
+        type='',
+    ),
+    create=False,
+    domain=[('id', 'in', template_ids)],
+    )
+
+
+
+    migrate_model(
+    model='product.template',
+    mapping=dict(
+        image_1920='image',
+    )
+    )
+
+    bind_target_tmpl_atr_val()
