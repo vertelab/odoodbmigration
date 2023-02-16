@@ -385,22 +385,44 @@ def migrate_model(model, **params):
             for vline in target.env['product.template.attribute.value'].search_read(
                     [('ptav_product_variant_ids', '=', variant['id'])],
                     ['product_attribute_value_id']):
+                #value_ids.append(get_t2s_attr_values()[vline['product_attribute_value_id'][0]])
                 value_ids.append(get_t2s_attr_values()[vline['product_attribute_value_id'][0]])
+            print("YPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP")
+            print(f"{value_ids=}")
+            print("YPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP")
+            # {'attribute_line_ids': [(0, 0, {'product_tmpl_id': 2421, 'attribute_id': 2, 'value_ids': [(6, 0, [74, 79, 84, 89])]}), (0, 0, {'product_tmpl_id': 2421, 'attribute_id': 17, 'value_ids': [(6, 0, [730])]})]}
             domain = [('attribute_value_ids', '=', id) for id in value_ids]
             domain.append(('product_tmpl_id', '=', source_template_id))
+            new_domain = [] 
+            for val in domain: 
+                if val[0] == 'attribute_value_ids': 
+                    attribute_id = target.env['ir.model.data'].search_read([('module', '=', IMPORT), ('model', '=', 'product.attribute.value'),("name","like","product_attribute_value_"+str(val[2]))], ['res_id'])[0]['res_id'] 
+                    print(attribute_id) 
+                    source_ids = [x['name'].split('_')[3] for x in target.env['ir.model.data'].search_read([('module', '=', IMPORT), ('model', '=', 'product.attribute.value'), ('res_id', '=', attribute_id)], ['name'])] 
+                    print(source_ids) 
+                    new_domain.append(('attribute_value_ids', 'in', source_ids)) 
+                
+                else: 
+                    new_domain.append(val)
+            print(domain)
+            print("OLD ^^ NEW vv")
+            print(new_domain)
+            domain = new_domain
             
             source_variant = source.env['product.product'].search_read(domain, ['active'])
             source_variant = source_variant and source_variant[0] or None
-            print(domain)
+            
             print(source_variant)
             if source_variant:
                 create_xml_id('product.product', variant['id'], source_variant['id'])
                 if not source_variant['active'] and variant['active']:
+                    print("Set variant to FALSE IF")
                     target.env['product.product'].write(variant['id'], {'active': False})
                 elif source_variant['active'] and not variant['active']:
                     target.env['product.product'].write(variant['id'], {'active': True})
             else:
                 # Variant is auto-created, but doesn't exist in source. Make inactive.
+                print("Set variant to FALSE ELSE")
                 target.env['product.product'].write(variant['id'], {'active': False})
         if create:
             # Check for templates that use this template in Alternative or Optional products
@@ -1358,3 +1380,9 @@ product_tmpl_set_attributes(data['id'], target_id)
     )
 
     bind_target_tmpl_atr_val()
+
+def delete_all_products():
+    target.env['ir.model.data'].browse(target.env['ir.model.data'].search([('model', '=', 'product.template')])).unlink()
+    target.env['ir.model.data'].browse(target.env['ir.model.data'].search([('model', '=', 'product.product')])).unlink()
+    target.env['product.product'].browse(target.env['product.product'].search(['|',('active', '=', False), ('active', '=', True)])).unlink()
+    target.env['product.template'].browse(target.env['product.template'].search(['|',('active', '=', False), ('active', '=', True)])).unlink()
