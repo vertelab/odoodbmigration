@@ -1380,7 +1380,12 @@ product_tmpl_set_attributes(data['id'], target_id)
     )
 
     bind_target_tmpl_atr_val()
-
+    
+def get_target_record_from_id_tool(model, source_record_id):
+        ##Use when the other functions are not enough
+        ext_id = target.env['ir.model.data'].search_read([('module','=','__import__'),('model','=', model),('name','=',f"{model.replace('.','_')}_{source_record_id}")],['res_id']) 
+        return target.env[model].browse(ext_id[0]['res_id'])
+    
 def delete_all_products():
     target.env['ir.model.data'].browse(target.env['ir.model.data'].search([('model', '=', 'product.template')])).unlink()
     target.env['ir.model.data'].browse(target.env['ir.model.data'].search([('model', '=', 'product.product')])).unlink()
